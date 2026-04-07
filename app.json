@@ -1,0 +1,82 @@
+{
+  "expo": {
+    "name": "Confettis & Cake",
+    "slug": "confettis-cake",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "confettiscake",
+    "primaryColor": "#9b6bb5",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#9b6bb5"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.confettiscake.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSContactsUsageDescription": "Confettis & Cake utilise vos contacts pour détecter les anniversaires.",
+        "NSCameraUsageDescription": "Pour prendre la photo de confirmation d'achat.",
+        "NSPhotoLibraryUsageDescription": "Pour ajouter une photo à votre profil.",
+        "NSUserNotificationsUsageDescription": "Pour vous rappeler les anniversaires et fêtes de vos contacts."
+      },
+      "config": {
+        "googleSignIn": {
+          "reservedClientId": "VOTRE_REVERSED_CLIENT_ID"
+        }
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#9b6bb5"
+      },
+      "package": "com.confettiscake.app",
+      "versionCode": 1,
+      "permissions": [
+        "READ_CONTACTS",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ],
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-av",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Confettis & Cake utilise vos contacts pour détecter les anniversaires."
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.confettiscake.app",
+          "enableGooglePay": false
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "VOTRE_EAS_PROJECT_ID"
+      }
+    }
+  }
+}

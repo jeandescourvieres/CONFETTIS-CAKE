@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/HYDROFOLLIES/**)",
+      "Bash(npx create-expo-app@latest confettis-cake --template blank-typescript)",
+      "Bash(npx expo:*)",
+      "Bash(npm install:*)",
+      "Bash(cd:*)",
+      "Bash(npx tsc:*)",
+      "Bash(sed -n '1075,1171p' \"C:/Users/HYDROFOLLIES/confettis-cake/confetti-cake-mauve \\(9\\).html\")",
+      "Read(//tmp/**)",
+      "Bash(cat:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_5168eda10c15cb437d136f8cc1146180cdb962ec npx supabase db push 2>&1)",
+      "Bash(npm list:*)",
+      "Bash(curl:*)",
+      "Bash(node -e \"require\\(''''react-native-linear-gradient''''\\)\")",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/HYDROFOLLIES/confettis-cake/app/\\(app\\)/**)",
+      "Bash(done)",
+      "Bash(node -e \"const p=require\\(''./node_modules/i18next/package.json''\\); const r=require\\(''./node_modules/react-i18next/package.json''\\); console.log\\(''i18next:'', p.version, ''| react-i18next:'', r.version\\)\")",
+      "Bash(node -e \"const i=require\\(''./node_modules/i18next''\\); console.log\\(''i18next ok, keys:'', Object.keys\\(i\\).slice\\(0,5\\).join\\('',''\\)\\)\")",
+      "Bash(node -e \"const r = require\\(''react-i18next''\\); console.log\\(''exports:'', Object.keys\\(r\\).join\\('', ''\\)\\)\")",
+      "Bash(node -e \"const i = require\\(''i18next''\\); const r = require\\(''react-i18next''\\); try { i.use\\(r.initReactI18next\\).init\\({ resources: { fr: { translation: { test: ''ok'' } } }, lng: ''fr'', fallbackLng: ''fr'', interpolation: { escapeValue: false } }\\); console.log\\(''INIT OK''\\); } catch\\(e\\) { console.log\\(''INIT ERROR:'', e.message\\); }\")",
+      "Bash(node -e \"const p=require\\(''./node_modules/react-i18next/package.json''\\); console.log\\(''peerDeps:'', JSON.stringify\\(p.peerDependencies\\)\\); console.log\\(''main:'', p.main\\); console.log\\(''exports:'', JSON.stringify\\(Object.keys\\(p.exports||{}\\)\\).slice\\(0,200\\)\\)\")",
+      "Bash(node -e \":*)",
+      "Bash(npm ls:*)",
+      "Bash(npx react-native:*)",
+      "Bash(node -e \"const p=require\\(''./node_modules/react-native-reanimated/package.json''\\); console.log\\(''version:'', p.version\\)\")",
+      "Bash(CI=1 npx expo install lottie-react-native)",
+      "Bash(grep -n \"create policy\\\\|create index\\\\|create trigger\\\\|create function\" \"C:\\\\Users\\\\HYDROFOLLIES\\\\confettis-cake\\\\supabase\\\\migrations\"/*.sql)",
+      "Bash(grep -rn \"^create policy\\\\|^create index\\\\|^create trigger\\\\|^create table\\\\|^create type\" C:/Users/HYDROFOLLIES/confettis-cake/supabase/migrations/*.sql)",
+      "Bash(ls:*)"
+    ]
+  }
+}
