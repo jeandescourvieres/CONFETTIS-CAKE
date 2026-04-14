@@ -16,7 +16,9 @@ export interface GenerateMessageInput {
   occasion: Occasion;
   late_mode?: boolean;
   extras?: OccasionExtras;
+  style_hint?: string; // 'Court' | 'Moyen' | 'Long'
   language?: string; // code langue ISO (fr, en, de, es, it...)
+  is_regeneration?: boolean; // true = pas de déduction de crédit
 }
 
 // ── Edge Function ────────────────────────────────
@@ -26,7 +28,25 @@ export async function generateMessageContent(input: GenerateMessageInput): Promi
     body: input,
   });
 
-  if (error) throw new Error(error.message ?? 'Erreur génération IA');
+  if (error) {
+    let detail: string = (error as Error).message ?? 'Erreur génération IA';
+    try {
+      const ctx = (error as unknown as { context?: unknown }).context;
+      if (ctx && typeof (ctx as Response).text === 'function') {
+        const status = (ctx as Response).status;
+        const rawText = await (ctx as Response).text();
+        console.log('[generate] HTTP status:', status, '| body:', rawText);
+        try {
+          const body = JSON.parse(rawText);
+          if (body?.error) detail = `[${status}] ${body.error}`;
+          else detail = `[${status}] ${rawText}`;
+        } catch {
+          detail = `[${status}] ${rawText}`;
+        }
+      }
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
 
   const content = (data as { content?: string })?.content;
   if (!content) throw new Error('Réponse vide du générateur IA');
@@ -108,5 +128,11 @@ export async function markMessageSent(id: string, sentVia: string): Promise<void
 
 export async function deleteMessage(id: string): Promise<void> {
   const { error } = await supabase.from('messages').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteMessages(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from('messages').delete().in('id', ids);
   if (error) throw error;
 }

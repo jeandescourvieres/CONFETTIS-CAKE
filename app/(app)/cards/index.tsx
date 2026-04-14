@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, Dimensions,
@@ -9,6 +9,7 @@ import { useCardTemplates } from '../../../src/hooks/useCards';
 import { CardThumbnail } from '../../../src/components/cards/CardThumbnail';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 
 const { width: W } = Dimensions.get('window');
 const CARD_W = (W - Spacing[5] * 2 - 8) / 2; // 2 colonnes avec gap
@@ -25,6 +26,7 @@ const OCCASIONS = [
 ];
 
 export default function CardsGalleryScreen() {
+  const C = useColors();
   const router = useRouter();
   const params = useLocalSearchParams<{ occasion?: string; contactName?: string; contactId?: string }>();
   const profile = useAuthStore((s) => s.profile);
@@ -48,6 +50,8 @@ export default function CardsGalleryScreen() {
     router.push('/(app)/profile/premium' as never);
   }, [router]);
 
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   const renderCard = useCallback(({ item, index }: { item: typeof templates[0]; index: number }) => (
     <View style={[styles.cardCell, index % 2 === 0 ? styles.cardLeft : styles.cardRight]}>
       <CardThumbnail
@@ -57,7 +61,7 @@ export default function CardsGalleryScreen() {
         onPressLocked={handlePressLocked}
       />
     </View>
-  ), [isPremium, handleSelect, handlePressLocked]);
+  ), [isPremium, handleSelect, handlePressLocked, styles]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -103,7 +107,7 @@ export default function CardsGalleryScreen() {
       {/* Grille */}
       {isLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={Colors.primary} size="large" />
+          <ActivityIndicator color={C.primary} size="large" />
           <Text style={styles.loadingText}>Chargement des cartes…</Text>
         </View>
       ) : templates.length === 0 ? (
@@ -138,7 +142,8 @@ export default function CardsGalleryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
   header: {
@@ -150,7 +155,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.surfaceContainerHighest,
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   headerCenter: { flex: 1, alignItems: 'center' },
   title: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
@@ -182,8 +187,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   filterChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: C.primary,
+    borderColor: C.primary,
   },
   filterEmoji: { fontSize: 13 },
   filterLabel: {
@@ -225,7 +230,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     paddingVertical: 13,
     paddingHorizontal: Spacing[5],
   },
@@ -239,4 +244,5 @@ const styles = StyleSheet.create({
     color: Colors.white,
     lineHeight: 26,
   },
-});
+  });
+}

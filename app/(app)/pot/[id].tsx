@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,10 +17,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { usePot, useContributions, useUpdatePotStatus, useUpdatePotDeadline, useUpdatePotGift } from '../../../src/hooks/usePot';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 import type { Contribution } from '../../../src/types/models';
 
 // ── Progress bar ──────────────────────────────────────────────────────────────
 function ProgressBar({ current, target, large }: { current: number; target: number; large?: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const pct = Math.min((current / target) * 100, 100);
   return (
     <View style={[styles.track, large && styles.trackLarge]}>
@@ -39,6 +42,8 @@ function OrganizerView({
   contributions: Contribution[];
   onClose: () => void;
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const router = useRouter();
   if (!pot) return null;
   const total = pot.current_amount;
@@ -134,6 +139,8 @@ function ParticipantView({
   pot: ReturnType<typeof usePot>['data'];
   contributions: Contribution[];
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const router = useRouter();
   if (!pot) return null;
   const total = pot.current_amount;
@@ -193,6 +200,8 @@ function CloseModal({
   potId: string;
   onDismiss: () => void;
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [newDeadline, setNewDeadline] = useState<Date | null>(null);
   const [newGift, setNewGift] = useState('');
   const [showPicker, setShowPicker] = useState(false);
@@ -214,7 +223,7 @@ function CloseModal({
       } else if (option === 'refund') {
         Alert.alert(
           'Remboursement',
-          'Le remboursement sera traité manuellement via votre tableau de bord Stripe.',
+          'Le remboursement sera traité manuellement via ton tableau de bord Stripe.',
           [{ text: 'Compris', onPress: async () => {
             await statusMutation.mutateAsync({ id: potId, status: 'closed' });
             onDismiss();
@@ -318,6 +327,7 @@ function CloseModal({
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function PotDetailScreen() {
+  const C = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -331,6 +341,8 @@ export default function PotDetailScreen() {
   const statusColor = pot?.status === 'completed' ? '#4CAF50'
     : pot?.status === 'closed' ? Colors.outlineVariant
     : Colors.primary;
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   if (isLoading || !pot) {
     return (
@@ -402,7 +414,8 @@ export default function PotDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.md, color: Colors.onSurfaceVariant },
@@ -410,11 +423,11 @@ const styles = StyleSheet.create({
   topbar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing[4], paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: Colors.primaryContainer,
+    borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   topbarTitle: { flex: 1, fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.xl, color: Colors.onSurface, textAlign: 'center' },
 
   hero: {
@@ -454,18 +467,18 @@ const styles = StyleSheet.create({
   // Progress bar
   track: { height: 8, borderRadius: 4, backgroundColor: Colors.surfaceContainer, overflow: 'hidden', marginTop: Spacing[4] },
   trackLarge: { height: 12, borderRadius: 6 },
-  fill: { height: '100%', borderRadius: 4, backgroundColor: Colors.primary },
+  fill: { height: '100%', borderRadius: 4, backgroundColor: C.primary },
   fillLarge: { borderRadius: 6 },
 
   // Share link
   shareLink: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: Colors.white, borderRadius: Radii.md, padding: Spacing[3],
-    borderWidth: 0.5, borderColor: Colors.primaryContainer, ...Shadows.sm,
+    borderWidth: 0.5, borderColor: C.primaryContainer, ...Shadows.sm,
   },
   shareLinkText: {
     fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm,
-    color: Colors.primary, flex: 1, textDecorationLine: 'underline',
+    color: C.primary, flex: 1, textDecorationLine: 'underline',
   },
   shareLinkIcon: { fontSize: 20, marginLeft: 8 },
 
@@ -477,14 +490,14 @@ const styles = StyleSheet.create({
   },
   contribAvatar: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: Colors.primaryContainer,
+    backgroundColor: C.primaryContainer,
     alignItems: 'center', justifyContent: 'center',
   },
-  contribInitial: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.lg, color: Colors.primary },
+  contribInitial: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.lg, color: C.primary },
   contribInfo: { flex: 1 },
   contribName: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.md, color: Colors.onSurface },
   contribEmail: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant },
-  contribAmount: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.lg, color: Colors.primary },
+  contribAmount: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.lg, color: C.primary },
 
   // Empty contributions
   emptyContribs: { alignItems: 'center', paddingVertical: Spacing[6], gap: 6 },
@@ -496,7 +509,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white, borderRadius: Radii.xl,
     padding: Spacing[5], marginTop: Spacing[4], alignItems: 'center', gap: 8, ...Shadows.sm,
   },
-  participantPct: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['6xl'], color: Colors.primary },
+  participantPct: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['6xl'], color: C.primary },
   participantSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.md, color: Colors.onSurfaceVariant, marginTop: -4 },
   participantAmounts: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: Colors.onSurfaceVariant },
 
@@ -505,19 +518,19 @@ const styles = StyleSheet.create({
   participantPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingVertical: 8, paddingHorizontal: 14,
-    backgroundColor: Colors.primaryContainer,
+    backgroundColor: C.primaryContainer,
     borderRadius: Radii.full,
   },
-  participantCheck: { fontSize: 14, color: Colors.primary },
+  participantCheck: { fontSize: 14, color: C.primary },
   participantName: {
     fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.base,
-    color: Colors.primary, maxWidth: 120,
+    color: C.primary, maxWidth: 120,
   },
 
   // CTA buttons
   contributeBtn: {
     marginTop: Spacing[5], paddingVertical: 16, borderRadius: Radii.full,
-    backgroundColor: Colors.primary, alignItems: 'center', ...Shadows.md,
+    backgroundColor: C.primary, alignItems: 'center', ...Shadows.md,
   },
   contributeBtnText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.white },
   closeBtn: {
@@ -543,20 +556,20 @@ const styles = StyleSheet.create({
     padding: Spacing[4], borderRadius: Radii.xl, marginBottom: 10,
     borderWidth: 1.5, borderColor: Colors.surfaceContainerHighest, backgroundColor: Colors.white,
   },
-  optionBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryContainer + '40' },
+  optionBtnActive: { borderColor: C.primary, backgroundColor: C.primaryContainer + '40' },
   optionEmoji: { fontSize: 28 },
   optionText: { flex: 1 },
   optionTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.md, color: Colors.onSurface },
-  optionTitleActive: { color: Colors.primary },
+  optionTitleActive: { color: C.primary },
   optionDesc: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, marginTop: 2 },
   optionExtra: { marginTop: -4, marginBottom: 10, paddingHorizontal: 4 },
   datePickerBtn: {
     padding: Spacing[3], borderRadius: Radii.md,
-    backgroundColor: Colors.white, borderWidth: 0.5, borderColor: Colors.primaryContainer,
+    backgroundColor: Colors.white, borderWidth: 0.5, borderColor: C.primaryContainer,
   },
-  datePickerBtnText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.base, color: Colors.primary },
+  datePickerBtnText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.base, color: C.primary },
   optionInput: {
-    backgroundColor: Colors.white, borderWidth: 0.5, borderColor: Colors.primaryContainer,
+    backgroundColor: Colors.white, borderWidth: 0.5, borderColor: C.primaryContainer,
     borderRadius: Radii.md, paddingVertical: 10, paddingHorizontal: 12,
     fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.md, color: Colors.onSurface,
   },
@@ -569,7 +582,8 @@ const styles = StyleSheet.create({
   modalCancelText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.md, color: Colors.onSurfaceVariant },
   modalConfirm: {
     flex: 1, paddingVertical: 14, borderRadius: Radii.full,
-    backgroundColor: Colors.primary, alignItems: 'center',
+    backgroundColor: C.primary, alignItems: 'center',
   },
   modalConfirmText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.md, color: Colors.white },
-});
+  });
+}

@@ -49,7 +49,11 @@ export function ContactRow({ contact, upcomingEvent, onPress, onCreateMessage }:
             style={styles.createBtn}
           >
             <Text style={styles.createBtnText}>
-              {upcomingEvent.eventType === 'birthday' ? '✦ Créer' : '🌸 Fête'}
+              {upcomingEvent.eventType === 'birthday'
+                ? '✦ Créer'
+                : upcomingEvent.daysUntil === 0 ? '🌸 Fête · aujourd\'hui'
+                : upcomingEvent.daysUntil === 1 ? '🌸 Fête · demain'
+                : `🌸 Fête · dans ${upcomingEvent.daysUntil}j`}
             </Text>
           </TouchableOpacity>
         ) : (
@@ -61,9 +65,15 @@ export function ContactRow({ contact, upcomingEvent, onPress, onCreateMessage }:
 }
 
 function formatEventLabel(event: UpcomingEvent): string {
-  if (event.daysUntil === 0) return event.eventType === 'birthday' ? 'Anniversaire 🎉' : 'Fête 🌸';
-  if (event.daysUntil === 1) return event.eventType === 'birthday' ? 'Demain 🎂🔥' : 'Fête demain 🌸';
-  return `Dans ${event.daysUntil}j ${event.eventType === 'birthday' ? '🎂' : '🌸'}`;
+  if (event.eventType === 'birthday') {
+    if (event.daysUntil === 0) return 'Anniversaire aujourd\'hui 🎉';
+    if (event.daysUntil === 1) return 'Anniversaire demain 🎂🔥';
+    return `Anniversaire dans ${event.daysUntil}j 🎂`;
+  } else {
+    if (event.daysUntil === 0) return 'Fête aujourd\'hui 🌸';
+    if (event.daysUntil === 1) return 'Fête demain 🌸';
+    return `Fête dans ${event.daysUntil}j 🌸`;
+  }
 }
 
 function formatBirthday(birthday: string): string {
@@ -96,8 +106,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.primary,
     borderRadius: Radii.lg,
+    marginHorizontal: Spacing[4],
     marginBottom: Spacing[2],
-    borderBottomWidth: 1.5,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -113,8 +123,8 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   sub: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.xs,
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: Typography.sm,
     color: Colors.onSurfaceVariant,
   },
   subHighlighted: {

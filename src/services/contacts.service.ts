@@ -147,8 +147,11 @@ function parseBirthday(
   if (!birthday) return null;
   const { year, month, day } = birthday;
   if (!month || !day) return null;
-  const y = year ?? new Date().getFullYear();
+  // iOS stocke les anniversaires sans année avec year=0 ou year=1 (à ignorer)
+  const validYear = year && year > 1 ? year : null;
+  const y = validYear ?? new Date().getFullYear();
   const mm = String(month).padStart(2, '0');
   const dd = String(day).padStart(2, '0');
-  return `${y}-${mm}-${dd}`;
+  // On stocke l'année réelle si connue, sinon on préfixe par "0000" pour signaler l'absence
+  return validYear ? `${y}-${mm}-${dd}` : `0000-${mm}-${dd}`;
 }

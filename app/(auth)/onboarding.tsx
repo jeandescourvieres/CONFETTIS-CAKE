@@ -286,7 +286,7 @@ function Slide1() {
           Confettis & Cake
         </Text>
         <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.85)' }]}>
-          Ne manquez plus jamais un anniversaire, une fête ou un moment qui compte pour vous ✨
+          Ne manquez plus jamais un anniversaire, une fête ou un moment qui compte pour toi ✨
         </Text>
       </View>
     </View>
@@ -303,7 +303,7 @@ function Slide2() {
         Des messages vraiment personnalisés
       </Text>
       <Text style={[styles.subtitle, { textAlign: 'left', marginTop: 10, marginBottom: 20 }]}>
-        L'IA compose une chanson, un poème ou un message unique — adapté à la personne, à votre relation et à vos souvenirs partagés.
+        L'IA compose une chanson, un poème ou un message unique — adapté à la personne, à ta relation et à tes souvenirs partagés.
       </Text>
       {/* Example card */}
       <View style={styles.exCard}>
@@ -352,7 +352,7 @@ function Slide3() {
         Anniversaires ET fêtes des prénoms
       </Text>
       <Text style={[styles.subtitle, { textAlign: 'left', marginTop: 10, marginBottom: 20 }]}>
-        L'app détecte automatiquement les fêtes des prénoms de vos contacts et vous alerte 7 jours à l'avance.
+        L'app détecte automatiquement les fêtes des prénoms de tes contacts et t'alerte 7 jours à l'avance.
       </Text>
       {/* Contact cards */}
       <View style={[styles.exCard, { flexDirection: 'row', alignItems: 'center', gap: 10, borderLeftWidth: 3, borderLeftColor: Colors.primary }]}>
@@ -371,7 +371,7 @@ function Slide3() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.contactName}>Sophie</Text>
-          <Text style={styles.contactSub}>Dans 3 jours — Fête du prénom</Text>
+          <Text style={styles.contactSub}>Dans 3 jours — Fête</Text>
         </View>
         <View style={[styles.tagPrimary, { backgroundColor: Colors.primaryContainer }]}>
           <Text style={{ color: Colors.primary, fontSize: 11, fontFamily: 'BeVietnamPro_700Bold' }}>🌸 Fête</Text>
@@ -464,7 +464,7 @@ function Slide5({ onLogin }: { onLogin: () => void }) {
     } catch (err: any) {
       const msg = err?.message ?? '';
       if (msg.includes('already registered') || msg.includes('already exists')) {
-        showToast('Email déjà utilisé. Connectez-vous.', 'error');
+        showToast('Email déjà utilisé. Connecte-toi.', 'error');
         setIsSignUp(false);
       } else if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) {
         showToast('Email ou mot de passe incorrect.', 'error');
@@ -491,7 +491,7 @@ function Slide5({ onLogin }: { onLogin: () => void }) {
         {isSignUp ? 'On commence ! 🎉' : 'Bon retour !'}
       </Text>
       <Text style={[styles.subtitle, { marginTop: 6, marginBottom: 28 }]}>
-        {isSignUp ? 'Créez votre compte gratuitement — aucune carte requise' : 'Connectez-vous à votre compte'}
+        {isSignUp ? 'Crée ton compte gratuitement — aucune carte requise' : 'Connecte-toi à ton compte'}
       </Text>
 
       {/* Google */}
@@ -520,7 +520,7 @@ function Slide5({ onLogin }: { onLogin: () => void }) {
           style={styles.emailInput}
           value={firstName}
           onChangeText={setFirstName}
-          placeholder="Votre prénom"
+          placeholder="Ton prénom"
           placeholderTextColor={Colors.outlineVariant}
           autoCapitalize="words"
           autoCorrect={false}
@@ -531,7 +531,7 @@ function Slide5({ onLogin }: { onLogin: () => void }) {
         style={[styles.emailInput, isSignUp && { marginTop: 10 }]}
         value={email}
         onChangeText={setEmail}
-        placeholder="Votre adresse email"
+        placeholder="Ton adresse email"
         placeholderTextColor={Colors.outlineVariant}
         keyboardType="email-address"
         autoCapitalize="none"

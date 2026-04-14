@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,40 +8,48 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   fetchPhoneContacts,
+  fetchContacts,
   type PhoneContactCandidate,
 } from '../../../src/services/contacts.service';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { supabase } from '../../../src/services/supabase';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 
 export default function ImportContactsScreen() {
   const router = useRouter();
+  const C = useColors();
   const userId = useAuthStore((s) => s.user?.id);
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
 
   const [candidates, setCandidates] = useState<PhoneContactCandidate[]>([]);
+  const [existingNames, setExistingNames] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPhoneContacts()
-      .then((list) => {
-        setCandidates(list);
-        // Aucun contact sélectionné par défaut
+    if (!userId) return;
+    Promise.all([fetchPhoneContacts(), fetchContacts(userId)])
+      .then(([phoneList, dbContacts]) => {
+        // Noms déjà en base (normalisés)
+        const names = new Set(dbContacts.map((c) => c.name.toLowerCase().trim()));
+        setExistingNames(names);
+        setCandidates(phoneList);
         setSelected(new Set());
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Impossible de charger les contacts.');
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [userId]);
 
   const toggleOne = useCallback((phoneId: string) => {
     setSelected((prev) => {
@@ -60,12 +68,10 @@ export default function ImportContactsScreen() {
     }
   }, [selected.size, candidates]);
 
-  const handleImport = useCallback(async () => {
-    if (!userId || selected.size === 0) return;
-    const toImport = candidates.filter((c) => selected.has(c.phoneId));
+  const doImport = useCallback(async (toImport: PhoneContactCandidate[]) => {
+    if (!userId) return;
     try {
       setImporting(true);
-      // Importer uniquement prénom, nom, téléphone
       const rows = toImport.map((c) => ({
         user_id: userId,
         name: c.name,
@@ -81,21 +87,56 @@ export default function ImportContactsScreen() {
       const { error: dbError } = await supabase.from('contacts').insert(rows as any);
       if (dbError) throw dbError;
       await queryClient.invalidateQueries({ queryKey: ['contacts', userId] });
-      Alert.alert('Importé !', `${toImport.length} contact${toImport.length > 1 ? 's' : ''} ajouté${toImport.length > 1 ? 's' : ''}.`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      Alert.alert(
+        'Importé !',
+        `${toImport.length} contact${toImport.length > 1 ? 's' : ''} ajouté${toImport.length > 1 ? 's' : ''}.`,
+        [{ text: 'OK', onPress: () => router.back() }],
+      );
     } catch (err: unknown) {
       Alert.alert('Erreur', err instanceof Error ? err.message : 'Erreur lors de l\'import.');
     } finally {
       setImporting(false);
     }
-  }, [userId, selected, candidates, queryClient, router]);
+  }, [userId, queryClient, router]);
+
+  const handleImport = useCallback(async () => {
+    if (!userId || selected.size === 0) return;
+    const toImport = candidates.filter((c) => selected.has(c.phoneId));
+
+    // Détecter les doublons (même nom déjà en base)
+    const duplicates = toImport.filter((c) => existingNames.has(c.name.toLowerCase().trim()));
+
+    if (duplicates.length > 0) {
+      const names = duplicates.map((c) => `• ${c.name}`).join('\n');
+      Alert.alert(
+        '⚠️ Contacts déjà importés',
+        `Ces contacts existent déjà :\n\n${names}\n\nVoulez-vous quand même les importer en double ?`,
+        [
+          { text: 'Ignorer les doublons', style: 'default', onPress: () => {
+            const fresh = toImport.filter((c) => !existingNames.has(c.name.toLowerCase().trim()));
+            if (fresh.length === 0) {
+              Alert.alert('Rien à importer', 'Tous les contacts sélectionnés existent déjà.');
+            } else {
+              doImport(fresh);
+            }
+          }},
+          { text: 'Importer quand même', style: 'destructive', onPress: () => doImport(toImport) },
+          { text: 'Annuler', style: 'cancel' },
+        ],
+      );
+      return;
+    }
+
+    doImport(toImport);
+  }, [userId, selected, candidates, existingNames, doImport]);
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.center}>
-          <ActivityIndicator color={Colors.primary} size="large" />
+          <ActivityIndicator color={C.primary} size="large" />
           <Text style={styles.loadingText}>Chargement des contacts…</Text>
         </View>
       </SafeAreaView>
@@ -174,7 +215,7 @@ export default function ImportContactsScreen() {
       />
 
       {/* Bouton importer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing[4] }]}>
         <TouchableOpacity
           style={[styles.importBtn, (selected.size === 0 || importing) && { opacity: 0.45 }]}
           onPress={handleImport}
@@ -193,7 +234,8 @@ export default function ImportContactsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
 
@@ -204,11 +246,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[4],
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.primaryContainer,
+    borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   topbarTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',
     fontSize: Typography.lg,
@@ -219,13 +261,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: Radii.full,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: C.primary,
     maxWidth: 150,
   },
   selectAllText: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.sm,
-    color: Colors.primary,
+    color: C.primary,
   },
 
   subHeader: {
@@ -247,10 +289,9 @@ const styles = StyleSheet.create({
     color: Colors.onSurfaceVariant,
   },
   subNote: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.xs,
-    color: Colors.onSurfaceVariant,
-    fontStyle: 'italic',
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.sm,
+    color: Colors.onSurface,
   },
 
   list: { paddingBottom: 100 },
@@ -266,7 +307,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   rowSelected: {
-    backgroundColor: Colors.primaryContainer,
+    backgroundColor: C.primaryContainer,
   },
   checkbox: {
     width: 24,
@@ -279,8 +320,8 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   checkboxSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: C.primary,
+    borderColor: C.primary,
   },
   checkmark: {
     fontSize: 14,
@@ -306,7 +347,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: Spacing[4],
+    paddingTop: Spacing[4],
+    paddingHorizontal: Spacing[4],
     backgroundColor: Colors.white,
     borderTopWidth: 0.5,
     borderTopColor: Colors.surfaceContainerHighest,
@@ -314,7 +356,7 @@ const styles = StyleSheet.create({
   importBtn: {
     height: 52,
     borderRadius: Radii.full,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -336,4 +378,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 24,
   },
-});
+  });
+}

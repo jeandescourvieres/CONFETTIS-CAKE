@@ -39,7 +39,7 @@ export default function LoginScreen() {
     return (
       <View style={styles.centeredContainer}>
         <Text style={styles.emoji}>📬</Text>
-        <Text style={styles.title}>Vérifiez vos emails</Text>
+        <Text style={styles.title}>Vérifie tes emails</Text>
         <Text style={styles.subtitle}>
           Un lien de connexion a été envoyé à{'\n'}
           <Text style={{ color: Colors.primary, fontFamily: 'BeVietnamPro_700Bold' }}>{email}</Text>
@@ -63,7 +63,7 @@ export default function LoginScreen() {
         <View style={styles.header}>
           <Text style={styles.brand}>Confettis & Cake</Text>
           <Text style={styles.title}>On commence ! 🎉</Text>
-          <Text style={styles.subtitle}>Créez votre compte gratuitement — aucune carte requise</Text>
+          <Text style={styles.subtitle}>Crée ton compte gratuitement — aucune carte requise</Text>
         </View>
 
         {/* Google */}

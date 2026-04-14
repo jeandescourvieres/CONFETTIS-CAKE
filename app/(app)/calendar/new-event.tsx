@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   ScrollView, StyleSheet, Alert, Platform,
@@ -11,6 +11,7 @@ import { useCreateCustomEvent, useUpdateCustomEvent } from '../../../src/hooks/u
 import { useAuthStore } from '../../../src/stores/authStore';
 import { scheduleCustomEventReminders } from '../../../src/services/notifications.service';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 
 const REMIND_OPTIONS = [
   { value: 0, label: 'Le jour même' },
@@ -21,6 +22,7 @@ const REMIND_OPTIONS = [
 
 export default function NewEventScreen() {
   const router = useRouter();
+  const C = useColors();
   const { editId, editTitle, editDate, editDescription, editRemind } =
     useLocalSearchParams<{
       editId?: string;
@@ -99,6 +101,8 @@ export default function NewEventScreen() {
       Alert.alert('Erreur lors de la sauvegarde', msg);
     }
   };
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -212,18 +216,19 @@ export default function NewEventScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   topbar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing[4], paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: Colors.primaryContainer,
+    borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   topbarTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.lg, color: Colors.onSurface },
-  saveBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: Radii.full, backgroundColor: Colors.primary },
+  saveBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: Radii.full, backgroundColor: C.primary },
   saveBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.white },
 
   content: { padding: Spacing[5], paddingBottom: 80 },
@@ -233,7 +238,7 @@ const styles = StyleSheet.create({
     color: Colors.onSurfaceVariant, marginBottom: Spacing[2], marginTop: Spacing[4],
   },
   input: {
-    backgroundColor: Colors.white, borderWidth: 0.5, borderColor: Colors.primaryContainer,
+    backgroundColor: Colors.white, borderWidth: 0.5, borderColor: C.primaryContainer,
     borderRadius: Radii.md, paddingVertical: 12, paddingHorizontal: Spacing[3],
     fontSize: Typography.md, fontFamily: 'BeVietnamPro_400Regular', color: Colors.onSurface,
     justifyContent: 'center',
@@ -243,27 +248,28 @@ const styles = StyleSheet.create({
 
   pickerWrap: {
     backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg,
-    borderWidth: 1, borderColor: Colors.primaryContainer, overflow: 'hidden', marginTop: 8,
+    borderWidth: 1, borderColor: C.primaryContainer, overflow: 'hidden', marginTop: 8,
   },
   pickerHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: Colors.primaryContainer,
+    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.primaryContainer,
   },
-  pickerTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.primary },
-  pickerOk: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.md, color: Colors.primary },
+  pickerTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: C.primary },
+  pickerOk: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.md, color: C.primary },
 
   remindGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   remindBtn: {
     paddingVertical: 8, paddingHorizontal: 14, borderRadius: Radii.full,
-    borderWidth: 1, borderColor: Colors.primaryContainer, backgroundColor: Colors.white,
+    borderWidth: 1, borderColor: C.primaryContainer, backgroundColor: Colors.white,
   },
-  remindBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  remindBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
   remindLabel: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurfaceVariant },
   remindLabelActive: { color: Colors.white },
 
   submitBtn: {
     marginTop: Spacing[6], paddingVertical: 15, borderRadius: Radii.full,
-    backgroundColor: Colors.primary, alignItems: 'center',
+    backgroundColor: C.primary, alignItems: 'center',
   },
   submitBtnText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.white },
-});
+  });
+}

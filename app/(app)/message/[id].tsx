@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import { useAuthStore } from '../../../src/stores/authStore';
 import { useCreateStore } from '../../../src/stores/createStore';
 import { buildSignatureText, getSignatureLabels } from '../../../src/utils/signature';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 import type { MessageFormat, MessageTone, MusicStatus } from '../../../src/types/models';
 
 const FORMAT_EMOJI: Record<string, string> = { song: '🎵', poem: '✍️', message: '💬', joke: '✨' };
@@ -33,6 +34,8 @@ const TONE_LABEL: Record<MessageTone, string> = {
 
 // ── Mini lecteur audio ────────────────────────────────────────────────────────
 function MiniAudioPlayer({ audioUrl, musicStatus }: { audioUrl: string | null; musicStatus: MusicStatus }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const soundRef = useRef<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [positionMs, setPositionMs] = useState(0);
@@ -113,6 +116,7 @@ const SHARE_CHANNELS = [
 ];
 
 export default function MessageDetailScreen() {
+  const C = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -183,6 +187,8 @@ export default function MessageDetailScreen() {
       setSending(false);
     }
   };
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   if (isLoading || !message) {
     return (
@@ -300,7 +306,8 @@ export default function MessageDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: {
@@ -316,11 +323,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[4],
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.primaryContainer,
+    borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   topbarTitle: {
     flex: 1,
     fontFamily: 'PlusJakartaSans_700Bold',
@@ -395,7 +402,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginHorizontal: Spacing[4],
     marginBottom: Spacing[3],
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     borderRadius: Radii.xl,
     padding: Spacing[4],
   },
@@ -478,4 +485,5 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     color: Colors.onSurfaceVariant,
   },
-});
+  });
+}

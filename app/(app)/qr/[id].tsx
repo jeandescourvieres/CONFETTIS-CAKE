@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
 import { useMessage } from '../../../src/hooks/useAIGenerate';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 
 const FORMAT_EMOJI: Record<string, string> = { song: '🎵', poem: '✍️', message: '💬', joke: '✨' };
 
 export default function QRScreen() {
+  const C = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const svgRef = useRef<{ toDataURL: (cb: (data: string) => void) => void } | null>(null);
@@ -34,6 +36,8 @@ export default function QRScreen() {
       title: `Message pour ${message.contact_name}`,
     });
   };
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   if (isLoading || !message) {
     return (
@@ -121,7 +125,8 @@ export default function QRScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: {
@@ -137,11 +142,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[4],
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.primaryContainer,
+    borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   topbarTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',
     fontSize: Typography.xl,
@@ -191,7 +196,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 24,
     height: 24,
-    borderColor: Colors.primary,
+    borderColor: C.primary,
     borderWidth: 3,
   },
   cornerTL: { top: -4, left: '50%', marginLeft: -124, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 6 },
@@ -216,7 +221,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing[5],
     gap: 8,
     borderWidth: 0.5,
-    borderColor: Colors.primaryContainer,
+    borderColor: C.primaryContainer,
   },
   previewLabel: {
     fontFamily: 'BeVietnamPro_700Bold',
@@ -236,7 +241,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing[5],
     paddingVertical: 16,
     borderRadius: Radii.full,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     ...Shadows.md,
   },
@@ -251,12 +256,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: Radii.full,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderColor: C.primary,
     alignItems: 'center',
   },
   backToMsgBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.md,
-    color: Colors.primary,
+    color: C.primary,
   },
-});
+  });
+}

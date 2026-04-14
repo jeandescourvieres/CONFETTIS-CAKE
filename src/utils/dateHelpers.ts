@@ -3,6 +3,18 @@ import { fr } from 'date-fns/locale';
 import type { Contact, UpcomingEvent } from '../types/models';
 import { getNameDayForName } from './namedays';
 
+// ── Noms ──────────────────────────────────────
+
+/**
+ * Convertit "NOM Prénom" → "Prénom NOM" pour l'affichage.
+ * Si le nom n'a qu'un seul mot, le retourne tel quel.
+ */
+export function displayName(name: string): string {
+  const parts = name.trim().split(' ');
+  if (parts.length <= 1) return name;
+  return `${parts.slice(1).join(' ')} ${parts[0]}`;
+}
+
 // ── Formatage ─────────────────────────────────
 
 export function formatDate(date: Date | string, pattern = 'd MMMM'): string {
@@ -72,7 +84,7 @@ export function humanDaysUntil(days: number): string {
  * Retourne "urgent" si l'événement est dans les 7 prochains jours.
  */
 export function isUrgent(daysUntil: number): boolean {
-  return daysUntil <= 7;
+  return daysUntil <= 15;
 }
 
 // ── Événements à venir ─────────────────────────

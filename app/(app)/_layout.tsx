@@ -1,7 +1,18 @@
-import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Typography, Radii } from '@constants/theme';
+import { useThemeStore } from '../../src/stores/themeStore';
+
+function HomeTabButton(props: React.ComponentProps<typeof TouchableOpacity>) {
+  const router = useRouter();
+  return (
+    <TouchableOpacity
+      {...props}
+      onPress={() => router.replace('/welcome' as never)}
+    />
+  );
+}
 
 function CalendarIcon({ focused }: { focused: boolean }) {
   const day = new Date().getDate();
@@ -37,22 +48,18 @@ const calStyles = StyleSheet.create({
 
 // Icônes Unicode Material-style simplifiées (remplacé par expo-icons en Phase 2)
 const TAB_ICONS: Record<string, { active: string; inactive: string }> = {
-  index:      { active: '🏠', inactive: '🏠' },
-  create:     { active: '✦',  inactive: '✦'  },
-  creations:  { active: '✉️', inactive: '✉️' },
-  profile:    { active: '👤', inactive: '👤' },
+  index:     { active: '🏠', inactive: '🏠' },
+  dashboard: { active: '📊', inactive: '📊' },
 };
 
 const TAB_LABELS: Record<string, string> = {
   index:     'Accueil',
-  calendar:  'Calendrier',
-  create:    'Créer',
-  creations: 'Créations',
-  profile:   'Profil',
+  dashboard: 'Mon tableau de bord',
 };
 
 export default function AppLayout() {
   const insets = useSafeAreaInsets();
+  const appTheme = useThemeStore((s) => s.theme);
 
   return (
     <Tabs
@@ -77,37 +84,18 @@ export default function AppLayout() {
             {TAB_LABELS[route.name] ?? route.name}
           </Text>
         ),
-        tabBarActiveTintColor: Colors.primary,
+        tabBarActiveTintColor: appTheme.primary,
         tabBarInactiveTintColor: Colors.outlineVariant,
       })}
     >
-      <Tabs.Screen name="index" />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-              <CalendarIcon focused={focused} />
-            </View>
-          ),
-        }}
-      />
-      {/* Bouton Créer central mis en avant */}
-      <Tabs.Screen
-        name="create/index"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <View style={styles.createBtn}>
-              <Text style={styles.createBtnText}>✦</Text>
-            </View>
-          ),
-          tabBarLabel: () => (
-            <Text style={[styles.tabLabel, styles.tabLabelActive]}>Créer</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen name="creations" />
-      <Tabs.Screen name="profile" />
+      <Tabs.Screen name="index" options={{ tabBarButton: (props) => <HomeTabButton {...props} /> }} />
+      <Tabs.Screen name="dashboard" />
+      <Tabs.Screen name="create/index" options={{ href: null }} />
+
+      {/* Écrans sans onglet (anciens onglets) */}
+      <Tabs.Screen name="calendar" options={{ href: null }} />
+      <Tabs.Screen name="creations" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
 
       {/* Écrans sans onglet */}
       <Tabs.Screen name="contact/[id]" options={{ href: null }} />
@@ -117,6 +105,9 @@ export default function AppLayout() {
       <Tabs.Screen name="create/studio" options={{ href: null }} />
       <Tabs.Screen name="create/preview" options={{ href: null }} />
       <Tabs.Screen name="create/sent" options={{ href: null }} />
+      <Tabs.Screen name="studio/index" options={{ href: null }} />
+      <Tabs.Screen name="preview/index" options={{ href: null }} />
+      <Tabs.Screen name="sent/index" options={{ href: null }} />
       <Tabs.Screen name="calendar/new-event" options={{ href: null }} />
       <Tabs.Screen name="message/[id]" options={{ href: null }} />
       <Tabs.Screen name="profile/premium" options={{ href: null }} />
@@ -171,24 +162,5 @@ const styles = StyleSheet.create({
   },
   tabLabelActive: {
     color: Colors.primary,
-  },
-  // Bouton Créer central
-  createBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: Radii.full,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  createBtnText: {
-    fontSize: 22,
-    color: Colors.white,
   },
 });

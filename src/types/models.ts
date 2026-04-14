@@ -40,6 +40,8 @@ export interface Contact {
   avatar_url: string | null;
   imported_from: 'phone' | 'manual' | null;
   personality_tags: string[];    // ex: ['drôle', 'sportif']
+  preferred_channel: 'sms' | 'email' | null;
+  preferred_send_time: 'morning' | 'afternoon' | 'evening' | 'anytime' | null;
   created_at: string;
 }
 

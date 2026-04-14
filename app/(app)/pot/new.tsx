@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,8 +15,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useContacts } from '../../../src/hooks/useContacts';
 import { useCreatePot } from '../../../src/hooks/usePot';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 
 export default function PotNewScreen() {
+  const C = useColors();
   const router = useRouter();
   const { data: contacts = [] } = useContacts();
   const { mutateAsync: createPot, isPending } = useCreatePot();
@@ -51,6 +53,8 @@ export default function PotNewScreen() {
     }
   };
 
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Topbar */}
@@ -71,7 +75,7 @@ export default function PotNewScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
         {/* ── Titre ─────────────────────────────────── */}
-        <Text style={styles.label}>Titre *</Text>
+        <Text style={styles.label}>Donne un nom à ta cagnotte *</Text>
         <TextInput
           style={styles.input}
           value={title}
@@ -82,7 +86,7 @@ export default function PotNewScreen() {
         />
 
         {/* ── Contact ───────────────────────────────── */}
-        <Text style={styles.label}>Pour qui ? *</Text>
+        <Text style={styles.label}>Qui en est le/la bénéficiaire ? *</Text>
         <TouchableOpacity
           style={[styles.input, styles.pickerBtn]}
           onPress={() => setShowContactPicker(!showContactPicker)}
@@ -110,7 +114,7 @@ export default function PotNewScreen() {
         )}
 
         {/* ── Objectif ──────────────────────────────── */}
-        <Text style={styles.label}>Objectif (€) *</Text>
+        <Text style={styles.label}>Objectif à atteindre (€) *</Text>
         <View style={styles.amountRow}>
           <TextInput
             style={[styles.input, { flex: 1 }]}
@@ -143,7 +147,7 @@ export default function PotNewScreen() {
         />
 
         {/* ── Date limite ───────────────────────────── */}
-        <Text style={styles.label}>Date limite (optionnel)</Text>
+        <Text style={styles.label}>Date limite de la collecte (optionnel)</Text>
         <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
           <Text style={deadline ? styles.inputText : styles.inputPlaceholder}>
             {deadline
@@ -173,7 +177,7 @@ export default function PotNewScreen() {
         <View style={styles.infoCard}>
           <Text style={styles.infoEmoji}>💡</Text>
           <Text style={styles.infoText}>
-            Un lien de partage unique sera généré. Vos proches pourront contribuer sans avoir l'application.
+            Un lien de partage unique sera généré. Tes proches pourront contribuer sans avoir l'application.
           </Text>
         </View>
 
@@ -195,18 +199,19 @@ export default function PotNewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   topbar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing[4], paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: Colors.primaryContainer,
+    borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   topbarTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.xl, color: Colors.onSurface },
-  saveBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: Radii.full, backgroundColor: Colors.primary },
+  saveBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: Radii.full, backgroundColor: C.primary },
   saveBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.white },
 
   content: { padding: Spacing[4], paddingBottom: 80 },
@@ -216,7 +221,7 @@ const styles = StyleSheet.create({
     color: Colors.onSurfaceVariant, marginTop: Spacing[4], marginBottom: Spacing[2],
   },
   input: {
-    backgroundColor: Colors.white, borderWidth: 0.5, borderColor: Colors.primaryContainer,
+    backgroundColor: Colors.white, borderWidth: 0.5, borderColor: C.primaryContainer,
     borderRadius: Radii.md, paddingVertical: 12, paddingHorizontal: Spacing[3],
     fontSize: Typography.md, fontFamily: 'BeVietnamPro_400Regular', color: Colors.onSurface,
   },
@@ -228,7 +233,7 @@ const styles = StyleSheet.create({
   pickerArrow: { fontSize: 16, color: Colors.outlineVariant },
   dropdown: {
     backgroundColor: Colors.white, borderRadius: Radii.md,
-    borderWidth: 0.5, borderColor: Colors.primaryContainer, marginTop: 4, ...Shadows.sm,
+    borderWidth: 0.5, borderColor: C.primaryContainer, marginTop: 4, ...Shadows.sm,
   },
   dropdownRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -242,9 +247,9 @@ const styles = StyleSheet.create({
   amountRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   euroTag: {
     width: 44, height: 48, borderRadius: Radii.md,
-    backgroundColor: Colors.primaryContainer, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.primaryContainer, alignItems: 'center', justifyContent: 'center',
   },
-  euroTagText: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.xl, color: Colors.primary },
+  euroTagText: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.xl, color: C.primary },
   amountHint: {
     fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs,
     color: Colors.onSurfaceVariant, marginTop: 6,
@@ -258,8 +263,8 @@ const styles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
     marginTop: Spacing[5], padding: Spacing[4],
-    backgroundColor: Colors.primaryContainer + '50',
-    borderRadius: Radii.lg, borderWidth: 0.5, borderColor: Colors.primaryContainer,
+    backgroundColor: C.primaryContainer + '50',
+    borderRadius: Radii.lg, borderWidth: 0.5, borderColor: C.primaryContainer,
   },
   infoEmoji: { fontSize: 20 },
   infoText: {
@@ -269,7 +274,8 @@ const styles = StyleSheet.create({
 
   ctaBtn: {
     marginTop: Spacing[6], paddingVertical: 17, borderRadius: Radii.full,
-    backgroundColor: Colors.primary, alignItems: 'center', ...Shadows.lg,
+    backgroundColor: C.primary, alignItems: 'center', ...Shadows.lg,
   },
   ctaBtnText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.white },
-});
+  });
+}

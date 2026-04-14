@@ -1,29 +1,34 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   Share,
   Linking,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
 import { useCreateStore } from '../../../src/stores/createStore';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useAIGenerate } from '../../../src/hooks/useAIGenerate';
-import { markMessageSent } from '../../../src/services/messages.service';
+import { markMessageSent, updateMessageContent } from '../../../src/services/messages.service';
 import { buildSignatureText, getSignatureLabels } from '../../../src/utils/signature';
 import { fetchMusicStatus } from '../../../src/services/music.service';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 
 // ── Lecteur audio preview ─────────────────────────────────────────────────────
 function AudioPreviewPlayer({ messageId }: { messageId: string | null }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const soundRef = useRef<Audio.Sound | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -100,6 +105,8 @@ const SHARE_CHANNELS = [
 
 // ── Lyrics card (song format splits by newlines) ──────────────────────────────
 function LyricsCard({ content }: { content: string }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const parts = content.split(/\n{2,}/);
   return (
     <View style={styles.lyricsCard}>
@@ -115,6 +122,8 @@ function LyricsCard({ content }: { content: string }) {
 
 export default function PreviewScreen() {
   const router = useRouter();
+  const C = useColors();
+  const { autoGen } = useLocalSearchParams<{ autoGen?: string }>();
   const { generate, isPending } = useAIGenerate();
   const { i18n } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
@@ -122,61 +131,118 @@ export default function PreviewScreen() {
   const {
     format,
     contactName,
+    contactPhone,
+    contactEmail,
     generatedContent,
     savedMessageId,
+    setGeneratedContent,
   } = useCreateStore();
 
   const [sending, setSending] = useState(false);
+  // Mode manuel (contenu vide / espace) → mémorisé pour toute la session
+  const isManualMode = useRef(generatedContent.trim() === '');
+  const [isEditing, setIsEditing] = useState(isManualMode.current);
+  const [localContent, setLocalContent] = useState(isManualMode.current ? '' : generatedContent);
+  const isFirstRender = useRef(true);
+
+  // Auto-génération si lancé depuis l'accueil (quick-send)
+  useEffect(() => {
+    if (autoGen === '1') generate();
+  }, []);
+
+  // Sync quand le contenu change (après régénération) — skip le premier rendu
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    setLocalContent(generatedContent);
+    setIsEditing(false);
+  }, [generatedContent]);
+
+  const handleSaveEdit = async () => {
+    Keyboard.dismiss();
+    const trimmed = localContent.trim();
+    if (!trimmed) return;
+    setGeneratedContent(trimmed);
+    if (savedMessageId) {
+      try { await updateMessageContent(savedMessageId, trimmed); } catch { /* non-bloquant */ }
+    }
+    setIsEditing(false);
+  };
 
   const showSig = profile?.show_signature !== false;
   const sigLabels = showSig ? getSignatureLabels(i18n.language) : null;
 
   const formatEmoji: Record<string, string> = { song: '🎵', poem: '✍️', message: '💬', joke: '✨' };
-  const title = contactName ? `Pour ${contactName}` : 'Votre message';
+  // contactName stocké "NOM Prénom" → afficher "Prénom NOM"
+  const nameParts = contactName.trim().split(' ');
+  const displayName = nameParts.length > 1
+    ? `${nameParts.slice(1).join(' ')} ${nameParts[0]}`
+    : nameParts[0];
+  const title = displayName ? `Pour ${displayName}` : 'Votre message';
   const emoji = formatEmoji[format] ?? '💬';
 
   const handleShare = async (channelId: string) => {
     const baseText = `${emoji} ${title}\n\n${generatedContent}`;
     const text = showSig ? baseText + buildSignatureText(i18n.language) : baseText;
 
+    setSending(true);
     try {
-      setSending(true);
-
       if (channelId === 'whatsapp') {
         const url = `whatsapp://send?text=${encodeURIComponent(text)}`;
         const canOpen = await Linking.canOpenURL(url);
         if (canOpen) {
           await Linking.openURL(url);
         } else {
-          await Share.share({ message: text });
+          const result = await Share.share({ message: text });
+          // L'utilisateur a fermé sans partager → on annule
+          if (result.action !== 'sharedAction') { setSending(false); return; }
         }
       } else if (channelId === 'sms') {
-        await Linking.openURL(`sms:?body=${encodeURIComponent(text)}`);
+        try {
+          const smsNumber = contactPhone ? contactPhone.replace(/\s+/g, '') : '';
+          await Linking.openURL(`sms:${smsNumber}?body=${encodeURIComponent(text)}`);
+        } catch {
+          const result = await Share.share({ message: text });
+          if (result.action !== 'sharedAction') { setSending(false); return; }
+        }
       } else if (channelId === 'email') {
         const subject = encodeURIComponent(`🎉 ${title}`);
         const body = encodeURIComponent(text);
-        await Linking.openURL(`mailto:?subject=${subject}&body=${body}`);
+        try {
+          const emailAddress = contactEmail ?? '';
+          await Linking.openURL(`mailto:${emailAddress}?subject=${subject}&body=${body}`);
+        } catch {
+          const result = await Share.share({ message: text });
+          if (result.action !== 'sharedAction') { setSending(false); return; }
+        }
       } else if (channelId === 'copy') {
-        await Share.share({ message: text });
+        const result = await Share.share({ message: text });
+        // L'utilisateur a fermé sans partager → on annule
+        if (result.action !== 'sharedAction') { setSending(false); return; }
       }
 
-      // Mark as sent in DB
+      // Mark as sent in DB (best-effort — n'empêche pas la navigation si ça échoue)
       if (savedMessageId) {
-        await markMessageSent(savedMessageId, channelId);
+        try { await markMessageSent(savedMessageId, channelId); } catch { /* non-bloquant */ }
       }
 
       router.push('/(app)/create/sent' as never);
     } catch {
-      // User cancelled share — don't show error
-    } finally {
       setSending(false);
+      Alert.alert('Erreur', 'Impossible d\'ouvrir ce canal. Essayez "Copier" pour copier le message manuellement.');
     }
   };
 
-  const handleRegenerate = async () => {
-    await generate();
-    router.back();
+  const handleRegenerate = () => {
+    if (isManualMode.current) {
+      // Mode manuel : vider le champ et rouvrir l'éditeur
+      setLocalContent('');
+      setIsEditing(true);
+      return;
+    }
+    generate();
   };
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -185,21 +251,25 @@ export default function PreviewScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.topbarTitle}>Aperçu</Text>
-        <TouchableOpacity
-          style={[styles.regenBtn, isPending && { opacity: 0.5 }]}
-          onPress={handleRegenerate}
-          disabled={isPending}
-        >
-          <Text style={styles.regenBtnText}>{isPending ? '...' : '↺'}</Text>
-        </TouchableOpacity>
+        <Text style={styles.topbarTitle}>{isEditing ? 'Modifier' : 'Aperçu'}</Text>
+        <View style={styles.topbarActions}>
+          {!isEditing && !isManualMode.current && (
+            <TouchableOpacity
+              style={[styles.topbarBtn, isPending && { opacity: 0.5 }]}
+              onPress={handleRegenerate}
+              disabled={isPending}
+            >
+              <Text style={styles.topbarBtnText}>{isPending ? '...' : '↺'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
         {/* ── Album cover ───────────────────────────────── */}
         <LinearGradient
-          colors={['#9b6bb5', '#5e2d80']}
+          colors={C.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.albumCover}
@@ -217,13 +287,34 @@ export default function PreviewScreen() {
         )}
 
         {/* ── Contenu ───────────────────────────────────── */}
-        {format === 'song' || format === 'poem'
+        {isEditing ? (
+          <View style={styles.editCard}>
+            <TextInput
+              style={styles.editInput}
+              value={localContent}
+              onChangeText={setLocalContent}
+              multiline
+              autoFocus
+              textAlignVertical="top"
+            />
+            <TouchableOpacity style={styles.editValidateBtn} onPress={handleSaveEdit}>
+              <Text style={styles.editValidateBtnText}>✓ Appuie ici pour valider ton message</Text>
+            </TouchableOpacity>
+          </View>
+        ) : format === 'song' || format === 'poem'
           ? <LyricsCard content={generatedContent} />
           : (
             <View style={styles.messageCard}>
               <Text style={styles.messageText}>{generatedContent}</Text>
             </View>
           )}
+
+        {/* ── Bouton modifier ───────────────────────────── */}
+        {!isEditing && (
+          <TouchableOpacity style={styles.editPromptBtn} onPress={() => setIsEditing(true)}>
+            <Text style={styles.editPromptText}>✏️ Tu veux modifier ton message ?</Text>
+          </TouchableOpacity>
+        )}
 
         {/* ── Signature bannière ───────────────────────── */}
         {showSig && sigLabels && (
@@ -262,7 +353,7 @@ export default function PreviewScreen() {
           disabled={isPending}
         >
           <Text style={styles.regenFullBtnText}>
-            {isPending ? '⏳ Génération...' : '↺ Générer une nouvelle version'}
+            {isPending ? '⏳ Génération...' : isManualMode.current ? '🗑 Effacer et réécrire' : '↺ Générer une nouvelle version'}
           </Text>
         </TouchableOpacity>
 
@@ -272,7 +363,8 @@ export default function PreviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
   topbar: {
@@ -282,50 +374,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[4],
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.primaryContainer,
+    borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   topbarTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',
     fontSize: Typography.xl,
     color: Colors.onSurface,
   },
-  regenBtn: {
+  topbarActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  topbarBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  regenBtnText: {
-    fontSize: 18,
-    color: Colors.primary,
+  topbarBtnActive: {
+    backgroundColor: C.primary,
+  },
+  topbarBtnText: {
+    fontSize: 16,
+    color: C.primary,
+  },
+  topbarBtnTextActive: {
+    color: Colors.white,
   },
 
   content: { paddingBottom: 80 },
 
   albumCover: {
     margin: Spacing[4],
-    borderRadius: Radii['2xl'],
-    padding: Spacing[7],
+    borderRadius: Radii.xl,
+    paddingVertical: Spacing[4],
+    paddingHorizontal: Spacing[5],
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
     ...Shadows.lg,
   },
-  albumEmoji: { fontSize: 60 },
+  albumEmoji: { fontSize: 36 },
   albumTitle: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: Typography['4xl'],
+    fontSize: Typography['2xl'],
     color: Colors.white,
     textAlign: 'center',
   },
   albumFormat: {
     fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.base,
+    fontSize: Typography.sm,
     color: 'rgba(255,255,255,0.75)',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -338,7 +441,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginHorizontal: Spacing[4],
     marginBottom: Spacing[3],
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     borderRadius: Radii.xl,
     padding: Spacing[4],
     ...Shadows.md,
@@ -385,6 +488,64 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.surfaceContainer,
     marginVertical: 10,
+  },
+
+  // Edit card
+  editCard: {
+    marginHorizontal: Spacing[4],
+    backgroundColor: Colors.white,
+    borderRadius: Radii.xl,
+    padding: Spacing[5],
+    gap: 14,
+    ...Shadows.sm,
+  },
+  editInput: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.md,
+    color: Colors.onSurface,
+    lineHeight: 26,
+    minHeight: 160,
+    borderWidth: 1,
+    borderColor: C.primaryContainer,
+    borderRadius: Radii.lg,
+    padding: Spacing[3],
+  },
+  editSaveBtn: {
+    backgroundColor: C.primary,
+    borderRadius: Radii.full,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  editSaveBtnText: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.lg,
+    color: Colors.white,
+  },
+  editValidateBtn: {
+    backgroundColor: C.primary,
+    borderRadius: Radii.full,
+    paddingVertical: 14,
+    alignItems: 'center',
+    ...Shadows.sm,
+  },
+  editValidateBtnText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.lg,
+    color: C.onPrimary,
+  },
+  editPromptBtn: {
+    alignSelf: 'center',
+    marginTop: Spacing[4],
+    paddingVertical: 12,
+    paddingHorizontal: Spacing[6],
+    borderRadius: Radii.full,
+    backgroundColor: C.primary,
+    ...Shadows.md,
+  },
+  editPromptText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.lg,
+    color: C.onPrimary,
   },
 
   // Message card
@@ -436,7 +597,7 @@ const styles = StyleSheet.create({
   signatureBanner: {
     marginHorizontal: Spacing[4],
     marginTop: Spacing[3],
-    backgroundColor: '#9b6bb5',
+    backgroundColor: C.primary,
     borderRadius: Radii.xl,
     padding: Spacing[4],
     gap: 6,
@@ -465,12 +626,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: Radii.full,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderColor: C.primary,
     alignItems: 'center',
   },
   regenFullBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.md,
-    color: Colors.primary,
+    color: C.primary,
   },
-});
+  });
+}

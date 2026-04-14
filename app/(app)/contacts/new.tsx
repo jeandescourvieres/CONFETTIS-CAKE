@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useCreateContact, useContact, useUpdateContact } from '../../../src/hooks/useContacts';
+import { getNameDayForName } from '../../../src/utils/namedays';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 import type { Relation } from '../../../src/types/models';
+
+const SEND_TIMES: { value: 'morning' | 'afternoon' | 'evening' | 'anytime'; label: string; emoji: string }[] = [
+  { value: 'morning',   label: 'Matin',       emoji: '🌅' },
+  { value: 'afternoon', label: 'Après-midi',  emoji: '☀️' },
+  { value: 'evening',   label: 'Soir',        emoji: '🌙' },
+  { value: 'anytime',   label: 'Peu importe', emoji: '🕐' },
+];
 
 const PERSONALITY_TAGS: { value: string; label: string }[] = [
   { value: 'drôle', label: 'Drôle' },
@@ -38,6 +47,7 @@ const RELATIONS: { value: Relation; label: string; emoji: string }[] = [
 
 export default function NewContactScreen() {
   const router = useRouter();
+  const C = useColors();
   const { editId } = useLocalSearchParams<{ editId?: string }>();
   const isEditing = !!editId;
 
@@ -53,37 +63,61 @@ export default function NewContactScreen() {
   const [email, setEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [personalityTags, setPersonalityTags] = useState<string[]>([]);
+  const [preferredChannel, setPreferredChannel] = useState<'sms' | 'email' | null>(null);
+  const [preferredSendTime, setPreferredSendTime] = useState<'morning' | 'afternoon' | 'evening' | 'anytime' | null>(null);
   const [birthday, setBirthday] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [nameDay, setNameDay] = useState<Date | null>(null);
+  const [showNameDayPicker, setShowNameDayPicker] = useState(false);
 
-  // Réinitialiser quand on crée un nouveau contact
+  // Auto-remplir la fête quand le prénom change (seulement si pas déjà renseigné)
   useEffect(() => {
-    if (!isEditing) {
-      setFirstName('');
-      setLastName('');
-      setRelation('friend');
-      setPhone('');
-      setEmail('');
-      setNotes('');
-      setPersonalityTags([]);
-      setBirthday(null);
+    if (!firstName.trim() || nameDay) return;
+    const mmdd = getNameDayForName(firstName.trim());
+    if (mmdd) {
+      const [m, d] = mmdd.split('-').map(Number);
+      setNameDay(new Date(2000, m - 1, d));
     }
-  }, [isEditing]);
+  }, [firstName]);
+
+  // Réinitialiser à chaque changement de contact (nouveau ou autre contact édité)
+  useEffect(() => {
+    setFirstName('');
+    setLastName('');
+    setRelation('friend');
+    setPhone('');
+    setEmail('');
+    setNotes('');
+    setPersonalityTags([]);
+    setPreferredChannel(null);
+    setPreferredSendTime(null);
+    setBirthday(null);
+    setNameDay(null);
+  }, [editId]);
 
   // Pré-remplir les champs si on est en mode édition
   useEffect(() => {
     if (!isEditing || !existingContact) return;
     const parts = existingContact.name.split(' ');
-    setFirstName(formatFirstName(parts[0] ?? ''));
-    setLastName(formatLastName(parts.slice(1).join(' ')));
+    setLastName(formatLastName(parts[0] ?? ''));
+    setFirstName(formatFirstName(parts.slice(1).join(' ')));
     setRelation(existingContact.relation);
     setPhone(existingContact.phone ?? '');
     setEmail(existingContact.email ?? '');
     setNotes(existingContact.notes ?? '');
     setPersonalityTags(Array.isArray(existingContact.personality_tags) ? existingContact.personality_tags : []);
+    setPreferredChannel(existingContact.preferred_channel ?? null);
+    setPreferredSendTime(existingContact.preferred_send_time ?? null);
     if (existingContact.birthday) {
-      const [y, m, d] = existingContact.birthday.split('-').map(Number);
+      const raw = existingContact.birthday.startsWith('0000-')
+        ? existingContact.birthday.replace('0000-', '2000-')
+        : existingContact.birthday;
+      const [y, m, d] = raw.split('-').map(Number);
       setBirthday(new Date(y, m - 1, d));
+    }
+    if (existingContact.name_day) {
+      const [m, d] = existingContact.name_day.split('-').map(Number);
+      setNameDay(new Date(2000, m - 1, d));
     }
   }, [isEditing, existingContact]);
 
@@ -110,14 +144,19 @@ export default function NewContactScreen() {
     return cleaned || null;
   };
 
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   const handleSave = async () => {
     if (!firstName.trim()) {
       Alert.alert('Prénom requis', 'Veuillez entrer le prénom du contact.');
       return;
     }
-    const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
+    const fullName = [lastName.trim(), firstName.trim()].filter(Boolean).join(' ');
     const birthdayStr = birthday
       ? `${birthday.getFullYear()}-${String(birthday.getMonth() + 1).padStart(2, '0')}-${String(birthday.getDate()).padStart(2, '0')}`
+      : null;
+    const nameDayStr = nameDay
+      ? `${String(nameDay.getMonth() + 1).padStart(2, '0')}-${String(nameDay.getDate()).padStart(2, '0')}`
       : null;
     try {
       if (isEditing && editId) {
@@ -130,7 +169,10 @@ export default function NewContactScreen() {
             email: email.trim() || null,
             notes: notes.trim() || null,
             birthday: birthdayStr,
+            name_day: nameDayStr,
             personality_tags: personalityTags,
+            preferred_channel: preferredChannel,
+            preferred_send_time: preferredSendTime,
           },
         });
       } else {
@@ -142,9 +184,11 @@ export default function NewContactScreen() {
           notes: notes.trim() || null,
           birthday: birthdayStr,
           personality_tags: personalityTags,
-          name_day: null,
+          name_day: nameDayStr,
           avatar_url: null,
           imported_from: 'manual',
+          preferred_channel: preferredChannel,
+          preferred_send_time: preferredSendTime,
         });
       }
       router.back();
@@ -172,8 +216,19 @@ export default function NewContactScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {/* Prénom + Nom */}
-        <Text style={styles.label}>Prénom *</Text>
+        {/* Nom + Prénom */}
+        <Text style={styles.label}>Nom de famille *</Text>
+        <TextInput
+          style={styles.input}
+          value={lastName}
+          onChangeText={(v) => setLastName(formatLastName(v))}
+          placeholder="Ex: DUPONT"
+          placeholderTextColor={Colors.outlineVariant}
+          autoCapitalize="characters"
+          returnKeyType="next"
+        />
+
+        <Text style={styles.label}>Prénom</Text>
         <TextInput
           style={styles.input}
           value={firstName}
@@ -184,19 +239,8 @@ export default function NewContactScreen() {
           returnKeyType="next"
         />
 
-        <Text style={styles.label}>Nom de famille</Text>
-        <TextInput
-          style={styles.input}
-          value={lastName}
-          onChangeText={(v) => setLastName(formatLastName(v))}
-          placeholder="Ex: Dupont"
-          placeholderTextColor={Colors.outlineVariant}
-          autoCapitalize="none"
-          returnKeyType="next"
-        />
-
         {/* Relation */}
-        <Text style={styles.label}>Relation</Text>
+        <Text style={styles.label}>Nature de la relation</Text>
         <View style={styles.relationGrid}>
           {RELATIONS.map((r) => (
             <TouchableOpacity
@@ -249,6 +293,53 @@ export default function NewContactScreen() {
           </View>
         )}
 
+        {/* Fête */}
+        <Text style={styles.label}>🌸 Fête le…</Text>
+        <TouchableOpacity
+          style={styles.input}
+          onPress={() => setShowNameDayPicker(true)}
+        >
+          <Text style={nameDay ? styles.inputText : styles.inputPlaceholder}>
+            {nameDay
+              ? nameDay.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+              : 'Sélectionner une date (jour et mois)'}
+          </Text>
+        </TouchableOpacity>
+        {nameDay && (
+          <TouchableOpacity
+            onPress={() => setNameDay(null)}
+            style={{ alignSelf: 'flex-end', marginTop: 4 }}
+          >
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant }}>
+              ✕ Supprimer la date de fête
+            </Text>
+          </TouchableOpacity>
+        )}
+        {showNameDayPicker && (
+          <View style={styles.pickerWrap}>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerTitle}>Jour et mois de la fête</Text>
+              <TouchableOpacity onPress={() => setShowNameDayPicker(false)}>
+                <Text style={styles.pickerOk}>OK</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={nameDay ?? new Date(2000, 3, 1)}
+              mode="date"
+              display="spinner"
+              minimumDate={new Date(2000, 0, 1)}
+              maximumDate={new Date(2000, 11, 31)}
+              textColor={Colors.primary}
+              accentColor={Colors.primary}
+              style={{ width: '100%' }}
+              onChange={(_event: unknown, date?: Date) => {
+                if (Platform.OS === 'android') setShowNameDayPicker(false);
+                if (date) setNameDay(date);
+              }}
+            />
+          </View>
+        )}
+
         {/* Téléphone */}
         <Text style={styles.label}>Téléphone</Text>
         <TextInput
@@ -271,6 +362,39 @@ export default function NewContactScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
         />
+
+        {/* Canal préféré */}
+        <Text style={styles.label}>Son canal de communication préféré</Text>
+        <Text style={styles.sublabel}>
+          Comment préfères-tu contacter {firstName.trim() || 'ce contact'} ?
+        </Text>
+        <View style={styles.channelRow}>
+          {([{ value: 'sms', label: 'SMS', emoji: '📱' }, { value: 'email', label: 'Email', emoji: '📧' }] as const).map((c) => (
+            <TouchableOpacity
+              key={c.value}
+              style={[styles.channelBtn, preferredChannel === c.value && styles.channelBtnActive]}
+              onPress={() => setPreferredChannel(prev => prev === c.value ? null : c.value)}
+            >
+              <Text style={styles.channelEmoji}>{c.emoji}</Text>
+              <Text style={[styles.channelLabel, preferredChannel === c.value && styles.channelLabelActive]}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Heure idéale d'envoi */}
+        <Text style={styles.label}>Moment idéal d'envoi</Text>
+        <View style={styles.channelRow}>
+          {SEND_TIMES.map((t) => (
+            <TouchableOpacity
+              key={t.value}
+              style={[styles.channelBtn, preferredSendTime === t.value && styles.channelBtnActive]}
+              onPress={() => setPreferredSendTime(prev => prev === t.value ? null : t.value)}
+            >
+              <Text style={styles.channelEmoji}>{t.emoji}</Text>
+              <Text style={[styles.channelLabel, preferredSendTime === t.value && styles.channelLabelActive]}>{t.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* Personnalité */}
         <Text style={styles.label}>Personnalité</Text>
@@ -299,7 +423,7 @@ export default function NewContactScreen() {
           style={[styles.input, styles.textArea]}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Intérêts, souvenirs partagés..."
+          placeholder="Ex : supporter du PSG, allergique aux noix, adore les chats, déteste les surprises, fan de randonnée..."
           placeholderTextColor={Colors.outlineVariant}
           multiline
           numberOfLines={3}
@@ -320,7 +444,8 @@ export default function NewContactScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   topbar: {
     flexDirection: 'row',
@@ -329,11 +454,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[4],
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.primaryContainer,
+    borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   topbarTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',
     fontSize: Typography.lg,
@@ -343,12 +468,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: Radii.full,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
   saveBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.base,
-    color: Colors.white,
+    color: C.onPrimary,
   },
 
   content: { padding: Spacing[5], paddingBottom: 80 },
@@ -364,7 +489,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: Colors.white,
     borderWidth: 0.5,
-    borderColor: Colors.primaryContainer,
+    borderColor: C.primaryContainer,
     borderRadius: Radii.md,
     paddingVertical: 12,
     paddingHorizontal: Spacing[3],
@@ -389,7 +514,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceContainerLow,
     borderRadius: Radii.lg,
     borderWidth: 1,
-    borderColor: Colors.primaryContainer,
+    borderColor: C.primaryContainer,
     overflow: 'hidden',
     marginTop: 8,
   },
@@ -399,17 +524,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: Colors.primaryContainer,
+    backgroundColor: C.primaryContainer,
   },
   pickerTitle: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.sm,
-    color: Colors.primary,
+    color: C.primary,
   },
   pickerOk: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.md,
-    color: Colors.primary,
+    color: C.primary,
   },
 
   relationGrid: {
@@ -429,8 +554,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   relationBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: C.primary,
+    borderColor: C.primary,
   },
   relationEmoji: { fontSize: 16 },
   relationLabel: {
@@ -440,12 +565,40 @@ const styles = StyleSheet.create({
   },
   relationLabelActive: { color: Colors.white },
 
+  sublabel: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
+    marginBottom: Spacing[3],
+    marginTop: -Spacing[2],
+  },
+  channelRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  channelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: Colors.surfaceContainerHighest,
+    backgroundColor: Colors.white,
+  },
+  channelBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
+  channelEmoji: { fontSize: 16 },
+  channelLabel: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
+  },
+  channelLabelActive: { color: Colors.white },
+
   tagGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagBtn: {
     paddingVertical: 7, paddingHorizontal: 14, borderRadius: Radii.full,
     borderWidth: 1, borderColor: Colors.surfaceContainerHighest, backgroundColor: Colors.white,
   },
-  tagBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  tagBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
   tagLabel: {
     fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurfaceVariant,
   },
@@ -455,12 +608,13 @@ const styles = StyleSheet.create({
     marginTop: Spacing[6],
     paddingVertical: 15,
     borderRadius: Radii.full,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
   },
   submitBtnText: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
     fontSize: Typography.lg,
-    color: Colors.white,
+    color: C.onPrimary,
   },
-});
+  });
+}

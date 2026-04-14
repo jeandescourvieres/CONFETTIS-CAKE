@@ -1,7 +1,5 @@
-import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
-import { supabase } from '../services/supabase';
 import {
   fetchCustomEvents,
   createCustomEvent,
@@ -14,31 +12,6 @@ const KEY = 'custom_events';
 
 export function useCustomEvents() {
   const userId = useAuthStore((s) => s.user?.id);
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!userId) return;
-
-    const channel = supabase
-      .channel(`custom_events:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'custom_events',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: [KEY, userId] });
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, queryClient]);
 
   return useQuery({
     queryKey: [KEY, userId],

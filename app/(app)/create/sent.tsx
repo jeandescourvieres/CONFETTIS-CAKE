@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,11 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCreateStore } from '../../../src/stores/createStore';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 
 export default function SentScreen() {
   const router = useRouter();
+  const C = useColors();
   const { contactName, format, reset } = useCreateStore();
 
   // Scale-in animation for the checkmark
@@ -53,9 +55,16 @@ export default function SentScreen() {
     joke: 'texte',
   };
 
-  const subtitle = contactName
-    ? `Votre ${formatLabel[format] ?? 'message'} pour ${contactName} a été partagé ! 🎉`
-    : `Votre ${formatLabel[format] ?? 'message'} a été partagé ! 🎉`;
+  // contactName stocké "NOM Prénom" → afficher "Prénom NOM"
+  const nameParts = contactName.trim().split(' ');
+  const displayName = nameParts.length > 1
+    ? `${nameParts.slice(1).join(' ')} ${nameParts[0]}`
+    : nameParts[0];
+  const subtitle = displayName
+    ? `Ton ${formatLabel[format] ?? 'message'} pour ${displayName} a été partagé ! 🎉`
+    : `Ton ${formatLabel[format] ?? 'message'} a été partagé ! 🎉`;
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -121,7 +130,8 @@ export default function SentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1 },
   gradient: { flex: 1 },
   content: {
@@ -161,7 +171,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
     fontSize: Typography['6xl'],
-    color: Colors.primary,
+    color: C.primary,
     textAlign: 'center',
   },
   subtitle: {
@@ -188,7 +198,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontFamily: 'PlusJakartaSans_700Bold',
     fontSize: Typography['3xl'],
-    color: Colors.primary,
+    color: C.primary,
   },
   statLabel: {
     fontFamily: 'BeVietnamPro_400Regular',
@@ -201,7 +211,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     paddingVertical: 17,
     borderRadius: Radii.full,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     ...Shadows.md,
   },
@@ -216,12 +226,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: Radii.full,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderColor: C.primary,
     alignItems: 'center',
   },
   secondaryBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.md,
-    color: Colors.primary,
+    color: C.primary,
   },
-});
+  });
+}

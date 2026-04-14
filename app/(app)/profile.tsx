@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,9 +20,14 @@ import { useContacts } from '../../src/hooks/useContacts';
 import { useMyPots } from '../../src/hooks/usePot';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 import { SUPPORTED_LANGUAGES, type AppLanguage } from '../../src/i18n';
+import { useThemeStore } from '../../src/stores/themeStore';
+import { APP_THEMES } from '../../src/constants/appThemes';
+import { useColors } from '../../src/hooks/useColors';
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 function StatCard({ value, label, emoji }: { value: number; label: string; emoji: string }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.statCard}>
       <Text style={styles.statEmoji}>{emoji}</Text>
@@ -52,6 +57,8 @@ function SettingRow({
   onToggle?: (v: boolean) => void;
   destructive?: boolean;
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <TouchableOpacity
       style={styles.settingRow}
@@ -80,12 +87,15 @@ function SettingRow({
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function ProfileScreen() {
+  const C = useColors();
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { profile, signOut, updateProfile } = useAuthStore();
   const { data: messages = [] } = useMessages();
   const { data: contacts = [] } = useContacts();
   const { data: pots = [] } = useMyPots();
+
+  const { theme: appTheme, setTheme } = useThemeStore();
 
   const [notifsBirthday, setNotifsBirthday] = useState(true);
   const [notifsNameday, setNotifsNameday] = useState(true);
@@ -131,6 +141,8 @@ export default function ProfileScreen() {
     await updateProfile({ language: code });
     setShowLangPicker(false);
   };
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -193,8 +205,35 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* ── Thème couleur ────────────────────────── */}
+        <Text style={styles.sectionTitle}>Couleur de l'appli</Text>
+        <View style={styles.themeHint}>
+          <Text style={styles.themeHintEmoji}>🎨</Text>
+          <Text style={styles.themeHintText}>Choisis l'ambiance qui te ressemble — le changement est immédiat sur toute l'appli !</Text>
+        </View>
+        <View style={styles.settingsCard}>
+          <View style={styles.themeGrid}>
+            {APP_THEMES.map((t) => {
+              const active = appTheme.id === t.id;
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  style={[styles.themeSwatch, active && styles.themeSwatchActive]}
+                  onPress={() => setTheme(t.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.themeCircle, { backgroundColor: t.primary }]}>
+                    {active && <Text style={styles.themeCheck}>✓</Text>}
+                  </View>
+                  <Text style={[styles.themeLabel, active && { color: t.primary }]}>{t.emoji} {t.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
         {/* ── Langue ───────────────────────────────── */}
-        <Text style={styles.sectionTitle}>{t('profile.sections.language')}</Text>
+        <Text style={styles.sectionTitle}>Choisis ta langue</Text>
         <View style={styles.settingsCard}>
           <TouchableOpacity style={styles.langRow} onPress={() => setShowLangPicker(true)} activeOpacity={0.7}>
             <Text style={styles.langFlag}>{currentLang.flag}</Text>
@@ -319,7 +358,8 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { paddingBottom: 80 },
 
@@ -358,7 +398,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing[3], alignItems: 'center', gap: 2, ...Shadows.sm,
   },
   statEmoji: { fontSize: 18 },
-  statValue: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography['2xl'], color: Colors.primary },
+  statValue: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography['2xl'], color: C.primary },
   statLabel: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant },
 
   // Upgrade banner
@@ -366,7 +406,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: Spacing[4], marginBottom: Spacing[2],
     padding: Spacing[4], borderRadius: Radii.xl,
-    backgroundColor: Colors.primary, ...Shadows.md,
+    backgroundColor: C.primary, ...Shadows.md,
   },
   upgradeBannerLeft: { flex: 1 },
   upgradeBannerTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.lg, color: Colors.white },
@@ -381,10 +421,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondaryContainer,
     borderWidth: 1, borderColor: Colors.secondaryFixed,
   },
-  referralLeft: { flex: 1, gap: 2 },
+  referralLeft: { flex: 1, gap: 2, alignItems: 'center' },
   referralTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.onSecondaryContainer },
   referralCode: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.secondary, letterSpacing: 2 },
-  referralSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSecondaryContainer },
+  referralSub: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.secondary },
   referralShareBtn: {
     paddingVertical: 8, paddingHorizontal: 16, borderRadius: Radii.full,
     backgroundColor: Colors.secondary,
@@ -424,6 +464,60 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     color: Colors.outlineVariant,
     marginTop: Spacing[4],
+  },
+
+  // Theme hint banner
+  themeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: Spacing[4],
+    marginBottom: Spacing[3],
+    padding: Spacing[3],
+    backgroundColor: C.primaryContainer + '60',
+    borderRadius: Radii.lg,
+    borderWidth: 0.5,
+    borderColor: C.primaryContainer,
+  },
+  themeHintEmoji: { fontSize: 22 },
+  themeHintText: {
+    flex: 1,
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: Colors.onPrimaryContainer,
+    lineHeight: 18,
+  },
+
+  // Theme selector
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: Spacing[4],
+    gap: 12,
+  },
+  themeSwatch: {
+    alignItems: 'center',
+    gap: 6,
+    width: '28%',
+  },
+  themeSwatchActive: {},
+  themeCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeCheck: {
+    color: Colors.white,
+    fontSize: 20,
+    fontFamily: 'BeVietnamPro_700Bold',
+  },
+  themeLabel: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
+    textAlign: 'center',
   },
 
   // Language selector
@@ -485,7 +579,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   langOptionActive: {
-    backgroundColor: Colors.primaryContainer,
+    backgroundColor: C.primaryContainer,
   },
   langOptionFlag: { fontSize: 24 },
   langOptionLabel: {
@@ -494,10 +588,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.lg,
     color: Colors.onSurface,
   },
-  langOptionLabelActive: { color: Colors.primary },
+  langOptionLabelActive: { color: C.primary },
   langOptionCheck: {
     fontSize: Typography.lg,
-    color: Colors.primary,
+    color: C.primary,
     fontFamily: 'BeVietnamPro_700Bold',
   },
-});
+  });
+}

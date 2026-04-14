@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 
 // ── Feature comparison ─────────────────────────────────────────────────────────
 const FEATURES: { label: string; free: string | boolean; premium: string | boolean }[] = [
@@ -48,6 +49,8 @@ const PLANS = [
 ];
 
 function FeatureRow({ label, free, premium }: { label: string; free: string | boolean; premium: string | boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.featureRow}>
       <Text style={styles.featureLabel}>{label}</Text>
@@ -62,6 +65,7 @@ function FeatureRow({ label, free, premium }: { label: string; free: string | bo
 }
 
 export default function PremiumScreen() {
+  const C = useColors();
   const router = useRouter();
   const { profile } = useAuthStore();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
@@ -82,6 +86,8 @@ export default function PremiumScreen() {
       setIsLoading(false);
     }
   };
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -106,7 +112,7 @@ export default function PremiumScreen() {
           <Text style={styles.heroTitle}>Confettis & Cake Premium</Text>
           <Text style={styles.heroSub}>
             {isPremium
-              ? 'Vous bénéficiez déjà du plan Premium 🎉'
+              ? 'Tu bénéficies déjà du plan Premium 🎉'
               : 'Créez des messages magiques sans limite'}
           </Text>
         </LinearGradient>
@@ -114,7 +120,7 @@ export default function PremiumScreen() {
         {/* ── Plans tarifaires ──────────────────────── */}
         {!isPremium && (
           <>
-            <Text style={styles.sectionTitle}>Choisissez votre plan</Text>
+            <Text style={styles.sectionTitle}>Choisis ton plan</Text>
             <View style={styles.plansRow}>
               {PLANS.map((plan) => (
                 <TouchableOpacity
@@ -193,16 +199,17 @@ export default function PremiumScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   topbar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing[4], paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: Colors.primaryContainer,
+    borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   topbarTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.xl, color: Colors.onSurface },
 
   content: { paddingBottom: 80 },
@@ -259,7 +266,7 @@ const styles = StyleSheet.create({
   },
   featureHeader: {
     backgroundColor: Colors.surfaceContainerLow,
-    borderBottomWidth: 0.5, borderBottomColor: Colors.primaryContainer,
+    borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
   },
   featureLabel: {
     flex: 1.4, fontFamily: 'BeVietnamPro_400Regular',
@@ -288,4 +295,5 @@ const styles = StyleSheet.create({
     textAlign: 'center', paddingHorizontal: Spacing[6], marginTop: 10,
     fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.outlineVariant,
   },
-});
+  });
+}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,13 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMyPots } from '../../../src/hooks/usePot';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 import type { Pot } from '../../../src/types/models';
 
 // ── Progress bar ──────────────────────────────────────────────────────────────
 function ProgressBar({ current, target }: { current: number; target: number }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const pct = Math.min((current / target) * 100, 100);
   return (
     <View style={styles.progressTrack}>
@@ -25,6 +28,8 @@ function ProgressBar({ current, target }: { current: number; target: number }) {
 
 // ── Pot card ──────────────────────────────────────────────────────────────────
 function PotCard({ pot, onPress }: { pot: Pot; onPress: () => void }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const pct = Math.min(Math.round((pot.current_amount / pot.target_amount) * 100), 100);
   const isCompleted = pot.status === 'completed';
   const isClosed = pot.status === 'closed';
@@ -73,6 +78,8 @@ function PotCard({ pot, onPress }: { pot: Pot; onPress: () => void }) {
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 function EmptyState({ onCreate }: { onCreate: () => void }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyEmoji}>🎁</Text>
@@ -89,10 +96,13 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function PotListScreen() {
+  const C = useColors();
   const router = useRouter();
   const { data: pots = [], isLoading } = useMyPots();
   const activePots = pots.filter((p) => p.status !== 'closed');
   const closedPots = pots.filter((p) => p.status === 'closed');
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -145,7 +155,8 @@ export default function PotListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row',
@@ -157,7 +168,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['4xl'], color: Colors.white },
   headerSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   createBtn: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: Radii.full, backgroundColor: Colors.white },
-  createBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.primary },
+  createBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: C.primary },
 
   list: { paddingHorizontal: Spacing[4], paddingTop: Spacing[4], paddingBottom: 80, gap: 14 },
   listEmpty: { flex: 1 },
@@ -171,9 +182,9 @@ const styles = StyleSheet.create({
   statusText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs },
 
   progressTrack: { height: 8, borderRadius: 4, backgroundColor: Colors.surfaceContainer, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 4, backgroundColor: Colors.primary },
+  progressFill: { height: '100%', borderRadius: 4, backgroundColor: C.primary },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -4 },
-  amountCurrent: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.lg, color: Colors.primary },
+  amountCurrent: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.lg, color: C.primary },
   amountPct: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.base, color: Colors.onSurfaceVariant },
   amountTarget: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: Colors.onSurfaceVariant },
 
@@ -187,9 +198,10 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 56 },
   emptyTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography['2xl'], color: Colors.onSurface },
   emptySub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.md, color: Colors.onSurfaceVariant, textAlign: 'center', lineHeight: 22 },
-  emptyBtn: { marginTop: 8, paddingVertical: 14, paddingHorizontal: 32, borderRadius: Radii.full, backgroundColor: Colors.primary, ...Shadows.md },
+  emptyBtn: { marginTop: 8, paddingVertical: 14, paddingHorizontal: 32, borderRadius: Radii.full, backgroundColor: C.primary, ...Shadows.md },
   emptyBtnText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.white },
 
   sectionFooter: { alignItems: 'center', paddingVertical: 12 },
   sectionFooterText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: Colors.outlineVariant },
-});
+  });
+}

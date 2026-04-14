@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Dimensions, ActivityIndicator, Share,
@@ -9,6 +9,7 @@ import { useCardTemplate } from '../../../src/hooks/useCards';
 import { CardComposer } from '../../../src/components/cards/CardComposer';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useCreateStore } from '../../../src/stores/createStore';
+import { useColors } from '../../../src/hooks/useColors';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -17,6 +18,7 @@ const CARD_W = W;
 const CARD_H = CARD_W * (16 / 9);
 
 export default function CardPreviewScreen() {
+  const C = useColors();
   const router = useRouter();
   const { id, contactName: paramName, contactId } = useLocalSearchParams<{
     id: string;
@@ -49,11 +51,13 @@ export default function CardPreviewScreen() {
     router.push('/(app)/create' as never);
   }, [router, id, contactId, recipientName]);
 
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   // ── Loading / Error states ────────────────────────────────────────────────
   if (isLoading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator color={Colors.primary} size="large" />
+        <ActivityIndicator color={C.primary} size="large" />
         <Text style={styles.loadingText}>Chargement de la carte…</Text>
       </SafeAreaView>
     );
@@ -150,7 +154,8 @@ export default function CardPreviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#0a0a1a',
@@ -240,7 +245,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   nameInputFocused: {
-    borderColor: Colors.primary,
+    borderColor: C.primary,
     backgroundColor: Colors.white,
   },
 
@@ -249,7 +254,7 @@ const styles = StyleSheet.create({
   },
   shareBtn: {
     height: 52,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     borderRadius: Radii.full,
     alignItems: 'center',
     justifyContent: 'center',
@@ -267,12 +272,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderColor: C.primary,
   },
   msgBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.md,
-    color: Colors.primary,
+    color: C.primary,
   },
 
   metaRow: {
@@ -307,7 +312,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingVertical: 10,
     paddingHorizontal: 28,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     borderRadius: Radii.full,
   },
   backButtonText: {
@@ -315,4 +320,5 @@ const styles = StyleSheet.create({
     fontSize: Typography.md,
     color: Colors.white,
   },
-});
+  });
+}

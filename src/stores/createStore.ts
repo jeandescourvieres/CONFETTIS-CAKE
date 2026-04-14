@@ -10,6 +10,14 @@ export type Occasion =
   | 'promotion'
   | 'thanks'
   | 'newyear'
+  | 'christmas'
+  | 'easter'
+  | 'valentines'
+  | 'mothersday'
+  | 'fathersday'
+  | 'halloween'
+  | 'retirement'
+  | 'support'
   | 'custom';
 
 export type PersonalityTag =
@@ -39,13 +47,18 @@ export interface OccasionExtras {
   // newyear — uses contactName as recipient(s)
   // custom
   customOccasionLabel?: string;
+  // support
+  supportType?: 'bereavement' | 'illness' | 'breakup' | 'hardtime' | 'encouragement';
 }
 
 export interface CreateState {
   // Step 1 — Contact & occasion
   contactId: string | null;
   contactName: string;
+  contactPhone: string | null;
+  contactEmail: string | null;
   relation: Relation;
+  familySubRelation: string; // précision pour "famille" : frère, mère, etc.
   occasion: Occasion;
   age: number | null;
   extras: OccasionExtras;
@@ -61,6 +74,7 @@ export interface CreateState {
   // Step 3 — Format & ton
   format: MessageFormat;
   tone: MessageTone;
+  styleHint: string; // 'Court' | 'Moyen' | 'Long' | '' (pour messages/poèmes)
 
   // Step 4 — Résultat généré
   generatedContent: string;
@@ -69,7 +83,8 @@ export interface CreateState {
   generationError: string | null;
 
   // Actions
-  setContact: (id: string | null, name: string, relation: Relation) => void;
+  setContact: (id: string | null, name: string, relation: Relation, phone?: string | null, email?: string | null) => void;
+  setFamilySubRelation: (sub: string) => void;
   setOccasion: (occasion: Occasion) => void;
   setAge: (age: number | null) => void;
   setExtras: (extras: Partial<OccasionExtras>) => void;
@@ -78,6 +93,7 @@ export interface CreateState {
   setLateMode: (lateMode: boolean) => void;
   setFormat: (format: MessageFormat) => void;
   setTone: (tone: MessageTone) => void;
+  setStyleHint: (hint: string) => void;
   setCardTemplateId: (id: string | null) => void;
   setGeneratedContent: (content: string) => void;
   setSavedMessageId: (id: string | null) => void;
@@ -87,15 +103,18 @@ export interface CreateState {
 }
 
 type ActionKeys =
-  | 'setContact' | 'setOccasion' | 'setAge' | 'setExtras' | 'togglePersonalityTag'
-  | 'setMemories' | 'setLateMode' | 'setFormat' | 'setTone' | 'setCardTemplateId'
+  | 'setContact' | 'setFamilySubRelation' | 'setOccasion' | 'setAge' | 'setExtras' | 'togglePersonalityTag'
+  | 'setMemories' | 'setLateMode' | 'setFormat' | 'setTone' | 'setStyleHint' | 'setCardTemplateId'
   | 'setGeneratedContent' | 'setSavedMessageId' | 'setIsGenerating'
   | 'setGenerationError' | 'reset';
 
 const initialState: Omit<CreateState, ActionKeys> = {
   contactId: null,
   contactName: '',
+  contactPhone: null,
+  contactEmail: null,
   relation: 'friend',
+  familySubRelation: '',
   occasion: 'birthday',
   age: null,
   extras: {},
@@ -105,6 +124,7 @@ const initialState: Omit<CreateState, ActionKeys> = {
   lateMode: false,
   format: 'message',
   tone: 'touching',
+  styleHint: 'Court',
   generatedContent: '',
   savedMessageId: null,
   isGenerating: false,
@@ -114,7 +134,8 @@ const initialState: Omit<CreateState, ActionKeys> = {
 export const useCreateStore = create<CreateState>((set) => ({
   ...initialState,
 
-  setContact: (id, name, relation) => set({ contactId: id, contactName: name, relation }),
+  setContact: (id, name, relation, phone = null, email = null) => set({ contactId: id, contactName: name, contactPhone: phone, contactEmail: email, relation, familySubRelation: '' }),
+  setFamilySubRelation: (familySubRelation) => set({ familySubRelation }),
   setOccasion: (occasion) => set({ occasion, extras: {}, age: null }),
   setAge: (age) => set({ age }),
   setExtras: (extras) => set((s) => ({ extras: { ...s.extras, ...extras } })),
@@ -128,6 +149,7 @@ export const useCreateStore = create<CreateState>((set) => ({
   setLateMode: (lateMode) => set({ lateMode }),
   setFormat: (format) => set({ format }),
   setTone: (tone) => set({ tone }),
+  setStyleHint: (styleHint) => set({ styleHint }),
   setCardTemplateId: (cardTemplateId) => set({ cardTemplateId }),
   setGeneratedContent: (generatedContent) => set({ generatedContent }),
   setSavedMessageId: (savedMessageId) => set({ savedMessageId }),

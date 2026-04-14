@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -13,17 +14,23 @@ import { format, addMonths, subMonths, getDaysInMonth, startOfMonth, getDay } fr
 import { fr } from 'date-fns/locale';
 import { useContacts, useUpcomingEvents } from '../../src/hooks/useContacts';
 import { scheduleAllReminders } from '../../src/services/notifications.service';
+import { useUpcomingCustomEvents, useDeleteCustomEvent } from '../../src/hooks/useCustomEvents';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { Colors, Typography, Spacing, Radii } from '../../src/constants/theme';
+import { useColors } from '../../src/hooks/useColors';
 import { humanDaysUntil, isUrgent, formatDate } from '../../src/utils/dateHelpers';
 import type { UpcomingEvent } from '../../src/types/models';
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const C = useColors();
   const { type } = useLocalSearchParams<{ type?: string }>();
+  const isCustom = type === 'custom';
   const eventType = type === 'name_day' ? 'name_day' : 'birthday';
   const { isLoading } = useContacts();
   const allEvents = useUpcomingEvents(365);
+  const customEvents = useUpcomingCustomEvents(365);
+  const { mutateAsync: deleteEvent } = useDeleteCustomEvent();
   const [viewDate, setViewDate] = useState(new Date());
 
   // Filtrer les événements par type (anniversaires OU fêtes, jamais mélangés)
@@ -69,12 +76,115 @@ export default function CalendarScreen() {
   const monthLabel = format(viewDate, 'MMMM yyyy', { locale: fr });
   const monthLabelCapitalized = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
 
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.center}>
-          <ActivityIndicator color={Colors.primary} size="large" />
+          <ActivityIndicator color={C.primary} size="large" />
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Vue événements personnalisés ──────────────────────────────────────────────
+  if (isCustom) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+          <View style={styles.monthHeader}>
+            <View style={styles.monthInfo}>
+              <Text style={styles.monthTitle}>Mes événements</Text>
+              <Text style={styles.monthSub}>
+                {customEvents.length > 0
+                  ? `${customEvents.length} événement${customEvents.length > 1 ? 's' : ''} à venir`
+                  : 'Aucun événement à venir'}
+              </Text>
+            </View>
+          </View>
+
+          {customEvents.length > 0 ? (
+            <View style={styles.eventsList}>
+              {customEvents
+                .sort((a, b) => a.event_date.localeCompare(b.event_date))
+                .map((event) => {
+                  const [y, mo, d] = event.event_date.split('-').map(Number);
+                  const eventDate = new Date(y, mo - 1, d);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const daysUntil = Math.ceil((eventDate.getTime() - today.getTime()) / 86400000);
+                  const daysLabel = daysUntil === 0 ? "Aujourd'hui" : daysUntil === 1 ? 'Demain' : `Dans ${daysUntil} jours`;
+                  const dateLabel = format(eventDate, 'd MMMM yyyy', { locale: fr });
+                  const handleTap = () => {
+                    Alert.alert(event.title, daysLabel, [
+                      {
+                        text: '✏️ Modifier',
+                        onPress: () => router.push({
+                          pathname: '/(app)/calendar/new-event',
+                          params: {
+                            editId: event.id,
+                            editTitle: event.title,
+                            editDate: event.event_date,
+                            editDescription: event.description ?? '',
+                            editRemind: String(event.remind_before),
+                          },
+                        } as never),
+                      },
+                      {
+                        text: '🗑 Supprimer',
+                        style: 'destructive',
+                        onPress: () => Alert.alert(
+                          'Supprimer ?',
+                          `"${event.title}" sera supprimé définitivement.`,
+                          [
+                            { text: 'Annuler', style: 'cancel' },
+                            { text: 'Supprimer', style: 'destructive', onPress: () => deleteEvent(event.id) },
+                          ]
+                        ),
+                      },
+                      { text: 'Annuler', style: 'cancel' },
+                    ]);
+                  };
+                  return (
+                    <TouchableOpacity key={event.id} onPress={handleTap} activeOpacity={0.8} style={[styles.eventCard, daysUntil <= 3 && styles.eventCardUrgent]}>
+                      <View style={styles.customEventIcon}>
+                        <Text style={{ fontSize: 22 }}>📅</Text>
+                      </View>
+                      <View style={styles.eventInfo}>
+                        <Text style={styles.eventName}>{event.title}</Text>
+                        <Text style={styles.eventSub}>{dateLabel}</Text>
+                        {event.description ? (
+                          <Text style={[styles.eventSub, { marginTop: 2 }]}>{event.description}</Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.eventRight}>
+                        <Text style={[styles.eventDays, daysUntil <= 3 && { color: C.primary }]}>{daysLabel}</Text>
+                        <Text style={{ fontSize: 18, color: Colors.outlineVariant }}>›</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+            </View>
+          ) : (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyEmoji}>📅</Text>
+              <Text style={styles.emptyTitle}>Aucun événement</Text>
+              <Text style={styles.emptySub}>
+                Créez des événements personnalisés (réunion, voyage, fête...) pour les retrouver ici.
+              </Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.addEventBtn}
+            onPress={() => router.push('/(app)/calendar/new-event' as never)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.addEventIcon}>＋</Text>
+            <Text style={styles.addEventText}>Ajouter un événement</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -264,6 +374,8 @@ function EventCard({
   onCreateMessage: () => void;
   onPress: () => void;
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const urgent = isUrgent(event.daysUntil);
   const isBirthday = event.eventType === 'birthday';
 
@@ -284,7 +396,7 @@ function EventCard({
         <Text style={styles.eventSub}>
           {isBirthday && event.contact.birthday
             ? `Né·e le ${formatDate(event.contact.birthday, 'd MMMM yyyy')}`
-            : 'Fête du prénom'}
+            : 'Fête'}
         </Text>
       </View>
       <View style={styles.eventRight}>
@@ -304,7 +416,8 @@ function EventCard({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing[5], paddingBottom: 100 },
@@ -342,14 +455,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 0.5,
-    borderColor: Colors.primaryContainer,
+    borderColor: C.primaryContainer,
   },
-  navBtnText: { fontSize: 20, color: Colors.primary, lineHeight: 24 },
+  navBtnText: { fontSize: 20, color: C.primary, lineHeight: 24 },
   todayBtn: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: Radii.full,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
   todayBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
@@ -403,7 +516,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceContainer,
   },
   calDayUrgent: {
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
   calDayText: {
     fontFamily: 'BeVietnamPro_400Regular',
@@ -412,7 +525,7 @@ const styles = StyleSheet.create({
   },
   calDayTextToday: {
     fontFamily: 'BeVietnamPro_700Bold',
-    color: Colors.primary,
+    color: C.primary,
   },
   calDayTextUrgent: {
     fontFamily: 'BeVietnamPro_700Bold',
@@ -424,7 +537,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
 
   // Liste
@@ -446,8 +559,17 @@ const styles = StyleSheet.create({
     borderColor: Colors.surfaceContainerHighest,
   },
   eventCardUrgent: {
-    borderColor: Colors.primary,
+    borderColor: C.primary,
     borderWidth: 1.5,
+  },
+  customEventIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.full,
+    backgroundColor: Colors.surfaceContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   eventInfo: { flex: 1 },
   eventName: {
@@ -468,7 +590,7 @@ const styles = StyleSheet.create({
     color: Colors.onSurfaceVariant,
   },
   createBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: Radii.full,
@@ -476,7 +598,7 @@ const styles = StyleSheet.create({
   createBtnLight: {
     backgroundColor: Colors.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: Colors.primaryContainer,
+    borderColor: C.primaryContainer,
   },
   createBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
@@ -505,7 +627,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: Radii.full,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
   emptyBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
@@ -522,7 +644,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing[6],
     paddingVertical: 15,
     borderRadius: Radii.full,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
   },
   addEventIcon: {
     fontSize: 20,
@@ -534,4 +656,5 @@ const styles = StyleSheet.create({
     fontSize: Typography.lg,
     color: Colors.white,
   },
-});
+  });
+}

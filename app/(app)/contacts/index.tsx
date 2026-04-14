@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
   SectionList,
   StyleSheet,
   ActivityIndicator,
@@ -18,23 +17,28 @@ import {
 } from '../../../src/hooks/useContacts';
 import { ContactRow } from '../../../src/components/ContactRow';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 import { useAuthStore } from '../../../src/stores/authStore';
 
-type FilterKey = 'all' | 'urgent' | 'friend' | 'family' | 'colleague';
+type FilterKey = 'all' | 'urgent' | 'best_friend' | 'friend' | 'family' | 'partner' | 'colleague' | 'other';
 
 const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: 'all', label: 'Tous' },
-  { key: 'urgent', label: '🔥 Urgent' },
-  { key: 'friend', label: '👫 Amis' },
-  { key: 'family', label: '👨‍👩‍👧 Famille' },
-  { key: 'colleague', label: '💼 Collègues' },
+  { key: 'all',         label: 'Tous' },
+  { key: 'urgent',      label: '🔥 Urgent' },
+  { key: 'best_friend', label: '💛 Meilleur·e ami·e' },
+  { key: 'friend',      label: '👫 Amis' },
+  { key: 'family',      label: '👨‍👩‍👧 Famille' },
+  { key: 'partner',     label: '❤️ Partenaire' },
+  { key: 'colleague',   label: '💼 Collègues' },
+  { key: 'other',       label: '🙂 Autre' },
 ];
 
 export default function ContactsScreen() {
   const router = useRouter();
+  const C = useColors();
   const userId = useAuthStore((s) => s.user?.id);
   const { data: contacts = [], isLoading } = useContacts();
-  const upcomingEvents = useUpcomingEvents(7);
+  const upcomingEvents = useUpcomingEvents(15);
   const { sections } = useContactsGrouped();
 
   const [search, setSearch] = useState('');
@@ -56,10 +60,13 @@ export default function ContactsScreen() {
           const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase());
           const matchFilter =
             filter === 'all' ||
-            (filter === 'urgent' && urgentMap.has(c.id)) ||
-            (filter === 'friend' && (c.relation === 'friend' || c.relation === 'best_friend')) ||
-            (filter === 'family' && c.relation === 'family') ||
-            (filter === 'colleague' && c.relation === 'colleague');
+            (filter === 'urgent'      && urgentMap.has(c.id)) ||
+            (filter === 'best_friend' && c.relation === 'best_friend') ||
+            (filter === 'friend'      && c.relation === 'friend') ||
+            (filter === 'family'      && c.relation === 'family') ||
+            (filter === 'partner'     && c.relation === 'partner') ||
+            (filter === 'colleague'   && c.relation === 'colleague') ||
+            (filter === 'other'       && c.relation === 'other');
           return matchSearch && matchFilter;
         }),
       }))
@@ -69,6 +76,16 @@ export default function ContactsScreen() {
   const urgentContacts = useMemo(
     () => contacts.filter((c) => urgentMap.has(c.id)),
     [contacts, urgentMap],
+  );
+
+  const urgentBirthdays = useMemo(
+    () => urgentContacts.filter((c) => urgentMap.get(c.id)?.eventType === 'birthday'),
+    [urgentContacts, urgentMap],
+  );
+
+  const urgentNameDays = useMemo(
+    () => urgentContacts.filter((c) => urgentMap.get(c.id)?.eventType === 'name_day'),
+    [urgentContacts, urgentMap],
   );
 
   const totalEventsThisMonth = useMemo(() => {
@@ -85,24 +102,20 @@ export default function ContactsScreen() {
 
   const allSections = useMemo(() => {
     const showUrgent = urgentContacts.length > 0 && filter === 'all' && !search;
-    // Exclure les contacts urgents des sections alpha pour éviter les doublons
-    const urgentIds = showUrgent ? new Set(urgentContacts.map((c) => c.id)) : null;
-    const dedupedSections = urgentIds
-      ? filteredSections
-          .map((s) => ({ ...s, data: s.data.filter((c) => !urgentIds.has(c.id)) }))
-          .filter((s) => s.data.length > 0)
-      : filteredSections;
     return [
-      ...(showUrgent ? [{ letter: '__urgent__', data: urgentContacts }] : []),
-      ...dedupedSections,
+      ...(showUrgent && urgentBirthdays.length > 0 ? [{ letter: '__urgent_birthday__', data: urgentBirthdays }] : []),
+      ...(showUrgent && urgentNameDays.length > 0 ? [{ letter: '__urgent_nameday__', data: urgentNameDays }] : []),
+      ...(filteredSections.length > 0 ? [{ letter: '__all_contacts__', data: [] }, ...filteredSections] : filteredSections),
     ];
   }, [urgentContacts, filteredSections, filter, search]);
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.center}>
-          <ActivityIndicator color={Colors.primary} size="large" />
+          <ActivityIndicator color={C.primary} size="large" />
         </View>
       </SafeAreaView>
     );
@@ -148,14 +161,10 @@ export default function ContactsScreen() {
       </View>
 
       {/* Filtres */}
-      <FlatList
-        data={FILTERS}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(f) => f.key}
-        contentContainerStyle={styles.filtersList}
-        renderItem={({ item }) => (
+      <View style={styles.filtersList}>
+        {FILTERS.map((item) => (
           <TouchableOpacity
+            key={item.key}
             style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
             onPress={() => setFilter(item.key)}
           >
@@ -163,8 +172,18 @@ export default function ContactsScreen() {
               {item.label}
             </Text>
           </TouchableOpacity>
-        )}
-      />
+        ))}
+      </View>
+
+      {/* Boutons d'action */}
+      <View style={styles.actionCol}>
+        <TouchableOpacity style={styles.importBtn} onPress={handleImportPhone}>
+          <Text style={styles.importBtnText}>📱 Importe tes contacts depuis ton téléphone</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/(app)/contacts/new' as never)}>
+          <Text style={styles.addBtnText}>+ Ajouter un nouveau contact</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Liste principale */}
       <SectionList
@@ -174,9 +193,17 @@ export default function ContactsScreen() {
         contentContainerStyle={styles.listContent}
         stickySectionHeadersEnabled={false}
         renderSectionHeader={({ section: { letter } }) =>
-          letter === '__urgent__' ? (
+          letter === '__urgent_birthday__' ? (
             <View style={styles.urgentHeader}>
-              <Text style={styles.urgentLabel}>🔥 Urgent — cette semaine</Text>
+              <Text style={styles.urgentLabel}>🎂 Anniversaires à venir</Text>
+            </View>
+          ) : letter === '__urgent_nameday__' ? (
+            <View style={styles.urgentHeader}>
+              <Text style={styles.urgentLabel}>🌸 Fêtes à venir</Text>
+            </View>
+          ) : letter === '__all_contacts__' ? (
+            <View style={styles.allContactsHeader}>
+              <Text style={styles.allContactsLabel}>👥 Ta liste de contacts</Text>
             </View>
           ) : (
             <View style={styles.sectionHeader}>
@@ -199,24 +226,8 @@ export default function ContactsScreen() {
             <Text style={styles.emptyEmoji}>👥</Text>
             <Text style={styles.emptyTitle}>Aucun contact</Text>
             <Text style={styles.emptySub}>
-              Ajoutez vos proches pour ne plus manquer leurs anniversaires.
+              Ajoute tes proches pour ne plus manquer leurs anniversaires.
             </Text>
-          </View>
-        }
-        ListFooterComponent={
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.importBtn}
-              onPress={handleImportPhone}
-            >
-              <Text style={styles.importBtnText}>📱 Importer depuis le téléphone</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => router.push('/(app)/contacts/new' as never)}
-            >
-              <Text style={styles.addBtnText}>+ Ajouter un contact</Text>
-            </TouchableOpacity>
           </View>
         }
       />
@@ -224,7 +235,8 @@ export default function ContactsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
@@ -251,7 +263,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -262,7 +274,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.white,
     borderWidth: 0.5,
-    borderColor: Colors.primaryContainer,
+    borderColor: C.primaryContainer,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing[3],
     marginHorizontal: Spacing[5],
@@ -278,20 +290,26 @@ const styles = StyleSheet.create({
   },
   clearBtn: { fontSize: 20, color: Colors.outlineVariant, paddingHorizontal: 4 },
 
-  filtersList: { paddingHorizontal: Spacing[5], paddingBottom: Spacing[3], gap: 6 },
-  filterChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: Radii.full,
-    backgroundColor: Colors.surfaceContainerLow,
-    borderWidth: 0.5,
-    borderColor: Colors.primaryContainer,
+  filtersList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: Spacing[5],
+    paddingBottom: Spacing[3],
+    gap: 8,
   },
-  filterChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  filterChip: {
+    paddingVertical: 7,
+    paddingHorizontal: 16,
+    borderRadius: Radii.full,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: C.primaryContainer,
+  },
+  filterChipActive: { backgroundColor: C.primary, borderColor: C.primary },
   filterText: {
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.sm,
-    color: Colors.onTertiaryContainer,
+    fontSize: Typography.base,
+    color: Colors.onSurface,
   },
   filterTextActive: { color: Colors.white },
 
@@ -303,11 +321,23 @@ const styles = StyleSheet.create({
     marginTop: Spacing[2],
   },
   urgentLabel: {
-    fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.xs,
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    color: Colors.onSurfaceVariant,
+    color: Colors.onSurface,
+  },
+  allContactsHeader: {
+    paddingVertical: 8,
+    paddingHorizontal: Spacing[4],
+    marginTop: Spacing[3],
+  },
+  allContactsLabel: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    color: Colors.onSurface,
   },
   sectionHeader: {
     paddingVertical: 6,
@@ -320,7 +350,7 @@ const styles = StyleSheet.create({
   sectionLetter: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.xs,
-    color: Colors.primary,
+    color: C.primary,
   },
 
   emptyWrap: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
@@ -339,28 +369,34 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  footer: { padding: Spacing[5], gap: Spacing[3] },
+  actionCol: {
+    gap: Spacing[2],
+    paddingHorizontal: Spacing[5],
+    paddingBottom: Spacing[3],
+  },
   importBtn: {
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: Radii.full,
-    borderWidth: 1,
-    borderColor: Colors.primaryContainer,
+    borderWidth: 2,
+    borderColor: C.primary,
     alignItems: 'center',
+    backgroundColor: C.primaryContainer,
   },
   importBtnText: {
-    fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.md,
-    color: Colors.primary,
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.base,
+    color: C.primary,
   },
   addBtn: {
-    paddingVertical: 13,
+    paddingVertical: 11,
     borderRadius: Radii.full,
-    backgroundColor: Colors.primary,
+    backgroundColor: C.primary,
     alignItems: 'center',
   },
   addBtnText: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: Typography.md,
+    fontSize: Typography.base,
     color: Colors.white,
   },
-});
+  });
+}

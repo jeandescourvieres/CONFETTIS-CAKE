@@ -51,7 +51,7 @@ export async function scheduleEventReminder(
 
   const isToday = triggerDays === 0;
   const name = event.contact.name;
-  const eventLabel = event.eventType === 'birthday' ? 'anniversaire' : 'fête du prénom';
+  const eventLabel = event.eventType === 'birthday' ? 'anniversaire' : 'fête';
 
   const title = isToday
     ? `🎂 C'est l'${eventLabel} de ${name} !`

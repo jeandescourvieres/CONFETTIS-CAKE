@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -22,6 +22,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { useAuthStore } from '@stores/authStore';
 import { Colors } from '@constants/theme';
+import { useThemeStore } from '../src/stores/themeStore';
 import { savePushToken } from '../src/services/pot.service';
 import { ToastRenderer } from '../src/components/ui/Toast';
 
@@ -47,7 +48,10 @@ function LanguageSync() {
   return null;
 }
 
-function AuthGate() {
+// Variable module-level : survit aux re-renders et hot-reloads, reset au redémarrage complet
+let _welcomeShown = false;
+
+function AuthGate({ onReady }: { onReady: () => void }) {
   const { session, isInitialized, user } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
@@ -77,8 +81,18 @@ function AuthGate() {
     const inAuthGroup = segments[0] === '(auth)';
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/onboarding');
+      onReady();
     } else if (session && inAuthGroup) {
-      router.replace('/(app)');
+      if (!_welcomeShown) {
+        _welcomeShown = true;
+        router.replace('/welcome');
+      } else {
+        router.replace('/(app)');
+      }
+      onReady();
+    } else if (session && !inAuthGroup) {
+      // Déjà sur la bonne route — on peut afficher
+      onReady();
     }
   }, [session, isInitialized, segments, router]);
 
@@ -88,6 +102,10 @@ function AuthGate() {
 export default function RootLayout() {
   const initialize = useAuthStore((s) => s.initialize);
   const isInitialized = useAuthStore((s) => s.isInitialized);
+  const loadTheme = useThemeStore((s) => s.loadTheme);
+  const [navigationReady, setNavigationReady] = useState(false);
+
+  useEffect(() => { loadTheme(); }, [loadTheme]);
 
   const [fontsLoaded] = useFonts({
     PlusJakartaSans_700Bold,
@@ -103,22 +121,24 @@ export default function RootLayout() {
     initialize();
   }, [initialize]);
 
+  // Cacher le splash uniquement quand navigation + fonts + auth sont prêts
   useEffect(() => {
-    if (fontsLoaded && isInitialized) {
+    if (fontsLoaded && isInitialized && navigationReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, isInitialized]);
+  }, [fontsLoaded, isInitialized, navigationReady]);
 
   if (!fontsLoaded || !isInitialized) return null;
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthGate />
+      <AuthGate onReady={() => setNavigationReady(true)} />
       <LanguageSync />
       <StatusBar style="auto" backgroundColor={Colors.background} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
+        <Stack.Screen name="welcome" />
       </Stack>
       <ToastRenderer />
     </QueryClientProvider>

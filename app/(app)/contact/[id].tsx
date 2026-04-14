@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useContact, useDeleteContact } from '../../../src/hooks/useContacts';
 import { Avatar } from '../../../src/components/ui/Avatar';
 import { Badge } from '../../../src/components/ui/Badge';
 import { Colors, Typography, Spacing, Radii, Gradients } from '../../../src/constants/theme';
+import { useColors } from '../../../src/hooks/useColors';
 import {
   daysUntilBirthday,
   daysUntilNextOccurrence,
@@ -47,6 +48,7 @@ const FORMAT_ICONS: Record<string, string> = {
 export default function ContactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const C = useColors();
   const { data: contact, isLoading } = useContact(id);
   const { mutateAsync: deleteContact, isPending: isDeleting } = useDeleteContact();
 
@@ -78,11 +80,13 @@ export default function ContactDetailScreen() {
   const handleOpenPot = () => router.push('/(app)/pot/new' as never);
   const handleOpenQR = () => router.push('/(app)/qr/index' as never);
 
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   if (isLoading || !contact) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.center}>
-          <ActivityIndicator color={Colors.primary} size="large" />
+          <ActivityIndicator color={C.primary} size="large" />
         </View>
       </SafeAreaView>
     );
@@ -91,7 +95,8 @@ export default function ContactDetailScreen() {
   // Calculs dates
   const birthdayDays = contact.birthday ? daysUntilBirthday(contact.birthday) : null;
   const birthdayUrgent = birthdayDays !== null && isUrgent(birthdayDays);
-  const age = contact.birthday ? getAge(contact.birthday, false) : null; // âge actuel
+  const hasYear = contact.birthday && !contact.birthday.startsWith('0000-');
+  const age = hasYear ? getAge(contact.birthday!, false) : null; // âge actuel (inconnu si année absente)
 
   const nameDayMmdd =
     contact.name_day ?? getNameDayForName(contact.name.split(' ')[0]);
@@ -135,9 +140,21 @@ export default function ContactDetailScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.heroName}>{contact.name}</Text>
-            {!!contact.birthday && (
-              <Text style={styles.heroBirthday}>
-                {'Né·e le '}{formatDate(contact.birthday, 'd MMMM yyyy')}
+            <Text style={[styles.heroBirthday, !contact.birthday && styles.heroBirthdayEmpty]}>
+              {contact.birthday
+                ? contact.birthday.startsWith('0000-')
+                  ? `Né·e le ${formatDate(contact.birthday.replace('0000-', '2000-'), 'd MMMM')}`
+                  : `Né·e le ${formatDate(contact.birthday, 'd MMMM yyyy')}`
+                : 'Date de naissance non renseignée'}
+            </Text>
+            {nameDayMmdd && (
+              <Text style={styles.heroNameDay}>
+                🌸 Fête le {formatShortDate(nameDayMmdd)}
+                {nameDayDays !== null
+                  ? nameDayDays === 0 ? ' · aujourd\'hui !'
+                  : nameDayDays === 1 ? ' · demain'
+                  : ` · dans ${nameDayDays}j`
+                  : ''}
               </Text>
             )}
             <View style={styles.heroBadges}>
@@ -159,7 +176,7 @@ export default function ContactDetailScreen() {
                 <Text style={styles.alertIcon}>{nextEvent.days === 0 ? '🎉' : '🔥'}</Text>
                 <View style={styles.alertInfo}>
                   <Text style={styles.alertTitle}>
-                    {nextEvent.type === 'birthday' ? 'Anniversaire' : 'Fête du prénom'}{' '}
+                    {nextEvent.type === 'birthday' ? 'Anniversaire' : 'Fête'}{' '}
                     {nextEvent.days === 0 ? "aujourd'hui !" : nextEvent.days === 1 ? 'demain !' : `dans ${nextEvent.days} jours !`}
                   </Text>
                   {contact.birthday && (
@@ -204,7 +221,7 @@ export default function ContactDetailScreen() {
                 <Text style={{ fontSize: 14 }}>🌸</Text>
               </View>
               <View>
-                <Text style={styles.dateCardLabel}>Fête du prénom</Text>
+                <Text style={styles.dateCardLabel}>Fête</Text>
                 <Text style={styles.dateCardValue}>{formatShortDate(nameDayMmdd)}</Text>
                 <Text style={styles.dateCardSub}>{nameDayNames.slice(0, 2).join(', ')}</Text>
               </View>
@@ -267,6 +284,33 @@ export default function ContactDetailScreen() {
           </View>
         )}
 
+        {/* Préférences de communication */}
+        {(contact.preferred_channel || contact.preferred_send_time) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Préférences d'envoi</Text>
+            <View style={styles.coordsCard}>
+              {contact.preferred_channel && (
+                <View style={styles.coordRow}>
+                  <Text style={styles.coordIcon}>{contact.preferred_channel === 'sms' ? '📱' : '📧'}</Text>
+                  <Text style={styles.coordValue}>
+                    Préfère recevoir par {contact.preferred_channel === 'sms' ? 'SMS' : 'Email'}
+                  </Text>
+                </View>
+              )}
+              {contact.preferred_send_time && (
+                <View style={[styles.coordRow, { borderTopWidth: contact.preferred_channel ? 0.5 : 0, borderTopColor: Colors.surfaceContainerLow }]}>
+                  <Text style={styles.coordIcon}>
+                    {contact.preferred_send_time === 'morning' ? '🌅' : contact.preferred_send_time === 'afternoon' ? '☀️' : contact.preferred_send_time === 'evening' ? '🌙' : '🕐'}
+                  </Text>
+                  <Text style={styles.coordValue}>
+                    Heure idéale : {contact.preferred_send_time === 'morning' ? 'le matin' : contact.preferred_send_time === 'afternoon' ? "l'après-midi" : contact.preferred_send_time === 'evening' ? 'le soir' : 'peu importe'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Bouton supprimer */}
         <View style={styles.section}>
           <TouchableOpacity
@@ -299,6 +343,8 @@ function ActionButton({
   onPress: () => void;
   disabled?: boolean;
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <TouchableOpacity
       style={[styles.actionBtn, disabled && { opacity: 0.4 }]}
@@ -314,7 +360,8 @@ function ActionButton({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
@@ -325,11 +372,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[4],
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: Colors.primaryContainer,
+    borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: Colors.primary, lineHeight: 32 },
+  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
   topbarTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',
     fontSize: Typography.lg,
@@ -338,9 +385,9 @@ const styles = StyleSheet.create({
   editBtn: {
     paddingVertical: 6, paddingHorizontal: 12,
     borderRadius: Radii.full, borderWidth: 1,
-    borderColor: Colors.primary, backgroundColor: Colors.white,
+    borderColor: C.primary, backgroundColor: Colors.white,
   },
-  editBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.primary },
+  editBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: C.primary },
 
   scrollContent: { paddingBottom: 100 },
 
@@ -379,6 +426,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: -4,
   },
+  heroBirthdayEmpty: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: 'rgba(255,255,255,0.45)',
+    fontStyle: 'italic',
+  },
+  heroNameDay: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+    marginBottom: 8,
+  },
   heroBadges: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   heroBadge: {
     backgroundColor: 'rgba(255,255,255,0.22)',
@@ -409,13 +469,14 @@ const styles = StyleSheet.create({
   alertInfo: { flex: 1 },
   alertTitle: {
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.sm,
-    color: Colors.secondaryContainer,
+    fontSize: Typography.lg,
+    color: '#fff',
   },
   alertSub: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.xs,
-    color: 'rgba(255,255,255,0.7)',
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: Typography.base,
+    color: 'rgba(255,255,255,0.95)',
+    marginTop: 2,
   },
   alertBtn: {
     backgroundColor: Colors.secondaryContainer,
@@ -442,7 +503,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: Colors.white,
     borderWidth: 0.5,
-    borderColor: Colors.primaryContainer,
+    borderColor: C.primaryContainer,
     borderRadius: Radii.md,
     padding: 12,
   },
@@ -515,7 +576,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: Colors.white,
     borderWidth: 0.5,
-    borderColor: Colors.primaryContainer,
+    borderColor: C.primaryContainer,
     borderRadius: Radii.md,
     padding: 12,
   },
@@ -530,7 +591,7 @@ const styles = StyleSheet.create({
   coordsCard: {
     backgroundColor: Colors.white,
     borderWidth: 0.5,
-    borderColor: Colors.primaryContainer,
+    borderColor: C.primaryContainer,
     borderRadius: Radii.md,
     overflow: 'hidden',
   },
@@ -560,4 +621,5 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     color: Colors.error,
   },
-});
+  });
+}
