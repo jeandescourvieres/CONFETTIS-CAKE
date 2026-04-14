@@ -276,7 +276,21 @@ const fr = {
       title: '🌟 Ton code parrainage',
       sub: 'Partage ce code pour gagner des crédits IA !',
       share: 'Partager',
-      message: '🎂 Rejoins Confettis & Cake avec mon code parrainage : {{code}}',
+      message: `Bonjour [Prénom] 👋
+
+🎂 Rejoins-moi sur Confettis & Cake !
+
+C'est l'app pour envoyer des messages vraiment uniques à ceux qu'on aime — textes générés par l'IA, poèmes, chansons, blagues — pour les anniversaires, fêtes, mariages et bien plus.
+
+✨ Utilise mon code parrainage pour démarrer avec des crédits offerts :
+
+👉 Code : {{code}}
+
+Télécharge l'app et entre ce code à l'inscription !
+
+─────────────────
+🎂 Créé avec Confettis & Cake · Envoie, toi aussi, des messages uniques aux gens qui comptent pour toi
+👉 Télécharge gratuitement Confettis & Cake et parraine tes ami·e·s : https://confettis-cake.app`,
     },
     sections: {
       notifications: 'Notifications',

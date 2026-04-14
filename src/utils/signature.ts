@@ -6,8 +6,8 @@ const APP_URL = 'https://confettis-cake.app';
 
 const SIGNATURES: Record<string, { main: string; cta: string }> = {
   fr: {
-    main: 'Créé avec Confettis & Cake · Envoyez, vous aussi, des messages uniques aux gens qui comptent pour vous',
-    cta: 'Télécharger gratuitement Confettis & Cake et parrainer vos ami·e·s',
+    main: 'Créé avec Confettis & Cake · Envoie, toi aussi, des messages uniques aux gens qui comptent pour toi',
+    cta: 'Télécharge gratuitement Confettis & Cake et parraine tes ami·e·s',
   },
   en: {
     main: 'Created with Confettis & Cake · Send unique messages to the people who matter to you',

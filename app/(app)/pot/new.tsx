@@ -74,8 +74,25 @@ export default function PotNewScreen() {
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
+        {/* ── Accroche ──────────────────────────────── */}
+        <View style={styles.catchCard}>
+          <Text style={styles.catchTitle}>🎁 À quoi ça sert, une cagnotte ?{'\n'}À tout faire… mais à plusieurs !</Text>
+          <Text style={styles.catchText}>
+            🎂 Cadeau, 🤝 coup de pouce, 🚀 projet fou : ici, chaque participation compte.{'\n'}
+            <Text style={styles.catchItalic}>😄 (Et c'est bien plus sympa que de payer tout seul.)</Text>
+          </Text>
+        </View>
+
+        {/* ── Intro ─────────────────────────────────── */}
+        <View style={styles.introCard}>
+          <Text style={styles.introTitle}>Crée ta cagnotte en 5 étapes !</Text>
+          <Text style={styles.introText}>
+            Remplis les informations ci-dessous pour lancer ta collecte et partager ton projet avec tes proches.
+          </Text>
+        </View>
+
         {/* ── Titre ─────────────────────────────────── */}
-        <Text style={styles.label}>Donne un nom à ta cagnotte *</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Donne un nom à ta cagnotte *</Text></View>
         <TextInput
           style={styles.input}
           value={title}
@@ -86,7 +103,7 @@ export default function PotNewScreen() {
         />
 
         {/* ── Contact ───────────────────────────────── */}
-        <Text style={styles.label}>Qui en est le/la bénéficiaire ? *</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Qui en est le/la bénéficiaire ? *</Text></View>
         <TouchableOpacity
           style={[styles.input, styles.pickerBtn]}
           onPress={() => setShowContactPicker(!showContactPicker)}
@@ -114,7 +131,7 @@ export default function PotNewScreen() {
         )}
 
         {/* ── Objectif ──────────────────────────────── */}
-        <Text style={styles.label}>Objectif à atteindre (€) *</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Objectif à atteindre (€) *</Text></View>
         <View style={styles.amountRow}>
           <TextInput
             style={[styles.input, { flex: 1 }]}
@@ -135,7 +152,7 @@ export default function PotNewScreen() {
         )}
 
         {/* ── Description cadeau ────────────────────── */}
-        <Text style={styles.label}>Description du cadeau (optionnel)</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Description du cadeau (optionnel)</Text></View>
         <TextInput
           style={[styles.input, styles.textArea]}
           value={giftDescription}
@@ -147,7 +164,7 @@ export default function PotNewScreen() {
         />
 
         {/* ── Date limite ───────────────────────────── */}
-        <Text style={styles.label}>Date limite de la collecte (optionnel)</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Date limite de la collecte (optionnel)</Text></View>
         <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
           <Text style={deadline ? styles.inputText : styles.inputPlaceholder}>
             {deadline
@@ -215,10 +232,61 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   saveBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.white },
 
   content: { padding: Spacing[4], paddingBottom: 80 },
+  catchCard: {
+    marginBottom: Spacing[2],
+    paddingVertical: Spacing[4],
+    paddingHorizontal: Spacing[4],
+    backgroundColor: C.primaryContainer + '40',
+    borderRadius: Radii.xl,
+    gap: 8,
+  },
+  catchTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.xl,
+    color: Colors.onSurface,
+    lineHeight: 28,
+  },
+  catchText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.md,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 22,
+  },
+  catchItalic: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontStyle: 'italic',
+    color: Colors.onSurfaceVariant,
+  },
+  introCard: {
+    backgroundColor: C.primaryContainer + '60',
+    borderRadius: Radii.xl,
+    padding: Spacing[4],
+    marginBottom: Spacing[2],
+    borderLeftWidth: 4,
+    borderLeftColor: C.primary,
+  },
+  introTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.xl,
+    color: C.primary,
+    marginBottom: 6,
+  },
+  introText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.md,
+    color: Colors.onSurface,
+    lineHeight: 22,
+  },
+  labelWrap: {
+    borderLeftWidth: 3, borderLeftColor: C.primary,
+    paddingLeft: 8,
+    marginTop: Spacing[4], marginBottom: Spacing[2],
+    justifyContent: 'center',
+  },
   label: {
     fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs,
     textTransform: 'uppercase', letterSpacing: 0.8,
-    color: Colors.onSurfaceVariant, marginTop: Spacing[4], marginBottom: Spacing[2],
+    color: Colors.onSurfaceVariant,
   },
   input: {
     backgroundColor: Colors.white, borderWidth: 0.5, borderColor: C.primaryContainer,

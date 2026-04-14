@@ -217,7 +217,7 @@ export default function NewContactScreen() {
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Nom + Prénom */}
-        <Text style={styles.label}>Nom de famille *</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Nom de famille *</Text></View>
         <TextInput
           style={styles.input}
           value={lastName}
@@ -228,7 +228,7 @@ export default function NewContactScreen() {
           returnKeyType="next"
         />
 
-        <Text style={styles.label}>Prénom</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Prénom</Text></View>
         <TextInput
           style={styles.input}
           value={firstName}
@@ -240,7 +240,7 @@ export default function NewContactScreen() {
         />
 
         {/* Relation */}
-        <Text style={styles.label}>Nature de la relation</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Nature de la relation</Text></View>
         <View style={styles.relationGrid}>
           {RELATIONS.map((r) => (
             <TouchableOpacity
@@ -257,7 +257,7 @@ export default function NewContactScreen() {
         </View>
 
         {/* Date de naissance */}
-        <Text style={styles.label}>Date de naissance</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Date de naissance</Text></View>
         <TouchableOpacity
           style={styles.input}
           onPress={() => setShowDatePicker(true)}
@@ -294,7 +294,7 @@ export default function NewContactScreen() {
         )}
 
         {/* Fête */}
-        <Text style={styles.label}>🌸 Fête le…</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>🌸 Fête le…</Text></View>
         <TouchableOpacity
           style={styles.input}
           onPress={() => setShowNameDayPicker(true)}
@@ -341,7 +341,7 @@ export default function NewContactScreen() {
         )}
 
         {/* Téléphone */}
-        <Text style={styles.label}>Téléphone</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Téléphone</Text></View>
         <TextInput
           style={styles.input}
           value={phone}
@@ -352,7 +352,7 @@ export default function NewContactScreen() {
         />
 
         {/* Email */}
-        <Text style={styles.label}>Email</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Email</Text></View>
         <TextInput
           style={styles.input}
           value={email}
@@ -364,7 +364,7 @@ export default function NewContactScreen() {
         />
 
         {/* Canal préféré */}
-        <Text style={styles.label}>Son canal de communication préféré</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Son canal de communication préféré</Text></View>
         <Text style={styles.sublabel}>
           Comment préfères-tu contacter {firstName.trim() || 'ce contact'} ?
         </Text>
@@ -382,7 +382,7 @@ export default function NewContactScreen() {
         </View>
 
         {/* Heure idéale d'envoi */}
-        <Text style={styles.label}>Moment idéal d'envoi</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Moment idéal d'envoi du message</Text></View>
         <View style={styles.channelRow}>
           {SEND_TIMES.map((t) => (
             <TouchableOpacity
@@ -397,7 +397,7 @@ export default function NewContactScreen() {
         </View>
 
         {/* Personnalité */}
-        <Text style={styles.label}>Personnalité</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Personnalité</Text></View>
         <View style={styles.tagGrid}>
           {PERSONALITY_TAGS.map((t) => {
             const active = personalityTags.includes(t.value);
@@ -418,7 +418,7 @@ export default function NewContactScreen() {
         </View>
 
         {/* Notes */}
-        <Text style={styles.label}>Notes personnelles</Text>
+        <View style={styles.labelWrap}><Text style={styles.label}>Notes personnelles</Text></View>
         <TextInput
           style={[styles.input, styles.textArea]}
           value={notes}
@@ -477,14 +477,20 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
 
   content: { padding: Spacing[5], paddingBottom: 80 },
+  labelWrap: {
+    borderLeftWidth: 3,
+    borderLeftColor: C.primary,
+    paddingLeft: 8,
+    marginTop: Spacing[4],
+    marginBottom: Spacing[2],
+    justifyContent: 'center',
+  },
   label: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     color: Colors.onSurfaceVariant,
-    marginBottom: Spacing[2],
-    marginTop: Spacing[4],
   },
   input: {
     backgroundColor: Colors.white,

@@ -75,7 +75,7 @@ export default function ContactDetailScreen() {
   };
 
   const handleCreateMessage = () =>
-    router.push({ pathname: '/(app)/create/index', params: { contactId: id } } as never);
+    router.push({ pathname: '/(app)/create/', params: { contactId: id } } as never);
 
   const handleOpenPot = () => router.push('/(app)/pot/new' as never);
   const handleOpenQR = () => router.push('/(app)/qr/index' as never);

@@ -223,7 +223,7 @@ export default function HomeScreen() {
   const handleCreate = useCallback(
     (event: UpcomingEvent) => {
       router.push({
-        pathname: '/(app)/create/index',
+        pathname: '/(app)/create/',
         params: { contactId: event.contact.id },
       } as never);
     },

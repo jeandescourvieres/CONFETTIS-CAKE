@@ -206,20 +206,22 @@ export interface Database {
         Row: {
           id: string;
           referrer_id: string;
-          referred_email: string;
-          status: 'pending' | 'registered' | 'rewarded';
-          rewarded_at: string | null;
+          referee_id: string | null;
+          referred_email: string | null;
+          credits_awarded: number;
           created_at: string;
         };
         Insert: {
           id?: string;
           referrer_id: string;
-          referred_email: string;
-          status?: 'pending' | 'registered' | 'rewarded';
+          referee_id?: string | null;
+          referred_email?: string | null;
+          credits_awarded?: number;
         };
         Update: {
-          status?: 'pending' | 'registered' | 'rewarded';
-          rewarded_at?: string | null;
+          referee_id?: string | null;
+          referred_email?: string | null;
+          credits_awarded?: number;
         };
       };
       custom_events: {

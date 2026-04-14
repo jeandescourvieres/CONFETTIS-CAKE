@@ -9,7 +9,7 @@ function HomeTabButton(props: React.ComponentProps<typeof TouchableOpacity>) {
   return (
     <TouchableOpacity
       {...props}
-      onPress={() => router.replace('/welcome' as never)}
+      onPress={() => router.replace('/(app)' as never)}
     />
   );
 }
@@ -102,7 +102,6 @@ export default function AppLayout() {
       <Tabs.Screen name="contacts/index" options={{ href: null }} />
       <Tabs.Screen name="contacts/new" options={{ href: null }} />
       <Tabs.Screen name="contacts/import" options={{ href: null }} />
-      <Tabs.Screen name="create/studio" options={{ href: null }} />
       <Tabs.Screen name="create/preview" options={{ href: null }} />
       <Tabs.Screen name="create/sent" options={{ href: null }} />
       <Tabs.Screen name="studio/index" options={{ href: null }} />
@@ -117,7 +116,6 @@ export default function AppLayout() {
       <Tabs.Screen name="pot/index" options={{ href: null }} />
       <Tabs.Screen name="pot/[id]" options={{ href: null }} />
       <Tabs.Screen name="pot/new" options={{ href: null }} />
-      <Tabs.Screen name="pot/contribute/[id]" options={{ href: null }} />
       <Tabs.Screen name="cards/index" options={{ href: null }} />
       <Tabs.Screen name="cards/[id]"  options={{ href: null }} />
     </Tabs>

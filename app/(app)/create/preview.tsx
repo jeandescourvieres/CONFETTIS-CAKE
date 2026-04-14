@@ -286,49 +286,60 @@ export default function PreviewScreen() {
           <AudioPreviewPlayer messageId={savedMessageId} />
         )}
 
-        {/* ── Contenu ───────────────────────────────────── */}
-        {isEditing ? (
-          <View style={styles.editCard}>
-            <TextInput
-              style={styles.editInput}
-              value={localContent}
-              onChangeText={setLocalContent}
-              multiline
-              autoFocus
-              textAlignVertical="top"
-            />
-            <TouchableOpacity style={styles.editValidateBtn} onPress={handleSaveEdit}>
-              <Text style={styles.editValidateBtnText}>✓ Appuie ici pour valider ton message</Text>
-            </TouchableOpacity>
-          </View>
-        ) : format === 'song' || format === 'poem'
-          ? <LyricsCard content={generatedContent} />
-          : (
-            <View style={styles.messageCard}>
-              <Text style={styles.messageText}>{generatedContent}</Text>
+        {/* ── Aperçu complet du message reçu ───────────── */}
+        <View style={styles.previewEnvelope}>
+          <Text style={styles.previewEnvelopeLabel}>📩 Ce que ton contact va recevoir</Text>
+
+          {isEditing ? (
+            <View style={styles.editCard}>
+              <TextInput
+                style={styles.editInput}
+                value={localContent}
+                onChangeText={setLocalContent}
+                multiline
+                autoFocus
+                textAlignVertical="top"
+              />
+              <TouchableOpacity style={styles.editValidateBtn} onPress={handleSaveEdit}>
+                <Text style={styles.editValidateBtnText}>✓ Appuie ici pour valider ton message</Text>
+              </TouchableOpacity>
+            </View>
+          ) : format === 'song' || format === 'poem'
+            ? <LyricsCard content={generatedContent} />
+            : (
+              <View style={styles.messageCard}>
+                <Text style={styles.messageHeader}>{emoji} {title}</Text>
+                <Text style={styles.messageText}>{generatedContent}</Text>
+              </View>
+            )}
+
+          {/* Signature bannière */}
+          {showSig && sigLabels && (
+            <View style={styles.signatureBanner}>
+              <Text style={styles.sigMain}>{sigLabels.main}</Text>
+              <Text style={styles.sigCta}>
+                {sigLabels.cta}{' '}
+                <Text style={styles.sigUrl}>{sigLabels.url}</Text>
+              </Text>
             </View>
           )}
+        </View>
 
-        {/* ── Bouton modifier ───────────────────────────── */}
+        {/* ── Prêt + Bouton modifier ────────────────────── */}
         {!isEditing && (
-          <TouchableOpacity style={styles.editPromptBtn} onPress={() => setIsEditing(true)}>
-            <Text style={styles.editPromptText}>✏️ Tu veux modifier ton message ?</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* ── Signature bannière ───────────────────────── */}
-        {showSig && sigLabels && (
-          <View style={styles.signatureBanner}>
-            <Text style={styles.sigMain}>{sigLabels.main}</Text>
-            <Text style={styles.sigCta}>
-              {sigLabels.cta}{' '}
-              <Text style={styles.sigUrl}>{sigLabels.url}</Text>
+          <>
+            <Text style={styles.readyTitle}>Ton message est prêt ! 🎉</Text>
+            <TouchableOpacity style={styles.editPromptBtn} onPress={() => setIsEditing(true)}>
+              <Text style={styles.editPromptText}>✏️ Clique ici si tu veux le modifier</Text>
+            </TouchableOpacity>
+            <Text style={styles.readySub}>
+              Si tu ne veux pas le modifier, choisis simplement un mode d'envoi ci-dessous pour l'expédier. 🚀
             </Text>
-          </View>
+          </>
         )}
 
         {/* ── Envoi ────────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Envoyer via</Text>
+        <Text style={styles.sectionLabel}>Envoyer par</Text>
         <View style={styles.shareGrid}>
           {SHARE_CHANNELS.map((ch) => (
             <TouchableOpacity
@@ -533,6 +544,23 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontSize: Typography.lg,
     color: C.onPrimary,
   },
+  readyTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography['2xl'],
+    color: Colors.onSurface,
+    textAlign: 'center',
+    marginTop: Spacing[5],
+    marginHorizontal: Spacing[4],
+  },
+  readySub: {
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: Typography.lg,
+    color: Colors.onSurface,
+    textAlign: 'center',
+    lineHeight: 26,
+    marginHorizontal: Spacing[5],
+    marginTop: Spacing[3],
+  },
   editPromptBtn: {
     alignSelf: 'center',
     marginTop: Spacing[4],
@@ -549,12 +577,34 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
 
   // Message card
-  messageCard: {
+  previewEnvelope: {
     marginHorizontal: Spacing[4],
+    marginTop: Spacing[4],
+    backgroundColor: '#f3eef8',
+    borderRadius: Radii.xl,
+    borderWidth: 1.5,
+    borderColor: C.primaryContainer,
+    padding: Spacing[4],
+    gap: 12,
+  },
+  previewEnvelopeLabel: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.sm,
+    color: C.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  messageCard: {
     backgroundColor: Colors.white,
     borderRadius: Radii.xl,
     padding: Spacing[5],
     ...Shadows.sm,
+  },
+  messageHeader: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.xl,
+    color: C.primary,
+    marginBottom: Spacing[3],
   },
   messageText: {
     fontFamily: 'BeVietnamPro_400Regular',
@@ -565,10 +615,10 @@ function makeStyles(C: ReturnType<typeof useColors>) {
 
   sectionLabel: {
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.xs,
+    fontSize: Typography.lg,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    color: Colors.onSurfaceVariant,
+    color: Colors.onSurface,
     marginTop: Spacing[6],
     marginBottom: Spacing[3],
     paddingHorizontal: Spacing[4],
@@ -595,8 +645,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
 
   signatureBanner: {
-    marginHorizontal: Spacing[4],
-    marginTop: Spacing[3],
+    marginTop: 0,
     backgroundColor: C.primary,
     borderRadius: Radii.xl,
     padding: Spacing[4],

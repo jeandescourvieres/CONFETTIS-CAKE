@@ -30,7 +30,12 @@
       "Bash(CI=1 npx expo install lottie-react-native)",
       "Bash(grep -n \"create policy\\\\|create index\\\\|create trigger\\\\|create function\" \"C:\\\\Users\\\\HYDROFOLLIES\\\\confettis-cake\\\\supabase\\\\migrations\"/*.sql)",
       "Bash(grep -rn \"^create policy\\\\|^create index\\\\|^create trigger\\\\|^create table\\\\|^create type\" C:/Users/HYDROFOLLIES/confettis-cake/supabase/migrations/*.sql)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git commit:*)",
+      "Bash(supabase --version)",
+      "Bash(npx supabase:*)",
+      "Bash(node_modules/.bin/supabase --version)",
+      "Bash(git add:*)"
     ]
   }
 }

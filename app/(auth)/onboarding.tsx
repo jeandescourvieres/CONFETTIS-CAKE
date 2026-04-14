@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useUIStore } from '../../src/stores/uiStore';
+import { applyReferralCode } from '../../src/services/referral.service';
 import { Colors, Typography, Spacing, Radii } from '../../src/constants/theme';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -431,6 +432,7 @@ function Slide5({ onLogin }: { onLogin: () => void }) {
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
   const { signUpWithPassword, signInWithPassword, resetPassword, updateProfile, signInWithGoogle, signInWithApple, isLoading } = useAuthStore();
@@ -454,6 +456,12 @@ function Slide5({ onLogin }: { onLogin: () => void }) {
         }
         await signUpWithPassword(email.trim(), password);
         await updateProfile({ full_name: firstName.trim() });
+        // Appliquer le code parrainage si renseigné
+        const user = useAuthStore.getState().user;
+        if (referralCode.trim() && user) {
+          await applyReferralCode(referralCode.trim(), user.id, email.trim()).catch(() => {});
+          await useAuthStore.getState().fetchProfile();
+        }
         showToast(`Bienvenue ${firstName.trim()} !`, 'success');
       } else {
         await signInWithPassword(email.trim(), password);
@@ -559,6 +567,18 @@ function Slide5({ onLogin }: { onLogin: () => void }) {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {isSignUp && (
+        <TextInput
+          style={[styles.emailInput, { marginTop: 10 }]}
+          value={referralCode}
+          onChangeText={(v) => setReferralCode(v.toUpperCase())}
+          placeholder="Code parrainage (optionnel)"
+          placeholderTextColor={Colors.outlineVariant}
+          autoCapitalize="characters"
+          autoCorrect={false}
+        />
+      )}
 
       <TouchableOpacity
         style={[styles.emailBtn, isLoading && { opacity: 0.5 }]}
