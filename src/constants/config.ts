@@ -20,4 +20,7 @@ export const Config = {
   // Deep links
   appScheme: 'confettiscake',
   webBaseUrl: 'https://confettis-cake.app',
+
+  // Mode d'emploi (page Notion publique)
+  manualUrl: 'https://www.notion.so/Mode-d-emploi-Confettis-Cake-349594ebad3a80678282f8ba7336b605',
 } as const;

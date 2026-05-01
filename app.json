@@ -11,17 +11,17 @@
     "primaryColor": "#9b6bb5",
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#9b6bb5"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.confettiscake.app",
       "buildNumber": "1",
       "infoPlist": {
-        "NSContactsUsageDescription": "Confettis & Cake utilise vos contacts pour détecter les anniversaires.",
-        "NSCameraUsageDescription": "Pour prendre la photo de confirmation d'achat.",
-        "NSPhotoLibraryUsageDescription": "Pour ajouter une photo à votre profil.",
+        "NSContactsUsageDescription": "Confettis & Cake utilise vos contacts pour détecter les anniversaires et les fêtes.",
+        "NSCameraUsageDescription": "Pour prendre une photo de profil pour vos contacts.",
+        "NSPhotoLibraryUsageDescription": "Pour choisir une photo de profil pour vos contacts.",
         "NSUserNotificationsUsageDescription": "Pour vous rappeler les anniversaires et fêtes de vos contacts."
       },
       "config": {
@@ -38,11 +38,14 @@
       "package": "com.confettiscake.app",
       "versionCode": 1,
       "permissions": [
-        "READ_CONTACTS",
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "android.permission.READ_CONTACTS",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.WRITE_CONTACTS"
       ],
       "edgeToEdgeEnabled": true
     },
@@ -53,7 +56,6 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-av",
       [
         "expo-contacts",
         {
@@ -68,15 +70,36 @@
           "enableGooglePay": false
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-av",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#9b6bb5",
+          "defaultChannel": "birthdays",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pour choisir une photo de profil pour vos contacts.",
+          "cameraPermission": "Pour prendre une photo de profil pour vos contacts."
+        }
+      ],
+      "./plugins/withAndroidWidget",
+      "./plugins/withIOSWidget"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
       "eas": {
-        "projectId": "VOTRE_EAS_PROJECT_ID"
-      }
-    }
+        "projectId": "d871f66f-f292-4605-8460-d60385ca2c6f"
+      },
+      "router": {}
+    },
+    "owner": "jeandescourvieres"
   }
 }

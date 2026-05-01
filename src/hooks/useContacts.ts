@@ -124,3 +124,14 @@ export function useContactsGrouped() {
 
   return { sections, ...rest };
 }
+
+// ── Animaux rattachés à un maître ──────────────
+
+export function usePetsByOwnerName(ownerName: string) {
+  const { data: contacts = [] } = useContacts();
+  if (!ownerName.trim()) return [];
+  const lower = ownerName.trim().toLowerCase();
+  return contacts.filter(
+    (c) => c.relation === 'pet' && c.pet_owner_name?.toLowerCase() === lower,
+  );
+}

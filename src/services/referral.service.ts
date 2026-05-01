@@ -17,9 +17,9 @@ export async function applyReferralCode(
   if (!code) return;
 
   // 1. Trouver le parrain
-  const { data: referrer, error } = await supabase
+  const { data: referrer, error } = await (supabase as any)
     .from('profiles')
-    .select('id, credits')
+    .select('id, credits, full_name')
     .eq('referral_code', code)
     .single();
 
@@ -27,39 +27,60 @@ export async function applyReferralCode(
   if (referrer.id === refereeId) return; // Ne peut pas se parrainer soi-même
 
   // 2. Enregistrer le parrainage
-  await supabase.from('referrals').insert({
+  await (supabase as any).from('referrals').insert({
     referrer_id: referrer.id,
     referee_id: refereeId,
     referred_email: refereeEmail,
+    referrer_name: referrer.full_name ?? null,
     credits_awarded: CREDITS_PER_REFERRAL,
   });
 
+  // 2b. Notifier le parrain par push (best-effort, non bloquant)
+  (supabase as any).functions.invoke('notify-referral', {
+    body: { referrer_id: referrer.id, referee_email: refereeEmail },
+  }).catch(() => {/* silent */});
+
   // 3. Créditer le parrain
-  await supabase
+  await (supabase as any)
     .from('profiles')
     .update({ credits: (referrer.credits ?? 0) + CREDITS_PER_REFERRAL })
     .eq('id', referrer.id);
 
   // 4. Créditer le filleul
-  const { data: referee } = await supabase
+  const { data: referee } = await (supabase as any)
     .from('profiles')
     .select('credits')
     .eq('id', refereeId)
     .single();
 
-  await supabase
+  await (supabase as any)
     .from('profiles')
     .update({ credits: ((referee?.credits) ?? 0) + CREDITS_PER_REFERRAL })
     .eq('id', refereeId);
 }
 
 /**
+ * Récupère le parrainage dont l'utilisateur est le filleul (qui l'a parrainé).
+ */
+export async function fetchMyReferral(refereeId: string) {
+  const { data } = await (supabase as any)
+    .from('referrals')
+    .select('id, referrer_name, credits_awarded, created_at')
+    .eq('referee_id', refereeId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
+/**
  * Récupère l'historique des parrainages du user connecté.
  */
 export async function fetchReferralHistory(referrerId: string) {
-  const { data } = await supabase
+  const { data } = await (supabase as any)
     .from('referrals')
-    .select('id, referred_email, credits_awarded, created_at')
+    .select('id, referred_email, credits_awarded, created_at, status')
     .eq('referrer_id', referrerId)
     .order('created_at', { ascending: false });
 

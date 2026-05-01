@@ -33,7 +33,7 @@ const pt = {
     taglineEvents_one: '{{count}} evento chegando em breve 🎉',
     taglineEvents_other: '{{count}} eventos chegando em breve 🎉',
     taglineCalm: 'Tudo tranquilo por enquanto ✨',
-    birthdays: '🎂 Aniversários',
+    birthdays: '🎁 Aniversários',
     nameDays: '🌸 Dias do nome',
     otherEvents: '📅 Outros eventos',
     quickAccess: '⚡ Acesso rápido',
@@ -275,7 +275,7 @@ const pt = {
       title: '🌟 Código de indicação',
       sub: 'Compartilhe e ganhe créditos IA',
       share: 'Compartilhar',
-      message: '🎂 Entre no Confettis & Cake com meu código de indicação: {{code}}',
+      message: '🎁 Entre no Confettis & Cake com meu código de indicação: {{code}}',
     },
     sections: {
       notifications: 'Notificações',

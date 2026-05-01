@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import type { Contact, UpcomingEvent } from '../types/models';
 import { Config } from '../constants/config';
+import { getUpcomingHolidays, type HolidayWithDate } from '../utils/generalHolidays';
 
 // Configure le handler global (affichage même en foreground)
 Notifications.setNotificationHandler({
@@ -54,7 +55,7 @@ export async function scheduleEventReminder(
   const eventLabel = event.eventType === 'birthday' ? 'anniversaire' : 'fête';
 
   const title = isToday
-    ? `🎂 C'est l'${eventLabel} de ${name} !`
+    ? `🎁 C'est l'${eventLabel} de ${name} !`
     : `🎉 ${eventLabel === 'anniversaire' ? 'Anniversaire' : 'Fête'} de ${name} dans ${event.daysUntil} jours`;
 
   const body = isToday
@@ -77,7 +78,8 @@ export async function scheduleEventReminder(
 }
 
 /**
- * Planifie des rappels pour tous les événements à venir d'une liste.
+ * Planifie des rappels pour tous les événements à venir d'une liste,
+ * et aussi pour les fêtes généralistes des 60 prochains jours.
  * Annule d'abord tous les rappels existants.
  */
 export async function scheduleAllReminders(
@@ -90,12 +92,50 @@ export async function scheduleAllReminders(
   // Annuler les rappels précédents
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  // Planifier les nouveaux
-  const promises = events
-    .filter((e) => e.daysUntil <= 30) // rappels pour les 30 prochains jours
+  // Rappels contacts (anniversaires + fêtes des prénoms)
+  const contactPromises = events
+    .filter((e) => e.daysUntil <= 30)
     .map((e) => scheduleEventReminder(e, daysBefore));
 
-  await Promise.allSettled(promises);
+  // Rappels fêtes généralistes (60 prochains jours)
+  const upcomingHolidays = getUpcomingHolidays(60);
+  const holidayPromises = upcomingHolidays.map((h) => scheduleHolidayReminder(h));
+
+  await Promise.allSettled([...contactPromises, ...holidayPromises]);
+}
+
+/**
+ * Planifie une notification pour une fête généraliste.
+ */
+async function scheduleHolidayReminder(holiday: HolidayWithDate): Promise<string | null> {
+  const triggerDays = holiday.daysUntil - holiday.notifyDaysBefore;
+  if (triggerDays < 0) return null; // trop tard pour notifier
+
+  const triggerDate = new Date();
+  triggerDate.setDate(triggerDate.getDate() + triggerDays);
+  triggerDate.setHours(9, 0, 0, 0);
+
+  const isToday = triggerDays === 0;
+
+  const title = isToday
+    ? `${holiday.emoji} ${holiday.name} — c'est aujourd'hui !`
+    : `${holiday.emoji} ${holiday.name} dans ${holiday.notifyDaysBefore} jour${holiday.notifyDaysBefore > 1 ? 's' : ''}`;
+
+  const body = holiday.hasMessageCta
+    ? "C'est le moment de créer un message pour l'occasion ✨"
+    : 'Marque l\'occasion avec tes proches 🎉';
+
+  return Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      data: { holidayId: holiday.id, occasion: holiday.occasion ?? null },
+      sound: 'default',
+    },
+    trigger: isToday
+      ? null
+      : { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate },
+  });
 }
 
 /**

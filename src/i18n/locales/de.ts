@@ -33,7 +33,7 @@ const de = {
     taglineEvents_one: '{{count}} bevorstehendes Ereignis 🎉',
     taglineEvents_other: '{{count}} bevorstehende Ereignisse 🎉',
     taglineCalm: 'Im Moment ist alles ruhig ✨',
-    birthdays: '🎂 Geburtstage',
+    birthdays: '🎁 Geburtstage',
     nameDays: '🌸 Namenstage',
     otherEvents: '📅 Weitere Ereignisse',
     quickAccess: '⚡ Schnellzugriff',
@@ -275,7 +275,7 @@ const de = {
       title: '🌟 Empfehlungscode',
       sub: 'Teilen und KI-Kredite verdienen',
       share: 'Teilen',
-      message: '🎂 Trete Confettis & Cake mit meinem Empfehlungscode bei: {{code}}',
+      message: '🎁 Trete Confettis & Cake mit meinem Empfehlungscode bei: {{code}}',
     },
     sections: {
       notifications: 'Benachrichtigungen',

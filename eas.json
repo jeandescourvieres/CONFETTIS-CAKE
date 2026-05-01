@@ -27,7 +27,10 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_ENV": "preview"
+        "EXPO_PUBLIC_ENV": "preview",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rlwxcbnsqokpirhzzurj.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsd3hjYm5zcW9rcGlyaHp6dXJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjM0NjgsImV4cCI6MjA5MDUzOTQ2OH0.D7SBfjjnEqlJHplNyjVoqVzG-olLL6LFrHABzmieUC0",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_51THVmLLgT3BuzUeINu1Qnw1XeQQTPsUdsYea3uZsOPCpcIZ4THrBM6pOIQeOBIziYbzXZf5ihMR03iDC682iOOUO0069NxMcXx"
       }
     },
     "production": {

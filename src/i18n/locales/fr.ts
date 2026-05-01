@@ -33,20 +33,20 @@ const fr = {
     taglineEvents_one: '{{count}} événement à venir bientôt 🎉',
     taglineEvents_other: '{{count}} événements à venir bientôt 🎉',
     taglineCalm: "Tout est calme pour l'instant ✨",
-    birthdays: '🎂 Anniversaires à venir',
+    birthdays: '🎁 Anniversaires à venir',
     nameDays: '🌸 Fêtes à venir',
     otherEvents: '📅 Autres événements à venir',
-    quickAccess: '⚡ Accès rapide',
+    quickAccess: '⚡ Accès rapide :',
     recentMessages: '💬 Messages récents',
     addContact: 'Ajouter un contact',
     addEvent: '+ Ajouter',
     emptyBirthdays: "Ajoutez des contacts pour ne pas oublier leurs anniversaires",
     emptyCustomEvents: 'Aucun événement personnalisé',
     createEvent: 'Créer un événement →',
-    quickNewMessage: "Création d'un message avec ou sans IA",
-    quickContacts: 'Mes contacts',
-    quickPot: 'Créer une cagnotte',
-    quickReferral: 'Le parrainage',
+    quickNewMessage: "Je crée un message avec ou sans IA",
+    quickContacts: 'Je gère mes contacts',
+    quickPot: 'Je crée une cagnotte',
+    quickReferral: 'Je parraine mes amis',
   },
 
   create: {
@@ -98,7 +98,8 @@ const fr = {
       family: 'Famille',
       partner: 'Amour',
       colleague: 'Collègue',
-      other: 'Autre',
+      pet: 'Boule de poils 🐾',
+      other: 'Connaissance',
     },
     tones: {
       humorous: 'Humoristique',
@@ -153,7 +154,8 @@ const fr = {
       family: 'Famille',
       partner: 'Partenaire',
       colleague: 'Collègue',
-      other: 'Autre',
+      pet: 'Boule de poils 🐾',
+      other: 'Connaissance',
     },
     detail: {
       title: 'Fiche contact',
@@ -276,9 +278,9 @@ const fr = {
       title: '🌟 Ton code parrainage',
       sub: 'Partage ce code pour gagner des crédits IA !',
       share: 'Partager',
-      message: `Bonjour [Prénom] 👋
+      message: `Bonjour {{firstName}} 👋
 
-🎂 Rejoins-moi sur Confettis & Cake !
+🎁 Rejoins-moi sur Confettis & Cake !
 
 C'est l'app pour envoyer des messages vraiment uniques à ceux qu'on aime — textes générés par l'IA, poèmes, chansons, blagues — pour les anniversaires, fêtes, mariages et bien plus.
 
@@ -289,7 +291,7 @@ C'est l'app pour envoyer des messages vraiment uniques à ceux qu'on aime — te
 Télécharge l'app et entre ce code à l'inscription !
 
 ─────────────────
-🎂 Créé avec Confettis & Cake · Envoie, toi aussi, des messages uniques aux gens qui comptent pour toi
+🎁 Créé avec Confettis & Cake · Envoie, toi aussi, des messages uniques aux gens qui comptent pour toi
 👉 Télécharge gratuitement Confettis & Cake et parraine tes ami·e·s : https://confettis-cake.app`,
     },
     sections: {

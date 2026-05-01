@@ -30,8 +30,8 @@ export default function AuthCallbackScreen() {
       }
 
       const params = { ...fragmentParams, ...queryParams };
-      const accessToken = params['access_token'];
-      const refreshToken = params['refresh_token'];
+      const accessToken  = Array.isArray(params['access_token'])  ? params['access_token'][0]  : params['access_token'];
+      const refreshToken = Array.isArray(params['refresh_token']) ? params['refresh_token'][0] : params['refresh_token'];
 
       if (accessToken && refreshToken) {
         const { error } = await supabase.auth.setSession({

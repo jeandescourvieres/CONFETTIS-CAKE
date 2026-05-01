@@ -42,67 +42,67 @@ async function withRetry<T>(
   throw lastError;
 }
 
-// ── SUNO AI ───────────────────────────────────────────────────────────────────
-// Suno API: POST /api/generate → poll GET /api/feed/{id} until status === 'complete'
+// ── SUNO AI via piapi.ai ──────────────────────────────────────────────────────
+// piapi.ai Suno API: POST /api/suno/v1/music → poll GET /api/suno/v1/music/{id}
 
 async function generateWithSuno(lyrics: string, style: string): Promise<ServiceResult> {
   const apiKey = Deno.env.get('SUNO_API_KEY');
   if (!apiKey) return { ok: false, error: 'SUNO_API_KEY manquante' };
 
   // 1. Submit generation job
-  const submitResp = await fetch('https://api.suno.ai/api/generate', {
+  const submitResp = await fetch('https://api.piapi.ai/api/suno/v1/music', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      'X-API-Key': apiKey,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      custom_mode: true,
       prompt: lyrics,
       tags: style,
       make_instrumental: false,
-      mv: 'chirp-v3-5',
+      mv: 'chirp-v4',
     }),
   });
 
   if (!submitResp.ok) {
     const err = await submitResp.text();
-    throw new Error(`Suno submit failed ${submitResp.status}: ${err}`);
+    throw new Error(`Suno/piapi submit failed ${submitResp.status}: ${err}`);
   }
 
   const submitData = await submitResp.json();
-  // Suno returns an array of clips
-  const clipId: string = Array.isArray(submitData)
-    ? submitData[0]?.id
-    : submitData?.clips?.[0]?.id ?? submitData?.id;
+  const taskId: string = submitData?.task_id ?? submitData?.data?.task_id ?? submitData?.id;
+  if (!taskId) throw new Error('Suno/piapi: no task_id returned');
 
-  if (!clipId) throw new Error('Suno: no clip ID returned');
-
-  // 2. Poll until complete (max 90s with 5s intervals)
-  const maxPolls = 18;
+  // 2. Poll until complete (max 120s with 6s intervals)
+  const maxPolls = 20;
   for (let i = 0; i < maxPolls; i++) {
-    await new Promise((r) => setTimeout(r, 5000));
-    const pollResp = await fetch(`https://api.suno.ai/api/feed/${clipId}`, {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
+    await new Promise((r) => setTimeout(r, 6000));
+    const pollResp = await fetch(`https://api.piapi.ai/api/suno/v1/music/${taskId}`, {
+      headers: { 'X-API-Key': apiKey },
     });
     if (!pollResp.ok) continue;
 
     const pollData = await pollResp.json();
-    const clip = Array.isArray(pollData) ? pollData[0] : pollData;
+    const status = pollData?.data?.status ?? pollData?.status;
+    const clips = pollData?.data?.clips ?? pollData?.clips ?? [];
+    const clip = Array.isArray(clips) ? clips[0] : null;
+    const audioUrl = clip?.audio_url ?? pollData?.data?.audio_url;
 
-    if (clip?.status === 'complete' && clip?.audio_url) {
+    if ((status === 'completed' || status === 'complete') && audioUrl) {
       return {
         ok: true,
-        audio_url: clip.audio_url,
+        audio_url: audioUrl,
         service: 'suno',
-        duration_s: clip.metadata?.duration ?? undefined,
+        duration_s: clip?.metadata?.duration ?? undefined,
       };
     }
-    if (clip?.status === 'error') {
-      throw new Error(`Suno clip error: ${clip?.error_message ?? 'unknown'}`);
+    if (status === 'failed' || status === 'error') {
+      throw new Error(`Suno/piapi task failed: ${pollData?.data?.error ?? 'unknown'}`);
     }
   }
 
-  throw new Error('Suno: timeout after 90s');
+  throw new Error('Suno/piapi: timeout after 120s');
 }
 
 // ── UDIO AI ───────────────────────────────────────────────────────────────────

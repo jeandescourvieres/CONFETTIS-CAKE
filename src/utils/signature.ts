@@ -41,7 +41,7 @@ const SIGNATURES: Record<string, { main: string; cta: string }> = {
  */
 export function buildSignatureText(language = 'fr'): string {
   const sig = SIGNATURES[language] ?? SIGNATURES['fr'];
-  return `\n\n─────────────────\n🎂 ${sig.main}\n👉 ${sig.cta} : ${APP_URL}`;
+  return `\n\n— ${sig.main} · ${APP_URL}`;
 }
 
 /**
@@ -50,7 +50,7 @@ export function buildSignatureText(language = 'fr'): string {
 export function getSignatureLabels(language = 'fr') {
   const sig = SIGNATURES[language] ?? SIGNATURES['fr'];
   return {
-    main: `🎂 ${sig.main}`,
+    main: `🎁 ${sig.main}`,
     cta: `👉 ${sig.cta}`,
     url: APP_URL,
   };

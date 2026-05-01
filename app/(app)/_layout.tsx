@@ -1,129 +1,93 @@
-import { Tabs, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Tabs, useRouter, useSegments } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Typography, Radii } from '@constants/theme';
+import { Colors, Typography, Radii, Spacing } from '@constants/theme';
 import { useThemeStore } from '../../src/stores/themeStore';
 
-function HomeTabButton(props: React.ComponentProps<typeof TouchableOpacity>) {
-  const router = useRouter();
-  return (
-    <TouchableOpacity
-      {...props}
-      onPress={() => router.replace('/(app)' as never)}
-    />
-  );
-}
+// ── Tabs visibles (13 items dans l'ordre demandé) ─────────────────────────────
+const VISIBLE_TABS: { routeName: string; emoji: string; label: string }[] = [
+  { routeName: 'index',           emoji: '🏠', label: 'Accueil'        },
+  { routeName: 'dashboard',       emoji: '📊', label: 'Tableau de bord'},
+  { routeName: 'profile',         emoji: '👤', label: 'Mon profil'     },
+  { routeName: 'contacts/index',  emoji: '👥', label: 'Contacts'       },
+  { routeName: 'creations',       emoji: '💬', label: 'Messages'       },
+  { routeName: 'agenda',          emoji: '📅', label: 'Agenda'         },
+  { routeName: 'search/index',    emoji: '🔍', label: 'Recherche'      },
+  { routeName: 'compat/index',    emoji: '💑', label: 'Compatibilité'  },
+  { routeName: 'explore',         emoji: '🔭', label: 'Explorer'       },
+  { routeName: 'numerologie',     emoji: '🔢', label: 'Numérologie'    },
+  { routeName: 'animaux',         emoji: '🐾', label: 'Animaux'        },
+  { routeName: 'help',            emoji: '📖', label: 'Aide'           },
+  { routeName: 'settings',        emoji: '⚙️', label: 'Paramètres'    },
+];
 
-function CalendarIcon({ focused }: { focused: boolean }) {
-  const day = new Date().getDate();
-  const color = focused ? Colors.primary : Colors.outlineVariant;
+// ── Tab bar persistante (toujours visible) ────────────────────────────────────
+function PersistentTabBar() {
+  const insets = useSafeAreaInsets();
+  const appTheme = useThemeStore((s) => s.theme);
+  const primary = appTheme?.primary ?? Colors.primary;
+  const router = useRouter();
+  const segments = useSegments();
+
+  // segments = ['(app)', 'dashboard'] ou ['(app)', 'contacts', 'new'] etc.
+  const seg1 = (segments[1] ?? '') as string;
+
   return (
-    <View style={[calStyles.wrap, focused && { borderColor: Colors.primary }]}>
-      <View style={[calStyles.header, { backgroundColor: focused ? Colors.primary : Colors.outlineVariant }]} />
-      <Text style={[calStyles.day, { color }]}>{day}</Text>
+    <View style={[tabStyles.container, { paddingBottom: insets.bottom }]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={tabStyles.scrollContent}
+        bounces={false}
+      >
+        {VISIBLE_TABS.map((tab) => {
+          const firstPart = tab.routeName.split('/')[0];
+          let isFocused = false;
+          if (tab.routeName === 'index') {
+            isFocused = seg1 === 'index' || seg1 === '';
+          } else if (tab.routeName.includes('/')) {
+            isFocused = seg1 === firstPart;
+          } else {
+            isFocused = seg1 === tab.routeName;
+          }
+
+          const onPress = () => {
+            if (tab.routeName === 'index') {
+              router.navigate('/(app)/' as never);
+            } else {
+              const path = tab.routeName.replace('/index', '');
+              router.navigate(`/(app)/${path}` as never);
+            }
+          };
+
+          return (
+            <TouchableOpacity
+              key={tab.routeName}
+              style={[tabStyles.item, isFocused && tabStyles.itemActive]}
+              onPress={onPress}
+              activeOpacity={0.75}
+            >
+              <Text style={tabStyles.emoji}>{tab.emoji}</Text>
+              <Text style={[tabStyles.label, isFocused && { color: primary }]}>
+                {tab.label}
+              </Text>
+              {isFocused && (
+                <View style={[tabStyles.activeDot, { backgroundColor: primary }]} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
 
-const calStyles = StyleSheet.create({
-  wrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: Colors.outlineVariant,
-    overflow: 'hidden',
-    alignItems: 'center',
-  },
-  header: {
-    width: '100%',
-    height: 7,
-  },
-  day: {
-    fontSize: 11,
-    fontFamily: 'BeVietnamPro_700Bold',
-    lineHeight: 17,
-  },
-});
-
-// Icônes Unicode Material-style simplifiées (remplacé par expo-icons en Phase 2)
-const TAB_ICONS: Record<string, { active: string; inactive: string }> = {
-  index:     { active: '🏠', inactive: '🏠' },
-  dashboard: { active: '📊', inactive: '📊' },
-};
-
-const TAB_LABELS: Record<string, string> = {
-  index:     'Accueil',
-  dashboard: 'Mon tableau de bord',
-};
-
-export default function AppLayout() {
-  const insets = useSafeAreaInsets();
-  const appTheme = useThemeStore((s) => s.theme);
-
-  return (
-    <Tabs
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarStyle: {
-          ...styles.tabBar,
-          height: 60 + insets.bottom,
-          paddingBottom: insets.bottom,
-        },
-        tabBarBackground: () => <View style={styles.tabBarBg} />,
-        tabBarIcon: ({ focused }) => {
-          const icon = TAB_ICONS[route.name];
-          return (
-            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-              <Text style={styles.iconText}>{focused ? icon?.active : icon?.inactive}</Text>
-            </View>
-          );
-        },
-        tabBarLabel: ({ focused }) => (
-          <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
-            {TAB_LABELS[route.name] ?? route.name}
-          </Text>
-        ),
-        tabBarActiveTintColor: appTheme.primary,
-        tabBarInactiveTintColor: Colors.outlineVariant,
-      })}
-    >
-      <Tabs.Screen name="index" options={{ tabBarButton: (props) => <HomeTabButton {...props} /> }} />
-      <Tabs.Screen name="dashboard" />
-      <Tabs.Screen name="create/index" options={{ href: null }} />
-
-      {/* Écrans sans onglet (anciens onglets) */}
-      <Tabs.Screen name="calendar" options={{ href: null }} />
-      <Tabs.Screen name="creations" options={{ href: null }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
-
-      {/* Écrans sans onglet */}
-      <Tabs.Screen name="contact/[id]" options={{ href: null }} />
-      <Tabs.Screen name="contacts/index" options={{ href: null }} />
-      <Tabs.Screen name="contacts/new" options={{ href: null }} />
-      <Tabs.Screen name="contacts/import" options={{ href: null }} />
-      <Tabs.Screen name="create/preview" options={{ href: null }} />
-      <Tabs.Screen name="create/sent" options={{ href: null }} />
-      <Tabs.Screen name="studio/index" options={{ href: null }} />
-      <Tabs.Screen name="preview/index" options={{ href: null }} />
-      <Tabs.Screen name="sent/index" options={{ href: null }} />
-      <Tabs.Screen name="calendar/new-event" options={{ href: null }} />
-      <Tabs.Screen name="message/[id]" options={{ href: null }} />
-      <Tabs.Screen name="profile/premium" options={{ href: null }} />
-      <Tabs.Screen name="qr/[id]" options={{ href: null }} />
-      <Tabs.Screen name="notifications/index" options={{ href: null }} />
-      <Tabs.Screen name="referral/index" options={{ href: null }} />
-      <Tabs.Screen name="pot/index" options={{ href: null }} />
-      <Tabs.Screen name="pot/[id]" options={{ href: null }} />
-      <Tabs.Screen name="pot/new" options={{ href: null }} />
-      <Tabs.Screen name="cards/index" options={{ href: null }} />
-      <Tabs.Screen name="cards/[id]"  options={{ href: null }} />
-    </Tabs>
-  );
-}
-
-const styles = StyleSheet.create({
-  tabBar: {
+const tabStyles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: Colors.white,
     borderTopWidth: 0.5,
     borderTopColor: Colors.surfaceContainerHighest,
@@ -133,32 +97,109 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 12,
   },
-  tabBarBg: {
-    flex: 1,
-    backgroundColor: Colors.white,
+  scrollContent: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing[2],
+    paddingTop: 8,
+    paddingBottom: 4,
+    gap: 4,
   },
-  iconWrap: {
-    width: 36,
-    height: 28,
+  item: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radii.full,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radii.md,
+    minWidth: 64,
+    gap: 2,
   },
-  iconWrapActive: {
+  itemActive: {
     backgroundColor: Colors.surfaceContainerLow,
   },
-  iconText: {
-    fontSize: 18,
-  },
-  tabLabel: {
-    fontSize: Typography.xs - 1,
-    fontFamily: 'BeVietnamPro_700Bold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+  emoji: { fontSize: 20 },
+  label: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: 10,
     color: Colors.outlineVariant,
-    marginTop: 1,
+    textAlign: 'center',
   },
-  tabLabelActive: {
-    color: Colors.primary,
+  activeDot: {
+    width: 4, height: 4, borderRadius: 2, marginTop: 1,
   },
 });
+
+// Hauteur fixe de la tab bar (emoji + label + padding, hors safe area)
+export const TAB_BAR_CONTENT_HEIGHT = 56;
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+export default function AppLayout() {
+  const insets = useSafeAreaInsets();
+  const tabBarTotalHeight = TAB_BAR_CONTENT_HEIGHT + insets.bottom;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      <Tabs
+        tabBar={() => null}
+        screenOptions={{ headerShown: false }}
+        sceneContainerStyle={{ paddingBottom: tabBarTotalHeight }}
+      >
+        {/* ── 13 onglets visibles ────────────────────────── */}
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="dashboard" />
+        <Tabs.Screen name="contacts/index" />
+        <Tabs.Screen name="creations" />
+        <Tabs.Screen name="agenda" />
+        <Tabs.Screen name="search/index" />
+        <Tabs.Screen name="compat/index" />
+        <Tabs.Screen name="explore/index" />
+        <Tabs.Screen name="explore/prenoms"           options={{ href: null }} />
+        <Tabs.Screen name="numerologie" />
+        <Tabs.Screen name="animaux" />
+        <Tabs.Screen name="help" />
+        <Tabs.Screen name="profile" />
+        <Tabs.Screen name="settings" />
+
+        {/* ── Écrans sans onglet ─────────────────────────── */}
+        <Tabs.Screen name="create/index"           options={{ href: null }} />
+        <Tabs.Screen name="calendar"               options={{ href: null }} />
+        <Tabs.Screen name="calendar/new-event"     options={{ href: null }} />
+        <Tabs.Screen name="contact/[id]"           options={{ href: null }} />
+        <Tabs.Screen name="contacts/new"           options={{ href: null }} />
+        <Tabs.Screen name="contacts/import"        options={{ href: null }} />
+        <Tabs.Screen name="create/preview"         options={{ href: null }} />
+        <Tabs.Screen name="create/studio"          options={{ href: null }} />
+        <Tabs.Screen name="create/sent"            options={{ href: null }} />
+        <Tabs.Screen name="message/[id]"           options={{ href: null }} />
+        <Tabs.Screen name="profile/premium"        options={{ href: null }} />
+        <Tabs.Screen name="qr/index"               options={{ href: null }} />
+        <Tabs.Screen name="qr/[id]"                options={{ href: null }} />
+        <Tabs.Screen name="notifications/index"    options={{ href: null }} />
+        <Tabs.Screen name="referral/index"         options={{ href: null }} />
+        <Tabs.Screen name="pot/index"              options={{ href: null }} />
+        <Tabs.Screen name="pot/[id]"               options={{ href: null }} />
+        <Tabs.Screen name="pot/new"                options={{ href: null }} />
+        <Tabs.Screen name="pot/contribute/[id]"    options={{ href: null }} />
+        <Tabs.Screen name="couple/index"           options={{ href: null }} />
+        <Tabs.Screen name="animaux/new"             options={{ href: null }} />
+        <Tabs.Screen name="cards/index"            options={{ href: null }} />
+        <Tabs.Screen name="cards/[id]"             options={{ href: null }} />
+        <Tabs.Screen name="cards/ai-create"        options={{ href: null }} />
+        <Tabs.Screen name="upcoming-events"        options={{ href: null }} />
+        <Tabs.Screen name="zodiac-season"          options={{ href: null }} />
+        <Tabs.Screen name="auto-sends/index"       options={{ href: null }} />
+        <Tabs.Screen name="auto-sends/new"         options={{ href: null }} />
+        <Tabs.Screen name="contact-timeline/[id]"  options={{ href: null }} />
+        <Tabs.Screen name="reminders/index"        options={{ href: null }} />
+        <Tabs.Screen name="reminders/new"          options={{ href: null }} />
+        <Tabs.Screen name="postcard/index"         options={{ href: null }} />
+        <Tabs.Screen name="explore/noms"           options={{ href: null }} />
+        <Tabs.Screen name="reactions/index"        options={{ href: null }} />
+        <Tabs.Screen name="guestbook/index"        options={{ href: null }} />
+        <Tabs.Screen name="studio/index"           options={{ href: null }} />
+        <Tabs.Screen name="preview/index"          options={{ href: null }} />
+        <Tabs.Screen name="sent/index"             options={{ href: null }} />
+      </Tabs>
+      <PersistentTabBar />
+    </View>
+  );
+}

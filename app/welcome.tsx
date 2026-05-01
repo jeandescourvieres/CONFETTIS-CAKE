@@ -17,7 +17,7 @@ import { Radii, Typography } from '../src/constants/theme';
 import { useThemeStore } from '../src/stores/themeStore';
 
 const { width: W, height: H } = Dimensions.get('window');
-const IMG_W = Math.round(W * 0.82);
+const IMG_W = Math.round(W * 0.70);
 const IMG_H = IMG_W; // format carré
 
 // ── Photos du gâteau (rotation aléatoire à chaque lancement) ─────────────────
@@ -41,32 +41,41 @@ const CAKE_IMAGE = CAKE_IMAGES[Math.floor(Math.random() * CAKE_IMAGES.length)];
 //  • Kevin MacLeod — incompetech.com  (CC BY 4.0)
 //  • Bensound       — bensound.com     (CC BY-ND)
 
+// Kevin MacLeod — CC BY 4.0 — incompetech.com
+// Toutes les playlists : morceaux entraînants, joyeux, rythmés
+
 const CHRISTMAS_PLAYLIST = [
+  // Noël rythmé — versions swing / upbeat
   'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Deck%20the%20Halls%20B.mp3',
   'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Jingle%20Bells%20B.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/O%20Christmas%20Tree.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Silent%20Night.mp3',
   'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Joy%20to%20the%20World.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/We%20Wish%20You%20a%20Merry%20Christmas.mp3',
 ];
 const NEW_YEAR_PLAYLIST = [
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Auld%20Lang%20Syne.mp3',
+  // Fête & rythme pour le Nouvel An
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Poppers%20and%20Prosecco.mp3',
   'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Celebration.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fireworks.mp3',
-  'https://www.bensound.com/bensound-music/bensound-happyrock.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Pixel%20Peeker%20Polka%20-%20faster.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Monkeys%20Spinning%20Monkeys.mp3',
 ];
 const VALENTINES_PLAYLIST = [
+  // Saint-Valentin : romantique mais vivant
   'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Romantic%20Adventure.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Love%20Song.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Canon%20in%20D.mp3',
-  'https://www.bensound.com/bensound-music/bensound-romantic.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Friendly%20Day.mp3',
 ];
 const FESTIVE_PLAYLIST = [
-  'https://www.bensound.com/bensound-music/bensound-ukulele.mp3',
-  'https://www.bensound.com/bensound-music/bensound-happyrock.mp3',
-  'https://www.bensound.com/bensound-music/bensound-jazzyfrenchy.mp3',
+  // Upbeat, entraînant, festif — Kevin MacLeod CC BY 4.0
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Monkeys%20Spinning%20Monkeys.mp3',
   'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fluffing%20a%20Duck.mp3',
   'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Happy%20Bee.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Funkorama.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Pixelland.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sneaky%20Snitch.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Pixel%20Peeker%20Polka%20-%20faster.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fluffing%20a%20Duck.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Scheming%20Weasel%20%28faster%20version%29.mp3',
+  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Cipher.mp3',
 ];
 
 function getSeasonalPlaylist(): string[] {
@@ -222,11 +231,19 @@ export default function WelcomeScreen() {
           </Animated.View>
         </Animated.View>
 
-        {/* Texte */}
-        <Animated.View style={[styles.textWrap, { opacity: fadeOpacity, transform: [{ translateY: fadeY }] }]}>
-          <Text style={styles.title}>Confettis & Cake</Text>
-          <Text style={styles.taglineLine2}>L'application IA{'\n'}pour ne plus jamais rater{'\n'}un anniversaire,</Text>
-          <Text style={styles.taglineLine3}>une fête ou un événement{'\n'}qui compte pour toi !</Text>
+        {/* Texte + Bouton groupés */}
+        <Animated.View style={[styles.bottomGroup, { opacity: fadeOpacity, transform: [{ translateY: fadeY }] }]}>
+          <View style={styles.textWrap}>
+            <Text style={styles.title}>ConfettiCake</Text>
+            <Text style={styles.titleBy}>by Confettis & Cake</Text>
+            <Text style={styles.taglineLine2}>L'application IA{'\n'}pour ne plus jamais rater{'\n'}un anniversaire,</Text>
+            <Text style={styles.taglineLine3}>une fête ou un événement{'\n'}qui compte pour toi.{'\n'}Et pour les autres !</Text>
+          </View>
+          <View style={styles.btnWrap}>
+            <TouchableOpacity style={styles.btn} onPress={stopAndEnter} activeOpacity={0.85}>
+              <Text style={styles.btnText}>C'est parti ! 🎉</Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
         {/* Confettis flottants — par-dessus tout */}
@@ -236,13 +253,6 @@ export default function WelcomeScreen() {
           ))}
         </View>
 
-        {/* Bouton */}
-        <Animated.View style={[styles.btnWrap, { opacity: fadeOpacity }]}>
-          <TouchableOpacity style={styles.btn} onPress={stopAndEnter} activeOpacity={0.85}>
-            <Text style={styles.btnText}>C'est parti ! 🎉</Text>
-          </TouchableOpacity>
-        </Animated.View>
-
       </SafeAreaView>
     </LinearGradient>
   );
@@ -250,7 +260,7 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  safe:     { flex: 1, justifyContent: 'space-between' },
+  safe:     { flex: 1, justifyContent: 'space-between', paddingBottom: 56 },
 
   particle: {
     position: 'absolute',
@@ -291,23 +301,36 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
 
+  bottomGroup: {
+    alignItems: 'center',
+    gap: 24,
+    paddingBottom: 16,
+  },
   textWrap: {
     alignItems: 'center',
     paddingHorizontal: 28,
     gap: 4,
-    marginTop: -24,
   },
 
   title: {
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: 34,
-    color: '#fff',
+    fontFamily: 'Pacifico_400Regular',
+    fontSize: 38,
+    color: '#FFD700',
     textAlign: 'center',
-    letterSpacing: -0.5,
-    marginBottom: 10,
-    textShadowColor: 'rgba(0,0,0,0.18)',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.25)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
+  },
+  titleBy: {
+    fontFamily: 'BeVietnamPro_300Light',
+    fontSize: Typography.sm,
+    color: 'rgba(255,215,0,0.65)',
+    textAlign: 'center',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    marginBottom: 10,
   },
   taglineLine1: {
     fontFamily: 'BeVietnamPro_300Light',
@@ -331,26 +354,59 @@ const styles = StyleSheet.create({
     lineHeight: 30,
   },
 
+  noFautesTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignSelf: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  noFautesPrefix: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.md,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  noFautesWrong: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.md,
+    color: '#ffcdd2',
+    textDecorationLine: 'line-through',
+  },
+  noFautesSpace: {
+    fontSize: Typography.md,
+  },
+  noFautesRight: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.md,
+    color: '#a5d6a7',
+  },
+
   btnWrap: {
-    paddingHorizontal: 96,
-    paddingBottom: 16,
+    width: '50%',
+    alignSelf: 'center',
   },
 
   btn: {
     backgroundColor: '#fff',
     borderRadius: Radii.full,
-    paddingVertical: 12,
+    paddingVertical: 8,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   btnText: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: Typography.xl,
+    fontSize: Typography.base,
     color: '#FF6B9D',
     letterSpacing: 0.5,
   },

@@ -10,9 +10,10 @@ interface ContactRowProps {
   upcomingEvent?: UpcomingEvent;
   onPress: () => void;
   onCreateMessage?: () => void;
+  isPartnerContact?: boolean;
 }
 
-export function ContactRow({ contact, upcomingEvent, onPress, onCreateMessage }: ContactRowProps) {
+export function ContactRow({ contact, upcomingEvent, onPress, onCreateMessage, isPartnerContact }: ContactRowProps) {
   const isHighlighted = upcomingEvent && isUrgent(upcomingEvent.daysUntil);
 
   return (
@@ -31,9 +32,14 @@ export function ContactRow({ contact, upcomingEvent, onPress, onCreateMessage }:
       </View>
 
       <View style={styles.info}>
-        <Text style={styles.name}>{contact.name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{contact.name}</Text>
+          {isPartnerContact && <Text style={styles.partnerBadge}>💑</Text>}
+        </View>
         <Text style={[styles.sub, isHighlighted && styles.subHighlighted]}>
-          {RELATION_LABELS[contact.relation]}
+          {contact.relation === 'pet' && contact.pet_owner_name
+            ? `🐾 Animal de ${contact.pet_owner_name}`
+            : RELATION_LABELS[contact.relation]}
           {upcomingEvent
             ? ` · ${formatEventLabel(upcomingEvent)}`
             : contact.birthday
@@ -50,7 +56,7 @@ export function ContactRow({ contact, upcomingEvent, onPress, onCreateMessage }:
           >
             <Text style={styles.createBtnText}>
               {upcomingEvent.eventType === 'birthday'
-                ? '✦ Créer'
+                ? '✦ Créer un message'
                 : upcomingEvent.daysUntil === 0 ? '🌸 Fête · aujourd\'hui'
                 : upcomingEvent.daysUntil === 1 ? '🌸 Fête · demain'
                 : `🌸 Fête · dans ${upcomingEvent.daysUntil}j`}
@@ -67,8 +73,8 @@ export function ContactRow({ contact, upcomingEvent, onPress, onCreateMessage }:
 function formatEventLabel(event: UpcomingEvent): string {
   if (event.eventType === 'birthday') {
     if (event.daysUntil === 0) return 'Anniversaire aujourd\'hui 🎉';
-    if (event.daysUntil === 1) return 'Anniversaire demain 🎂🔥';
-    return `Anniversaire dans ${event.daysUntil}j 🎂`;
+    if (event.daysUntil === 1) return 'Anniversaire demain 🎁🔥';
+    return `Anniversaire dans ${event.daysUntil}j 🎁`;
   } else {
     if (event.daysUntil === 0) return 'Fête aujourd\'hui 🌸';
     if (event.daysUntil === 1) return 'Fête demain 🌸';
@@ -98,8 +104,8 @@ const styles = StyleSheet.create({
     gap: Spacing[3],
     paddingVertical: 11,
     paddingHorizontal: Spacing[4],
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.surfaceContainerLow,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surfaceContainerHighest,
     backgroundColor: Colors.white,
   },
   rowHighlighted: {
@@ -116,6 +122,14 @@ const styles = StyleSheet.create({
   },
   avatarWrap: { flexShrink: 0 },
   info: { flex: 1 },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  partnerBadge: {
+    fontSize: 13,
+  },
   name: {
     fontFamily: 'BeVietnamPro_600SemiBold',
     fontSize: Typography.md,
@@ -135,12 +149,12 @@ const styles = StyleSheet.create({
   createBtn: {
     backgroundColor: Colors.primary,
     paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     borderRadius: Radii.full,
   },
   createBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.xs,
+    fontSize: 10,
     color: Colors.onPrimary,
   },
   chevron: {

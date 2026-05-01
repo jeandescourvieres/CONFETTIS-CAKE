@@ -17,7 +17,7 @@ const sizeMap: Record<AvatarSize, number> = {
   sm: 36,
   md: 44,
   lg: 56,
-  xl: 72,
+  xl: 88,
 };
 
 export function Avatar({ uri, name, size = 'md', style, badge }: AvatarProps) {

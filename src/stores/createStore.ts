@@ -1,11 +1,14 @@
 import { create } from 'zustand';
-import type { MessageFormat, MessageTone, Relation } from '../types/models';
+import type { AppLanguage, MessageFormat, MessageTone, Relation } from '../types/models';
 
 export type Occasion =
   | 'birthday'
   | 'nameday'
   | 'wedding'
+  | 'engagement'
   | 'birth'
+  | 'baptism'
+  | 'communion'
   | 'graduation'
   | 'promotion'
   | 'thanks'
@@ -30,6 +33,17 @@ export type PersonalityTag =
   | 'voyageur'
   | 'geek';
 
+export type DogPersonalityTag =
+  | 'câlin' | 'joueur' | 'gourmand' | 'peureux' | 'protecteur'
+  | 'bavard' | 'énergique' | 'canapé-addict' | 'chasseur' | 'fidèle';
+
+export type CatPersonalityTag =
+  | 'royal' | 'indifférent' | 'destructeur' | 'chasseur nocturne'
+  | 'gourmet difficile' | 'câlin capricieux' | 'contemplatif'
+  | 'jaloux' | 'acrobate' | 'mystérieux';
+
+export type PetPersonalityTag = DogPersonalityTag | CatPersonalityTag;
+
 /** Extra fields that appear/disappear depending on the occasion */
 export interface OccasionExtras {
   // wedding
@@ -37,7 +51,9 @@ export interface OccasionExtras {
   partner2Name?: string;
   // birth
   babyName?: string;
-  parentNames?: string;
+  parent1Name?: string;
+  parent2Name?: string;
+  parentNames?: string; // combinaison de parent1Name + parent2Name, utilisée par le prompt IA
   // graduation
   diplomaLabel?: string;
   // promotion
@@ -59,6 +75,7 @@ export interface CreateState {
   contactEmail: string | null;
   relation: Relation;
   familySubRelation: string; // précision pour "famille" : frère, mère, etc.
+  petSubRelation: string;    // précision pour "boule de poils" : chien, chat, autre
   occasion: Occasion;
   age: number | null;
   extras: OccasionExtras;
@@ -68,6 +85,8 @@ export interface CreateState {
 
   // Step 2 — Personnalisation
   personalityTags: PersonalityTag[];
+  petPersonalityTags: PetPersonalityTag[];
+  favouriteColor: string | null;
   memories: string;
   lateMode: boolean;
 
@@ -75,6 +94,13 @@ export interface CreateState {
   format: MessageFormat;
   tone: MessageTone;
   styleHint: string; // 'Court' | 'Moyen' | 'Long' | '' (pour messages/poèmes)
+  musicVoice: 'female' | 'male' | 'mixed'; // voix pour les chansons
+  messageLanguage: AppLanguage; // langue de génération du message
+
+  // Step 3b — Style d'affichage
+  fontStyle: string;   // 'standard' | 'caveat_bold' | 'dancing' | 'satisfy' | 'patrick' | 'pacifico' | 'special_elite' | 'bangers'
+  fontSize: 'sm' | 'md' | 'lg';
+  isItalic: boolean;
 
   // Step 4 — Résultat généré
   generatedContent: string;
@@ -84,16 +110,24 @@ export interface CreateState {
 
   // Actions
   setContact: (id: string | null, name: string, relation: Relation, phone?: string | null, email?: string | null) => void;
+  setFavouriteColor: (color: string | null) => void;
   setFamilySubRelation: (sub: string) => void;
+  setPetSubRelation: (sub: string) => void;
   setOccasion: (occasion: Occasion) => void;
   setAge: (age: number | null) => void;
   setExtras: (extras: Partial<OccasionExtras>) => void;
   togglePersonalityTag: (tag: PersonalityTag) => void;
+  togglePetPersonalityTag: (tag: PetPersonalityTag) => void;
   setMemories: (memories: string) => void;
   setLateMode: (lateMode: boolean) => void;
   setFormat: (format: MessageFormat) => void;
   setTone: (tone: MessageTone) => void;
   setStyleHint: (hint: string) => void;
+  setMusicVoice: (voice: 'female' | 'male' | 'mixed') => void;
+  setMessageLanguage: (lang: AppLanguage) => void;
+  setFontStyle: (style: string) => void;
+  setFontSize: (size: 'sm' | 'md' | 'lg') => void;
+  setIsItalic: (v: boolean) => void;
   setCardTemplateId: (id: string | null) => void;
   setGeneratedContent: (content: string) => void;
   setSavedMessageId: (id: string | null) => void;
@@ -103,10 +137,12 @@ export interface CreateState {
 }
 
 type ActionKeys =
-  | 'setContact' | 'setFamilySubRelation' | 'setOccasion' | 'setAge' | 'setExtras' | 'togglePersonalityTag'
+  | 'setContact' | 'setFavouriteColor' | 'setFamilySubRelation' | 'setPetSubRelation' | 'setOccasion' | 'setAge' | 'setExtras'
+  | 'togglePersonalityTag' | 'togglePetPersonalityTag'
   | 'setMemories' | 'setLateMode' | 'setFormat' | 'setTone' | 'setStyleHint' | 'setCardTemplateId'
   | 'setGeneratedContent' | 'setSavedMessageId' | 'setIsGenerating'
-  | 'setGenerationError' | 'reset';
+  | 'setGenerationError' | 'setMusicVoice' | 'setMessageLanguage'
+  | 'setFontStyle' | 'setFontSize' | 'setIsItalic' | 'reset';
 
 const initialState: Omit<CreateState, ActionKeys> = {
   contactId: null,
@@ -115,16 +151,24 @@ const initialState: Omit<CreateState, ActionKeys> = {
   contactEmail: null,
   relation: 'friend',
   familySubRelation: '',
+  petSubRelation: '',
   occasion: 'birthday',
   age: null,
   extras: {},
   cardTemplateId: null,
   personalityTags: [],
+  petPersonalityTags: [],
+  favouriteColor: null,
   memories: '',
   lateMode: false,
   format: 'message',
   tone: 'touching',
   styleHint: 'Court',
+  musicVoice: 'mixed',
+  messageLanguage: 'fr' as AppLanguage,
+  fontStyle: 'standard',
+  fontSize: 'md' as const,
+  isItalic: false,
   generatedContent: '',
   savedMessageId: null,
   isGenerating: false,
@@ -134,8 +178,10 @@ const initialState: Omit<CreateState, ActionKeys> = {
 export const useCreateStore = create<CreateState>((set) => ({
   ...initialState,
 
-  setContact: (id, name, relation, phone = null, email = null) => set({ contactId: id, contactName: name, contactPhone: phone, contactEmail: email, relation, familySubRelation: '' }),
+  setContact: (id, name, relation, phone = null, email = null) => set({ contactId: id, contactName: name, contactPhone: phone, contactEmail: email, relation, familySubRelation: '', petSubRelation: '' }),
+  setFavouriteColor: (favouriteColor) => set({ favouriteColor }),
   setFamilySubRelation: (familySubRelation) => set({ familySubRelation }),
+  setPetSubRelation: (petSubRelation) => set({ petSubRelation }),
   setOccasion: (occasion) => set({ occasion, extras: {}, age: null }),
   setAge: (age) => set({ age }),
   setExtras: (extras) => set((s) => ({ extras: { ...s.extras, ...extras } })),
@@ -145,11 +191,22 @@ export const useCreateStore = create<CreateState>((set) => ({
         ? state.personalityTags.filter((t) => t !== tag)
         : [...state.personalityTags, tag],
     })),
+  togglePetPersonalityTag: (tag) =>
+    set((state) => ({
+      petPersonalityTags: state.petPersonalityTags.includes(tag)
+        ? state.petPersonalityTags.filter((t) => t !== tag)
+        : [...state.petPersonalityTags, tag],
+    })),
   setMemories: (memories) => set({ memories }),
   setLateMode: (lateMode) => set({ lateMode }),
   setFormat: (format) => set({ format }),
   setTone: (tone) => set({ tone }),
   setStyleHint: (styleHint) => set({ styleHint }),
+  setMusicVoice: (musicVoice) => set({ musicVoice }),
+  setMessageLanguage: (messageLanguage) => set({ messageLanguage }),
+  setFontStyle: (fontStyle) => set({ fontStyle }),
+  setFontSize: (fontSize) => set({ fontSize }),
+  setIsItalic: (isItalic) => set({ isItalic }),
   setCardTemplateId: (cardTemplateId) => set({ cardTemplateId }),
   setGeneratedContent: (generatedContent) => set({ generatedContent }),
   setSavedMessageId: (savedMessageId) => set({ savedMessageId }),

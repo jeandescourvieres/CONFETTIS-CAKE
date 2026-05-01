@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import LottieView from 'lottie-react-native';
 import type { CardEffect } from '../../services/cards.service';
 
@@ -59,12 +59,13 @@ export function LottieEffect({ effect, recipientName }: Props) {
   if (!source) return null;
 
   return (
-    <LottieView
-      source={source as Parameters<typeof LottieView>[0]['source']}
-      autoPlay
-      loop={effect.loop}
-      style={StyleSheet.absoluteFill}
-      pointerEvents="none"
-    />
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <LottieView
+        source={source as any}
+        autoPlay
+        loop={effect.loop}
+        style={StyleSheet.absoluteFill}
+      />
+    </View>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,12 @@ import {
   Alert,
   Share,
   Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -97,15 +100,35 @@ export default function ProfileScreen() {
 
   const { theme: appTheme, setTheme } = useThemeStore();
 
-  const [notifsBirthday, setNotifsBirthday] = useState(true);
-  const [notifsNameday, setNotifsNameday] = useState(true);
-  const [notifsPot, setNotifsPot] = useState(true);
+  const [notifsBirthday, setNotifsBirthday] = useState(profile?.notif_birthday !== false);
+  const [notifsNameday, setNotifsNameday] = useState(profile?.notif_nameday !== false);
+  const [notifsPot, setNotifsPot] = useState(profile?.notif_pot !== false);
   const [showLangPicker, setShowLangPicker] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  useFocusEffect(useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []));
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editBirthday, setEditBirthday] = useState('');
+  const [editCivilite, setEditCivilite] = useState<'M.' | 'Mme' | null>(null);
   const [showSignature, setShowSignature] = useState(profile?.show_signature !== false);
 
   const handleToggleSignature = async (val: boolean) => {
     setShowSignature(val);
     await updateProfile({ show_signature: val });
+  };
+
+  const handleToggleBirthday = async (val: boolean) => {
+    setNotifsBirthday(val);
+    await updateProfile({ notif_birthday: val });
+  };
+  const handleToggleNameday = async (val: boolean) => {
+    setNotifsNameday(val);
+    await updateProfile({ notif_nameday: val });
+  };
+  const handleTogglePot = async (val: boolean) => {
+    setNotifsPot(val);
+    await updateProfile({ notif_pot: val });
   };
 
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language)
@@ -136,6 +159,23 @@ export default function ProfileScreen() {
     });
   };
 
+  const handleSaveProfile = async () => {
+    const fullName = [editFirstName.trim(), editLastName.trim()].filter(Boolean).join(' ');
+    const parseBirthday = (raw: string): string | null => {
+      const parts = raw.trim().split('/');
+      if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+      if (parts.length === 2) return `0000-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+      return null;
+    };
+    const birthday = editBirthday.trim() ? parseBirthday(editBirthday) : null;
+    const updates: Parameters<typeof updateProfile>[0] = {};
+    if (fullName) updates.full_name = fullName;
+    if (birthday !== null) updates.birthday = birthday;
+    if (editCivilite) updates.civilite = editCivilite;
+    if (Object.keys(updates).length > 0) await updateProfile(updates);
+    setShowEditProfile(false);
+  };
+
   const handleSelectLanguage = async (code: AppLanguage) => {
     await i18n.changeLanguage(code);
     await updateProfile({ language: code });
@@ -146,7 +186,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* ── Hero profil ───────────────────────────── */}
         <LinearGradient
@@ -158,6 +198,7 @@ export default function ProfileScreen() {
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
           <Text style={styles.heroName}>{profile?.full_name ?? t('profile.user')}</Text>
+          <Text style={styles.heroSelfie}>C'est moi ! 🙋‍♂️✨😎</Text>
           <View style={styles.planBadge}>
             <Text style={styles.planBadgeText}>
               {isPremium ? t('profile.premium') : t('profile.free')}
@@ -249,18 +290,18 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>{t('profile.sections.notifications')}</Text>
         <View style={styles.settingsCard}>
           <SettingRow
-            emoji="🎂" label={t('profile.notifications.birthdays')}
-            isToggle toggled={notifsBirthday} onToggle={setNotifsBirthday}
+            emoji="🎁" label={t('profile.notifications.birthdays')}
+            isToggle toggled={notifsBirthday} onToggle={handleToggleBirthday}
           />
           <View style={styles.rowDivider} />
           <SettingRow
             emoji="🌸" label={t('profile.notifications.nameDays')}
-            isToggle toggled={notifsNameday} onToggle={setNotifsNameday}
+            isToggle toggled={notifsNameday} onToggle={handleToggleNameday}
           />
           <View style={styles.rowDivider} />
           <SettingRow
             emoji="🎁" label={t('profile.notifications.pots')}
-            isToggle toggled={notifsPot} onToggle={setNotifsPot}
+            isToggle toggled={notifsPot} onToggle={handleTogglePot}
           />
         </View>
 
@@ -269,7 +310,20 @@ export default function ProfileScreen() {
         <View style={styles.settingsCard}>
           <SettingRow
             emoji="✏️" label={t('profile.account.editProfile')}
-            onPress={() => {}} value=""
+            onPress={() => {
+              const parts = (profile?.full_name ?? '').split(' ');
+              setEditFirstName(parts[0] ?? '');
+              setEditLastName(parts.slice(1).join(' ') ?? '');
+              // Pré-remplir le birthday au format JJ/MM/AAAA
+              if (profile?.birthday) {
+                const [y, m, d] = profile.birthday.split('-');
+                setEditBirthday(y === '0000' ? `${d}/${m}` : `${d}/${m}/${y}`);
+              } else {
+                setEditBirthday('');
+              }
+              setEditCivilite(profile?.civilite ?? null);
+              setShowEditProfile(true);
+            }} value=""
           />
           <View style={styles.rowDivider} />
           <SettingRow
@@ -315,6 +369,86 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={styles.version}>{t('profile.version')}</Text>
+
+        {/* ── Modal édition profil ─────────────────── */}
+        <Modal
+          visible={showEditProfile}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowEditProfile(false)}
+        >
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowEditProfile(false)}
+            >
+              <ScrollView style={{ width: '100%' }} contentContainerStyle={{ paddingBottom: 16 }} keyboardShouldPersistTaps="handled">
+              <View style={styles.modalSheet}>
+                <Text style={styles.modalTitle}>Mon profil</Text>
+                <Text style={styles.modalSub}>Ta civilité, ton prénom et ton nom apparaîtront dans l'appli.</Text>
+
+                <Text style={styles.editLabel}>Civilité *</Text>
+                <View style={styles.civiliteRow}>
+                  {(['M.', 'Mme'] as const).map((val) => (
+                    <TouchableOpacity
+                      key={val}
+                      style={[styles.civiliteBtn, editCivilite === val && styles.civiliteBtnActive]}
+                      onPress={() => setEditCivilite(val)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.civiliteBtnText, editCivilite === val && styles.civiliteBtnTextActive]}>
+                        {val === 'M.' ? '👨 M.' : '👩 Mme'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.editLabel}>Prénom</Text>
+                <TextInput
+                  style={styles.editInput}
+                  value={editFirstName}
+                  onChangeText={setEditFirstName}
+                  placeholder="Ton prénom"
+                  placeholderTextColor={Colors.outlineVariant}
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                />
+                <Text style={styles.editLabel}>Nom</Text>
+                <TextInput
+                  style={styles.editInput}
+                  value={editLastName}
+                  onChangeText={setEditLastName}
+                  placeholder="Ton nom de famille"
+                  placeholderTextColor={Colors.outlineVariant}
+                  autoCapitalize="words"
+                  returnKeyType="next"
+                />
+                <Text style={styles.editLabel}>Ta date de naissance ✨</Text>
+                <TextInput
+                  style={styles.editInput}
+                  value={editBirthday}
+                  onChangeText={setEditBirthday}
+                  placeholder="JJ/MM/AAAA ou JJ/MM"
+                  placeholderTextColor={Colors.outlineVariant}
+                  keyboardType="numbers-and-punctuation"
+                  returnKeyType="done"
+                  onSubmitEditing={handleSaveProfile}
+                />
+                <Text style={styles.editHint}>
+                  🔮 Permet de calculer ta compatibilité zodiacale avec tes contacts !
+                </Text>
+                <TouchableOpacity style={styles.editSaveBtn} onPress={handleSaveProfile}>
+                  <Text style={styles.editSaveBtnText}>Enregistrer</Text>
+                </TouchableOpacity>
+              </View>
+              </ScrollView>
+            </TouchableOpacity>
+          </KeyboardAvoidingView>
+        </Modal>
 
         {/* ── Modal sélecteur de langue ────────────── */}
         <Modal
@@ -376,6 +510,14 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   avatarText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['4xl'], color: Colors.white },
   heroName: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['3xl'], color: Colors.white },
+  heroSelfie: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.sm,
+    color: 'rgba(255,255,255,0.75)',
+    fontStyle: 'italic',
+    letterSpacing: 0.3,
+    marginTop: -4,
+  },
   planBadge: {
     paddingVertical: 4, paddingHorizontal: 14,
     borderRadius: Radii.full, backgroundColor: 'rgba(255,255,255,0.25)',
@@ -436,8 +578,11 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs,
     textTransform: 'uppercase', letterSpacing: 0.8,
     color: Colors.onSurfaceVariant,
-    marginTop: Spacing[4], marginBottom: Spacing[2],
-    paddingHorizontal: Spacing[4],
+    marginTop: Spacing[5], marginBottom: Spacing[3],
+    marginLeft: Spacing[4],
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.outlineVariant,
+    paddingLeft: Spacing[3],
   },
   settingsCard: {
     marginHorizontal: Spacing[4], marginBottom: Spacing[3],
@@ -539,6 +684,70 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontSize: Typography.xs,
     color: Colors.onSurfaceVariant,
     marginTop: 2,
+  },
+
+  civiliteRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 8,
+  },
+  civiliteBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: C.primaryContainer,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+  },
+  civiliteBtnActive: {
+    borderColor: C.primary,
+    backgroundColor: C.primaryContainer,
+  },
+  civiliteBtnText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.base,
+    color: Colors.onSurfaceVariant,
+  },
+  civiliteBtnTextActive: { color: C.primary },
+
+  editLabel: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.md,
+    color: Colors.onSurface,
+    marginBottom: 4,
+    marginTop: 8,
+  },
+  editInput: {
+    borderWidth: 1,
+    borderColor: C.primaryContainer,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing[4],
+    paddingVertical: 12,
+    fontSize: Typography.md,
+    fontFamily: 'BeVietnamPro_400Regular',
+    color: Colors.onSurface,
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  editHint: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
+    marginTop: -8,
+    marginBottom: 16,
+    lineHeight: 16,
+  },
+  editSaveBtn: {
+    backgroundColor: C.primary,
+    borderRadius: Radii.full,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  editSaveBtnText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.md,
+    color: Colors.white,
   },
 
   // Modal

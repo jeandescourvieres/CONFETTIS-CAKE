@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Dimensions, ActivityIndicator, Share,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useCardTemplate } from '../../../src/hooks/useCards';
@@ -32,13 +33,17 @@ export default function CardPreviewScreen() {
 
   const handleShare = useCallback(async () => {
     try {
+      const cardLink = Linking.createURL(`card/${id}`, {
+        queryParams: { name: recipientName || '' },
+      });
       await Share.share({
-        message: `🎉 Une carte animée pour ${recipientName || '…'} — créée avec Confettis & Cake`,
+        message: `🎉 ${recipientName || 'Quelqu\'un'} t'a envoyé une carte animée !\n\nOuvre ce lien pour la voir : ${cardLink}\n\n— Créé avec Confettis & Cake`,
+        url: cardLink,
       });
     } catch {
       // Annulé par l'utilisateur
     }
-  }, [recipientName]);
+  }, [recipientName, id]);
 
   const handleCreateMessage = useCallback(() => {
     if (!id) return;

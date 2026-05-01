@@ -9,6 +9,7 @@ import {
   Linking,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
 import { useMessage } from '../../../src/hooks/useAIGenerate';
+import { useGroupMessage, formatSigners, groupShareUrl } from '../../../src/hooks/useGroupMessages';
 import { deleteMessage, markMessageSent } from '../../../src/services/messages.service';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useCreateStore } from '../../../src/stores/createStore';
@@ -125,6 +127,8 @@ export default function MessageDetailScreen() {
   const [sending, setSending] = useState(false);
 
   const { data: message, isLoading } = useMessage(id ?? null);
+  const { data: groupData } = useGroupMessage(id ?? null);
+  const groupSignatures = groupData?.signatures ?? [];
 
   const showSig = profile?.show_signature !== false;
   const sigLabels = showSig ? getSignatureLabels(i18n.language) : null;
@@ -260,6 +264,13 @@ export default function MessageDetailScreen() {
           <MiniAudioPlayer audioUrl={message.audio_url} musicStatus={message.music_status} />
         )}
 
+        {/* ── Photo attachée (mode sous texte) ────────── */}
+        {message.photo_url && (
+          <View style={styles.photoCard}>
+            <Image source={{ uri: message.photo_url }} style={styles.photoImg} resizeMode="cover" />
+          </View>
+        )}
+
         {/* ── Contenu ─────────────────────────────────── */}
         <View style={styles.contentCard}>
           {contentParts.map((part, i) => (
@@ -278,6 +289,32 @@ export default function MessageDetailScreen() {
               {sigLabels.cta}{' '}
               <Text style={styles.sigUrl}>{sigLabels.url}</Text>
             </Text>
+          </View>
+        )}
+
+        {/* ── Co-signataires ───────────────────────────── */}
+        {groupSignatures.length > 0 && (
+          <View style={styles.groupBlock}>
+            <Text style={styles.groupBlockTitle}>✍️ Co-signataires</Text>
+            <Text style={styles.groupBlockNames}>{formatSigners(groupSignatures, 5)}</Text>
+            {groupSignatures.some((s) => s.signer_note) && (
+              <View style={styles.notesBlock}>
+                {groupSignatures.filter((s) => s.signer_note).map((s, i) => (
+                  <Text key={i} style={styles.noteItem}>
+                    <Text style={styles.noteSigner}>{s.signer_name} :</Text> {s.signer_note}
+                  </Text>
+                ))}
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.copySignersBtn}
+              onPress={() => {
+                const names = groupSignatures.map((s) => s.signer_name).join(', ');
+                Share.share({ message: `De la part de : ${names}` });
+              }}
+            >
+              <Text style={styles.copySignersBtnText}>📋 Copier la liste</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -316,6 +353,19 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: Colors.onSurfaceVariant,
   },
 
+  photoCard: {
+    marginHorizontal: Spacing[4],
+    marginBottom: Spacing[3],
+    borderRadius: Radii.lg,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: Colors.outlineVariant,
+  },
+  photoImg: {
+    width: '100%',
+    height: 220,
+  },
+
   topbar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -326,12 +376,12 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
+  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
   topbarTitle: {
     flex: 1,
-    fontFamily: 'PlusJakartaSans_700Bold',
-    fontSize: Typography.xl,
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography['2xl'],
     color: Colors.onSurface,
     textAlign: 'center',
   },
@@ -453,6 +503,44 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.sm,
     color: '#fdd34d',
+  },
+
+  groupBlock: {
+    backgroundColor: Colors.surfaceContainer,
+    borderRadius: Radii.lg,
+    padding: Spacing[3],
+    marginTop: Spacing[4],
+    gap: 6,
+  },
+  groupBlockTitle: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.sm,
+    color: Colors.onSurface,
+  },
+  groupBlockNames: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
+  },
+  notesBlock: { gap: 4, marginTop: 4 },
+  noteItem: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 18,
+  },
+  noteSigner: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    color: Colors.onSurface,
+  },
+  copySignersBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  copySignersBtnText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
   },
 
   sectionLabel: {

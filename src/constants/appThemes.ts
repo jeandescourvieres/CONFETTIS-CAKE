@@ -86,7 +86,7 @@ export const APP_THEMES: AppTheme[] = [
   },
 ];
 
-export const DEFAULT_THEME_ID = 'or';
+export const DEFAULT_THEME_ID = 'prune';
 
 export function getThemeById(id: string): AppTheme {
   return APP_THEMES.find((t) => t.id === id) ?? APP_THEMES[0];

@@ -18,7 +18,82 @@ import { usePot, useContributions, useUpdatePotStatus, useUpdatePotDeadline, use
 import { useAuthStore } from '../../../src/stores/authStore';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
+import { HelpModal } from '../../../src/components/ui/HelpModal';
 import type { Contribution } from '../../../src/types/models';
+
+// ── Suggestions de cadeaux par tranche de budget ─────────────────────────────
+const GIFT_TIERS: { max: number; label: string; gifts: string[] }[] = [
+  { max: 15,   label: '< 15 €',     gifts: ['📚 Livre', '🕯 Bougie parfumée', '🍫 Chocolats artisanaux', '🌿 Plante verte'] },
+  { max: 30,   label: '15–30 €',    gifts: ['☕ Coffret café / thé', '🎨 Carnet & crayons d\'art', '🧴 Mini coffret bien-être', '🍓 Panier gourmand'] },
+  { max: 50,   label: '30–50 €',    gifts: ['🔐 Escape game', '🍽 Restaurant', '💆 Soin spa', '🎬 Séance ciné + repas'] },
+  { max: 80,   label: '50–80 €',    gifts: ['👨‍🍳 Cours de cuisine', '🎵 Concert / spectacle', '📸 Séance photo', '🧺 Coffret gastronomique'] },
+  { max: 120,  label: '80–120 €',   gifts: ['🏡 Week-end Airbnb', '🎮 Console retro / jeu collector', '🌊 Journée spa ou aquatique', '🎸 Cours de musique'] },
+  { max: 200,  label: '120–200 €',  gifts: ['✈️ Billet d\'avion', '💆 Week-end spa', '⌚ Montre', '💍 Bijou'] },
+  { max: Infinity, label: '200 € +', gifts: ['🌍 Séjour / voyage', '🏡 Location vacances', '🍾 Expérience gastronomique', '🎁 Chèque cadeau sur mesure'] },
+];
+
+function getGiftSuggestions(amount: number): { label: string; gifts: string[] } {
+  const tier = GIFT_TIERS.find((t) => amount <= t.max) ?? GIFT_TIERS[GIFT_TIERS.length - 1];
+  return tier;
+}
+
+// ── Bloc suggestions de cadeaux ───────────────────────────────────────────────
+function GiftSuggestionsBlock({ amount, compact = false }: { amount: number; compact?: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeSuggestionStyles(C), [C]);
+  if (amount <= 0) return null;
+  const { label, gifts } = getGiftSuggestions(amount);
+  return (
+    <View style={[styles.container, compact && styles.containerCompact]}>
+      <View style={styles.header}>
+        <Text style={styles.title}>💡 Idées de cadeaux</Text>
+        <Text style={styles.budget}>Budget {label}</Text>
+      </View>
+      <View style={styles.grid}>
+        {gifts.map((g) => (
+          <View key={g} style={styles.pill}>
+            <Text style={styles.pillText}>{g}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function makeSuggestionStyles(C: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+  container: {
+    backgroundColor: C.primaryContainer + '55',
+    borderRadius: Radii.xl,
+    borderWidth: 1.5,
+    borderColor: C.primary + '40',
+    padding: Spacing[4],
+    marginTop: Spacing[4],
+    gap: 10,
+  },
+  containerCompact: {
+    marginTop: Spacing[2],
+    backgroundColor: Colors.white,
+    borderColor: C.primaryContainer,
+  },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.md, color: C.primary },
+  budget: {
+    fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
+    paddingVertical: 3, paddingHorizontal: 10,
+    backgroundColor: Colors.white, borderRadius: Radii.full,
+    borderWidth: 1, borderColor: C.primaryContainer,
+  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pill: {
+    paddingVertical: 6, paddingHorizontal: 12,
+    backgroundColor: Colors.white, borderRadius: Radii.full,
+    borderWidth: 1, borderColor: C.primaryContainer,
+  },
+  pillText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurface },
+  });
+}
 
 // ── Progress bar ──────────────────────────────────────────────────────────────
 function ProgressBar({ current, target, large }: { current: number; target: number; large?: boolean }) {
@@ -73,6 +148,9 @@ function OrganizerView({
       </View>
 
       <ProgressBar current={total} target={target} large />
+
+      {/* Idées de cadeaux selon le montant collecté */}
+      <GiftSuggestionsBlock amount={total} />
 
       {/* Lien de partage */}
       <Text style={styles.sectionLabel}>Lien de partage</Text>
@@ -195,9 +273,11 @@ function ParticipantView({
 // ── Modal clôture (organisateur) ──────────────────────────────────────────────
 function CloseModal({
   potId,
+  currentAmount,
   onDismiss,
 }: {
   potId: string;
+  currentAmount: number;
   onDismiss: () => void;
 }) {
   const C = useColors();
@@ -286,11 +366,12 @@ function CloseModal({
         </TouchableOpacity>
         {option === 'adapt' && (
           <View style={styles.optionExtra}>
+            <GiftSuggestionsBlock amount={currentAmount} compact />
             <TextInput
-              style={styles.optionInput}
+              style={[styles.optionInput, { marginTop: 10 }]}
               value={newGift}
               onChangeText={setNewGift}
-              placeholder="Description du nouveau cadeau..."
+              placeholder="Décris le cadeau choisi..."
               placeholderTextColor={Colors.outlineVariant}
             />
           </View>
@@ -362,7 +443,36 @@ export default function PotDetailScreen() {
           <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle} numberOfLines={1}>{pot.title}</Text>
-        <View style={{ width: 32 }} />
+        <HelpModal
+          title="Cagnotte — mode d'emploi"
+          content={
+            isOrganizer
+              ? (
+                "👑 TU ES L'ORGANISATEUR\n\n" +
+                "📊 SUIVRE LES CONTRIBUTIONS\n" +
+                "Tu vois le montant collecté, l'objectif, la liste de tous les participants et leur contribution individuelle.\n\n" +
+                "🔗 PARTAGER LE LIEN\n" +
+                "Copie le lien et envoie-le par WhatsApp, SMS ou email. Tes proches contribuent sans l'appli.\n\n" +
+                "💡 IDÉES DE CADEAUX\n" +
+                "Des suggestions s'affichent selon le montant collecté. Elles changent au fil des contributions.\n\n" +
+                "🏁 CLÔTURER LA CAGNOTTE\n" +
+                "• 📅 Prolonger : repousser la date limite\n" +
+                "• 🎁 Adapter le cadeau : des idées te sont proposées selon le budget, puis tu décris le cadeau choisi\n" +
+                "• ↩️ Rembourser : remboursement de tous les participants via Stripe\n\n" +
+                "📧 REÇUS AUTOMATIQUES\n" +
+                "Chaque contributeur a déjà reçu un reçu officiel Stripe par email au moment de son paiement. Tu n'as rien à faire."
+              ) : (
+                "💜 COMMENT CONTRIBUER ?\n\n" +
+                "Appuie sur '💳 Contribuer au cadeau', entre ton prénom/nom, ton email et le montant souhaité. Le paiement est sécurisé par Stripe.\n\n" +
+                "📧 TON JUSTIFICATIF\n" +
+                "Dès ton paiement validé, tu reçois automatiquement un reçu par email. Ce reçu Stripe est valable comme justificatif comptable.\n\n" +
+                "👀 QUI VOIT QUOI ?\n" +
+                "• Les participants voient les noms des contributeurs, mais pas les montants\n" +
+                "• Seul l'organisateur voit le détail des montants\n\n" +
+                "💡 Pas besoin d'avoir l'appli pour contribuer !"
+              )
+          }
+        />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -408,7 +518,7 @@ export default function PotDetailScreen() {
 
       {/* Modal clôture */}
       {showCloseModal && (
-        <CloseModal potId={pot.id} onDismiss={() => setShowCloseModal(false)} />
+        <CloseModal potId={pot.id} currentAmount={pot.current_amount} onDismiss={() => setShowCloseModal(false)} />
       )}
     </SafeAreaView>
   );
@@ -426,9 +536,9 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
-  topbarTitle: { flex: 1, fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.xl, color: Colors.onSurface, textAlign: 'center' },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
+  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  topbarTitle: { flex: 1, fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface, textAlign: 'center' },
 
   hero: {
     margin: Spacing[4], borderRadius: Radii['2xl'],

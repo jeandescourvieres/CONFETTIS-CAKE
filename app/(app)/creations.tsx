@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useColors } from '../../src/hooks/useColors';
 import {
   View,
@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMessages } from '../../src/hooks/useAIGenerate';
 import { deleteMessage, deleteMessages } from '../../src/services/messages.service';
@@ -70,60 +70,62 @@ function MessageCard({
   const dateLabel = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
   return (
-    <TouchableOpacity
-      style={[styles.card, selected && styles.cardSelected]}
-      onPress={selectionMode ? onToggleSelect : onPress}
-      activeOpacity={0.8}
-    >
-      {/* Checkbox (mode sélection) ou icône format */}
-      {selectionMode ? (
-        <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
-          {selected && <Text style={styles.checkboxTick}>✓</Text>}
-        </View>
-      ) : (
-        <View style={[styles.cardIcon, isDraft && styles.cardIconDraft]}>
-          <Text style={styles.cardIconEmoji}>{FORMAT_EMOJI[message.format] ?? '💬'}</Text>
-        </View>
-      )}
-
-      {/* Middle: info */}
-      <View style={styles.cardInfo}>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardName} numberOfLines={1}>
-            {message.contact_name}
-          </Text>
-          <View style={[styles.statusBadge, isDraft ? styles.statusDraft : styles.statusSent]}>
-            <Text style={[styles.statusText, isDraft ? styles.statusTextDraft : styles.statusTextSent]}>
-              {isDraft ? 'Brouillon' : 'Envoyé'}
-            </Text>
+    <View style={[styles.cardWrapper, selected && styles.cardSelected]}>
+      <TouchableOpacity
+        style={styles.cardInner}
+        onPress={selectionMode ? onToggleSelect : onPress}
+        activeOpacity={0.8}
+      >
+        {/* Checkbox (mode sélection) ou icône format */}
+        {selectionMode ? (
+          <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+            {selected && <Text style={styles.checkboxTick}>✓</Text>}
           </View>
-        </View>
-        <View style={styles.cardMetaRow}>
-          <Text style={styles.cardMeta}>
-            {FORMAT_LABEL[message.format] ?? 'Message'} · {TONE_LABEL[message.tone] ?? ''} · {dateLabel}
-          </Text>
-          {message.format === 'song' && message.music_status !== 'none' && (
-            <View style={[
-              styles.musicBadge,
-              message.music_status === 'ready' ? styles.musicBadgeReady
-              : message.music_status === 'failed' ? styles.musicBadgeFailed
-              : styles.musicBadgePending,
-            ]}>
-              <Text style={styles.musicBadgeText}>
-                {message.music_status === 'ready' ? '🎵 Audio'
-                : message.music_status === 'generating' ? '⏳ ...'
-                : message.music_status === 'queued' ? '⏳ File'
-                : '⚠️'}
+        ) : (
+          <View style={[styles.cardIcon, isDraft && styles.cardIconDraft]}>
+            <Text style={styles.cardIconEmoji}>{FORMAT_EMOJI[message.format] ?? '💬'}</Text>
+          </View>
+        )}
+
+        {/* Middle: info */}
+        <View style={styles.cardInfo}>
+          <View style={styles.cardRow}>
+            <Text style={styles.cardName} numberOfLines={1}>
+              {message.contact_name}
+            </Text>
+            <View style={[styles.statusBadge, isDraft ? styles.statusDraft : styles.statusSent]}>
+              <Text style={[styles.statusText, isDraft ? styles.statusTextDraft : styles.statusTextSent]}>
+                {isDraft ? 'Brouillon' : 'Envoyé'}
               </Text>
             </View>
-          )}
+          </View>
+          <View style={styles.cardMetaRow}>
+            <Text style={styles.cardMeta}>
+              {FORMAT_LABEL[message.format] ?? 'Message'} · {TONE_LABEL[message.tone] ?? ''} · {dateLabel}
+            </Text>
+            {message.format === 'song' && message.music_status !== 'none' && (
+              <View style={[
+                styles.musicBadge,
+                message.music_status === 'ready' ? styles.musicBadgeReady
+                : message.music_status === 'failed' ? styles.musicBadgeFailed
+                : styles.musicBadgePending,
+              ]}>
+                <Text style={styles.musicBadgeText}>
+                  {message.music_status === 'ready' ? '🎵 Audio'
+                  : message.music_status === 'generating' ? '⏳ ...'
+                  : message.music_status === 'queued' ? '⏳ File'
+                  : '⚠️'}
+                </Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.cardPreview} numberOfLines={2}>
+            {message.content}
+          </Text>
         </View>
-        <Text style={styles.cardPreview} numberOfLines={2}>
-          {message.content}
-        </Text>
-      </View>
+      </TouchableOpacity>
 
-      {/* Bouton supprimer (mode normal uniquement) */}
+      {/* Bouton supprimer — en dehors du TouchableOpacity pour éviter les conflits touch */}
       {!selectionMode && (
         <TouchableOpacity
           style={styles.deleteBtn}
@@ -133,7 +135,7 @@ function MessageCard({
           <Text style={styles.deleteBtnText}>🗑</Text>
         </TouchableOpacity>
       )}
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -166,13 +168,20 @@ export default function CreationsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: messages = [], isLoading } = useMessages();
-  const [filter, setFilter] = useState<Filter>('all');
+  const { filter: filterParam } = useLocalSearchParams<{ filter?: string }>();
+  const [filter, setFilter] = useState<Filter>((filterParam as Filter) ?? 'all');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const scrollRef = useRef<FlatList>(null);
+  useFocusEffect(useCallback(() => { scrollRef.current?.scrollToOffset({ offset: 0, animated: false }); }, []));
 
   const deleteMutation = useMutation({
     mutationFn: deleteMessage,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['messages'] }),
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Erreur lors de la suppression';
+      Alert.alert('Erreur', msg);
+    },
   });
 
   const deleteManyMutation = useMutation({
@@ -181,6 +190,10 @@ export default function CreationsScreen() {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
       setSelectionMode(false);
       setSelectedIds(new Set());
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Erreur lors de la suppression';
+      Alert.alert('Erreur', msg);
     },
   });
 
@@ -275,17 +288,29 @@ export default function CreationsScreen() {
           </>
         ) : (
           <>
-            <Text style={styles.headerTitle}>Mes Créations</Text>
+            <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+              <Text style={{ fontSize: 28, color: Colors.primary, lineHeight: 32 }}>‹</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Mes messages</Text>
             <View style={styles.headerRight}>
               {messages.length > 0 && (
                 <TouchableOpacity onPress={() => setSelectionMode(true)} style={styles.selectBtn}>
-                  <Text style={styles.selectBtnText}>Sélectionner</Text>
+                  <Text style={styles.selectBtnText}>Supprimer...</Text>
                 </TouchableOpacity>
               )}
             </View>
           </>
         )}
       </View>
+
+      {/* Intro */}
+      {!selectionMode && (
+        <View style={styles.introBar}>
+          <Text style={styles.introText}>
+            Retrouve ici tous tes brouillons et messages créés ou envoyés — classés du plus récent au plus ancien 💬
+          </Text>
+        </View>
+      )}
 
       {/* Bouton rapide "Supprimer tous les brouillons" */}
       {!selectionMode && drafts.length > 0 && (
@@ -316,6 +341,7 @@ export default function CreationsScreen() {
 
       {/* List */}
       <FlatList
+        ref={scrollRef}
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -375,7 +401,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   headerTitle: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: Typography['4xl'],
+    fontSize: Typography['2xl'],
     color: Colors.onSurface,
   },
   headerCount: {
@@ -402,6 +428,22 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: C.primary,
   },
 
+  // Intro
+  introBar: {
+    marginHorizontal: Spacing[4],
+    marginBottom: 4,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing[4],
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: Radii.lg,
+  },
+  introText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.base,
+    color: Colors.onSurface,
+    lineHeight: 22,
+  },
+
   // Barre rapide brouillons
   draftsDeleteBar: {
     marginHorizontal: Spacing[4],
@@ -415,8 +457,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     alignItems: 'center',
   },
   draftsDeleteText: {
-    fontFamily: 'BeVietnamPro_600SemiBold',
-    fontSize: Typography.sm,
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.base,
     color: Colors.error,
   },
 
@@ -451,14 +493,19 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   listEmpty: { flex: 1 },
 
   // Card
-  card: {
+  cardWrapper: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     backgroundColor: Colors.white,
     borderRadius: Radii.xl,
+    ...Shadows.sm,
+  },
+  cardInner: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     padding: Spacing[4],
     gap: 12,
-    ...Shadows.sm,
   },
   cardSelected: {
     borderWidth: 1.5,
@@ -554,8 +601,12 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginTop: 2,
   },
   deleteBtn: {
-    paddingTop: 2,
+    paddingHorizontal: Spacing[3],
+    paddingVertical: Spacing[4],
     flexShrink: 0,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteBtnText: { fontSize: 18 },
 
@@ -565,9 +616,10 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     bottom: 0,
     left: 0,
     right: 0,
+    zIndex: 100,
     paddingHorizontal: Spacing[4],
     paddingVertical: 12,
-    paddingBottom: 28,
+    paddingBottom: 90,
     backgroundColor: Colors.white,
     borderTopWidth: 0.5,
     borderTopColor: Colors.surfaceContainerHighest,

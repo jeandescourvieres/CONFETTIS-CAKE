@@ -139,6 +139,30 @@ export async function importPhoneContacts(
   return count ?? rows.length;
 }
 
+// ── Upload avatar ─────────────────────────────
+
+export async function uploadContactAvatar(localUri: string): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non authentifié');
+
+  const response = await fetch(localUri);
+  const blob = await response.blob();
+  const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
+  const path = `${user.id}/${Date.now()}.${ext}`;
+
+  const { data, error } = await supabase.storage
+    .from('contact-avatars')
+    .upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: true });
+
+  if (error) throw error;
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('contact-avatars')
+    .getPublicUrl(data.path);
+
+  return publicUrl;
+}
+
 // ── Helpers privés ────────────────────────────
 
 function parseBirthday(

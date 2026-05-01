@@ -13,12 +13,14 @@ export interface GenerateMessageInput {
   age?: number | null;
   memories?: string | null;
   personality_tags?: string[];
+  favourite_color?: string | null;
   occasion: Occasion;
   late_mode?: boolean;
   extras?: OccasionExtras;
   style_hint?: string; // 'Court' | 'Moyen' | 'Long'
   language?: string; // code langue ISO (fr, en, de, es, it...)
   is_regeneration?: boolean; // true = pas de déduction de crédit
+  sender_civilite?: 'M.' | 'Mme' | null; // Civilité de l'expéditeur → accord grammatical
 }
 
 // ── Edge Function ────────────────────────────────
@@ -38,8 +40,8 @@ export async function generateMessageContent(input: GenerateMessageInput): Promi
         console.log('[generate] HTTP status:', status, '| body:', rawText);
         try {
           const body = JSON.parse(rawText);
-          if (body?.error) detail = `[${status}] ${body.error}`;
-          else detail = `[${status}] ${rawText}`;
+          if (body?.error) detail = body.error;
+          else detail = rawText;
         } catch {
           detail = `[${status}] ${rawText}`;
         }
@@ -48,8 +50,11 @@ export async function generateMessageContent(input: GenerateMessageInput): Promi
     throw new Error(detail);
   }
 
-  const content = (data as { content?: string })?.content;
-  if (!content) throw new Error('Réponse vide du générateur IA');
+  const raw = (data as { content?: string })?.content;
+  if (!raw) throw new Error('Réponse vide du générateur IA');
+
+  // Nettoie les artefacts markdown de Mistral (* " en début/fin)
+  const content = raw.trim().replace(/^[*"«\s]+/, '').replace(/[*"»\s]+$/, '').trim();
 
   return content;
 }
@@ -118,6 +123,30 @@ export async function updateMessageContent(id: string, content: string): Promise
   return data as Message;
 }
 
+export async function updateMessageStyle(
+  id: string,
+  style: {
+    bg_theme?: string;
+    font_style?: string;
+    font_size?: string;
+    is_italic?: boolean;
+  },
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('messages') as any)
+    .update(style)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function updateMessagePhoto(id: string, photoUrl: string | null): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('messages') as any)
+    .update({ photo_url: photoUrl })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 export async function markMessageSent(id: string, sentVia: string): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('messages') as any)
@@ -127,12 +156,16 @@ export async function markMessageSent(id: string, sentVia: string): Promise<void
 }
 
 export async function deleteMessage(id: string): Promise<void> {
-  const { error } = await supabase.from('messages').delete().eq('id', id);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non authentifié');
+  const { error } = await supabase.from('messages').delete().eq('id', id).eq('user_id', user.id);
   if (error) throw error;
 }
 
 export async function deleteMessages(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
-  const { error } = await supabase.from('messages').delete().in('id', ids);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non authentifié');
+  const { error } = await supabase.from('messages').delete().in('id', ids).eq('user_id', user.id);
   if (error) throw error;
 }

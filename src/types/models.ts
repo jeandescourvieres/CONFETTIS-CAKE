@@ -2,8 +2,8 @@
 //  Confettis & Cake — Domain Models
 // ═══════════════════════════════════════════════
 
-export type Plan = 'free' | 'premium';
-export type AppLanguage = 'fr' | 'en' | 'de' | 'es' | 'it' | 'ar' | 'pt';
+export type Plan = 'free' | 'essentiel' | 'premium';
+export type AppLanguage = 'fr' | 'en' | 'de' | 'es' | 'it' | 'pt';
 
 export interface Profile {
   id: string;
@@ -14,6 +14,11 @@ export interface Profile {
   credits: number;
   language: AppLanguage;
   show_signature: boolean;
+  notif_birthday: boolean;
+  notif_nameday: boolean;
+  notif_pot: boolean;
+  birthday: string | null;  // "YYYY-MM-DD" ou "0000-MM-DD" (jour/mois sans année)
+  civilite: 'M.' | 'Mme' | null;
   created_at: string;
 }
 
@@ -25,6 +30,7 @@ export type Relation =
   | 'family'
   | 'partner'
   | 'colleague'
+  | 'pet'
   | 'other';
 
 export interface Contact {
@@ -42,6 +48,12 @@ export interface Contact {
   personality_tags: string[];    // ex: ['drôle', 'sportif']
   preferred_channel: 'sms' | 'email' | null;
   preferred_send_time: 'morning' | 'afternoon' | 'evening' | 'anytime' | null;
+  pet_owner_name: string | null;        // ex: "Michel" — affiché sous le nom du pet
+  pet_owner_contact_id: string | null;  // id du contact propriétaire
+  pet_type: 'chien' | 'chat' | 'lapin' | 'perroquet' | 'hamster' | 'poisson' | 'cheval' | 'oiseau' | 'autre' | null;
+  pet_gender: 'male' | 'female' | null; // genre de l'animal
+  preferred_language: AppLanguage | null; // langue du message IA pour ce contact
+  favourite_color: string | null;          // couleur préférée (saisie libre)
   created_at: string;
 }
 
@@ -65,6 +77,8 @@ export type MessageTone =
 export type MessageStatus = 'draft' | 'sent';
 export type SentVia = 'sms' | 'email' | 'whatsapp' | 'copy' | null;
 export type MusicStatus = 'none' | 'pending' | 'generating' | 'ready' | 'failed' | 'queued';
+export type TTSStatus   = 'none' | 'generating' | 'ready' | 'failed';
+export type TTSVoiceKey = 'homme_neutre' | 'homme_chaleureux' | 'femme_douce' | 'femme_joyeuse';
 
 export interface Message {
   id: string;
@@ -81,11 +95,22 @@ export interface Message {
   sent_at: string | null;
   sent_via: SentVia;
   reaction: string | null;
-  // Génération audio
+  // Génération audio (musique)
   audio_url: string | null;
   music_status: MusicStatus;
   music_service: string | null;
   music_duration_s: number | null;
+  // Génération vocale (TTS)
+  tts_url: string | null;
+  tts_status: TTSStatus;
+  tts_voice: string | null;
+  // Style visuel
+  bg_theme: string | null;
+  font_style: string | null;
+  font_size: string | null;
+  is_italic: boolean | null;
+  // Photo attachée
+  photo_url: string | null;
   created_at: string;
 }
 

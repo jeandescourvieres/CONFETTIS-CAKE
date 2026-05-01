@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMyPots } from '../../../src/hooks/usePot';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
@@ -33,45 +33,66 @@ function PotCard({ pot, onPress }: { pot: Pot; onPress: () => void }) {
   const pct = Math.min(Math.round((pot.current_amount / pot.target_amount) * 100), 100);
   const isCompleted = pot.status === 'completed';
   const isClosed = pot.status === 'closed';
-  const statusColor = isCompleted ? '#4CAF50' : isClosed ? Colors.outlineVariant : Colors.primary;
+  const statusColor = isCompleted ? '#4CAF50' : isClosed ? Colors.outlineVariant : C.primary;
   const statusLabel = isCompleted ? '✓ Objectif atteint' : isClosed ? 'Clôturée' : 'En cours';
   const contact = pot.contact as { name?: string } | undefined;
   const deadline = pot.deadline
-    ? new Date(pot.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+    ? new Date(pot.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+
+      {/* ── Titre + statut ─────────────────────────── */}
       <View style={styles.cardTop}>
-        <View style={styles.cardTitleBlock}>
-          <Text style={styles.cardTitle} numberOfLines={1}>{pot.title}</Text>
-          <Text style={styles.cardContact}>Pour {contact?.name ?? '—'}</Text>
-        </View>
-        <View style={[styles.statusPill, { backgroundColor: statusColor + '20' }]}>
+        <Text style={styles.cardTitle} numberOfLines={2}>{pot.title}</Text>
+        <View style={[styles.statusPill, { backgroundColor: statusColor + '22' }]}>
           <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
         </View>
       </View>
+
+      {/* ── Barre de progression ───────────────────── */}
       <ProgressBar current={pot.current_amount} target={pot.target_amount} />
       <View style={styles.amountRow}>
         <Text style={styles.amountCurrent}>{pot.current_amount.toFixed(2)} €</Text>
         <Text style={styles.amountPct}>{pct} %</Text>
-        <Text style={styles.amountTarget}>{pot.target_amount.toFixed(2)} €</Text>
+        <Text style={styles.amountTarget}>sur {pot.target_amount.toFixed(2)} €</Text>
       </View>
+
+      {/* ── Bloc infos ─────────────────────────────── */}
+      <View style={styles.infoGrid}>
+        <View style={styles.infoRow}>
+          <View style={styles.infoCell}>
+            <Text style={styles.infoLabel}>👤 Bénéficiaire</Text>
+            <Text style={styles.infoValue}>{contact?.name ?? '—'}</Text>
+          </View>
+          <View style={[styles.infoCell, styles.infoCellRight]}>
+            <Text style={styles.infoLabel}>🎯 Objectif</Text>
+            <Text style={styles.infoValue}>{pot.target_amount.toFixed(2)} €</Text>
+          </View>
+        </View>
+        <View style={styles.infoRow}>
+          <View style={styles.infoCell}>
+            <Text style={styles.infoLabel}>🎁 Description du cadeau</Text>
+            <Text style={styles.infoValue} numberOfLines={2}>
+              {pot.gift_description?.trim() || '—'}
+            </Text>
+          </View>
+          <View style={[styles.infoCell, styles.infoCellRight]}>
+            <Text style={styles.infoLabel}>📅 Date limite</Text>
+            <Text style={styles.infoValue}>
+              {deadline ?? 'Pas de date limite'}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* ── Voir le détail ─────────────────────────── */}
       <View style={styles.cardFooter}>
-        {deadline && (
-          <View style={styles.footerItem}>
-            <Text style={styles.footerEmoji}>📅</Text>
-            <Text style={styles.footerText}>Jusqu'au {deadline}</Text>
-          </View>
-        )}
-        {pot.gift_description ? (
-          <View style={styles.footerItem}>
-            <Text style={styles.footerEmoji}>🎁</Text>
-            <Text style={styles.footerText} numberOfLines={1}>{pot.gift_description}</Text>
-          </View>
-        ) : null}
+        <Text style={styles.footerSeeMore}>Voir le détail</Text>
         <Text style={styles.footerChevron}>›</Text>
       </View>
+
     </TouchableOpacity>
   );
 }
@@ -103,6 +124,8 @@ export default function PotListScreen() {
   const closedPots = pots.filter((p) => p.status === 'closed');
 
   const styles = useMemo(() => makeStyles(C), [C]);
+  const scrollRef = useRef<FlatList>(null);
+  useFocusEffect(useCallback(() => { scrollRef.current?.scrollToOffset({ offset: 0, animated: false }); }, []));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -130,6 +153,7 @@ export default function PotListScreen() {
       </LinearGradient>
 
       <FlatList
+        ref={scrollRef}
         data={pots}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -165,7 +189,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[5],
   },
-  headerTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['4xl'], color: Colors.white },
+  headerTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.white },
   headerSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   createBtn: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: Radii.full, backgroundColor: Colors.white },
   createBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: C.primary },
@@ -174,11 +198,9 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   listEmpty: { flex: 1 },
 
   card: { backgroundColor: Colors.white, borderRadius: Radii['2xl'], padding: Spacing[4], gap: 12, ...Shadows.md },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  cardTitleBlock: { flex: 1, marginRight: 10 },
-  cardTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.xl, color: Colors.onSurface },
-  cardContact: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: Colors.onSurfaceVariant, marginTop: 2 },
-  statusPill: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: Radii.full },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
+  cardTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.xl, color: Colors.onSurface, flex: 1 },
+  statusPill: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: Radii.full, flexShrink: 0 },
   statusText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs },
 
   progressTrack: { height: 8, borderRadius: 4, backgroundColor: Colors.surfaceContainer, overflow: 'hidden' },
@@ -186,13 +208,34 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -4 },
   amountCurrent: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.lg, color: C.primary },
   amountPct: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.base, color: Colors.onSurfaceVariant },
-  amountTarget: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: Colors.onSurfaceVariant },
+  amountTarget: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, alignSelf: 'flex-end', marginBottom: 2 },
 
-  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: 0.5, borderTopColor: Colors.surfaceContainer, paddingTop: 10 },
-  footerItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
-  footerEmoji: { fontSize: 13 },
-  footerText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, flex: 1 },
-  footerChevron: { fontSize: 20, color: Colors.outlineVariant, marginLeft: 'auto' },
+  infoGrid: {
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.surfaceContainer,
+    paddingTop: 12,
+    gap: 10,
+  },
+  infoRow: { flexDirection: 'row' },
+  infoCell: { flex: 1, gap: 3 },
+  infoCellRight: { paddingLeft: 12, borderLeftWidth: 0.5, borderLeftColor: Colors.surfaceContainer },
+  infoLabel: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  infoValue: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.base,
+    color: Colors.onSurface,
+    lineHeight: 20,
+  },
+
+  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', borderTopWidth: 0.5, borderTopColor: Colors.surfaceContainer, paddingTop: 10, gap: 4 },
+  footerSeeMore: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: C.primary },
+  footerChevron: { fontSize: 18, color: C.primary, lineHeight: 22 },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing[6], gap: 12, marginTop: 80 },
   emptyEmoji: { fontSize: 56 },

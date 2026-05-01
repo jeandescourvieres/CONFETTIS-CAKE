@@ -13,7 +13,7 @@ export interface CustomEvent {
 export type NewCustomEvent = Omit<CustomEvent, 'id' | 'user_id' | 'created_at'>;
 
 export async function fetchCustomEvents(userId: string): Promise<CustomEvent[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('custom_events')
     .select('*')
     .eq('user_id', userId)
@@ -23,7 +23,7 @@ export async function fetchCustomEvents(userId: string): Promise<CustomEvent[]> 
 }
 
 export async function createCustomEvent(userId: string, input: NewCustomEvent): Promise<CustomEvent> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('custom_events')
     .insert({ ...input, user_id: userId })
     .select()
@@ -36,7 +36,7 @@ export async function updateCustomEvent(
   id: string,
   updates: Partial<NewCustomEvent>,
 ): Promise<CustomEvent> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('custom_events')
     .update(updates)
     .eq('id', id)
@@ -47,7 +47,7 @@ export async function updateCustomEvent(
 }
 
 export async function deleteCustomEvent(id: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('custom_events')
     .delete()
     .eq('id', id);

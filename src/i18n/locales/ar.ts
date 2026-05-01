@@ -33,7 +33,7 @@ const ar = {
     taglineEvents_one: '{{count}} حدث قادم قريباً 🎉',
     taglineEvents_other: '{{count}} أحداث قادمة قريباً 🎉',
     taglineCalm: 'كل شيء هادئ الآن ✨',
-    birthdays: '🎂 أعياد الميلاد',
+    birthdays: '🎁 أعياد الميلاد',
     nameDays: '🌸 أعياد الاسم',
     otherEvents: '📅 أحداث أخرى',
     quickAccess: '⚡ وصول سريع',
@@ -275,7 +275,7 @@ const ar = {
       title: '🌟 رمز الإحالة',
       sub: 'شارك واكسب أرصدة ذكاء اصطناعي',
       share: 'مشاركة',
-      message: '🎂 انضم إلى Confettis & Cake برمز الإحالة الخاص بي: {{code}}',
+      message: '🎁 انضم إلى Confettis & Cake برمز الإحالة الخاص بي: {{code}}',
     },
     sections: {
       notifications: 'الإشعارات',

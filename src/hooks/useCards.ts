@@ -13,6 +13,7 @@ export function useCardTemplates(
     queryKey: ['cards', occasion ?? 'all', mood ?? 'all', mode ?? 'all'],
     queryFn: () => fetchCardTemplates(occasion, mood, mode),
     staleTime: STALE,
+    retry: false,
   });
 }
 

@@ -33,7 +33,7 @@ const es = {
     taglineEvents_one: '{{count}} evento próximo 🎉',
     taglineEvents_other: '{{count}} eventos próximos 🎉',
     taglineCalm: 'Todo está tranquilo por ahora ✨',
-    birthdays: '🎂 Cumpleaños',
+    birthdays: '🎁 Cumpleaños',
     nameDays: '🌸 Santos',
     otherEvents: '📅 Otros eventos',
     quickAccess: '⚡ Acceso rápido',
@@ -275,7 +275,7 @@ const es = {
       title: '🌟 Código de referido',
       sub: 'Comparte y gana créditos IA',
       share: 'Compartir',
-      message: '🎂 Únete a Confettis & Cake con mi código de referido: {{code}}',
+      message: '🎁 Únete a Confettis & Cake con mi código de referido: {{code}}',
     },
     sections: {
       notifications: 'Notificaciones',

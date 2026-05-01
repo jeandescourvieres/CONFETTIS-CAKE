@@ -16,6 +16,7 @@ import { useContacts } from '../../../src/hooks/useContacts';
 import { useCreatePot } from '../../../src/hooks/usePot';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
+import { HelpModal } from '../../../src/components/ui/HelpModal';
 
 export default function PotNewScreen() {
   const C = useColors();
@@ -63,22 +64,40 @@ export default function PotNewScreen() {
           <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>Nouvelle cagnotte</Text>
-        <TouchableOpacity
-          onPress={handleCreate}
-          disabled={!isValid || isPending}
-          style={[styles.saveBtn, (!isValid || isPending) && { opacity: 0.4 }]}
-        >
-          <Text style={styles.saveBtnText}>Créer</Text>
-        </TouchableOpacity>
+        <View style={styles.topbarRight}>
+          <HelpModal
+            title="Cagnotte collective"
+            content={
+              "🎁 À QUOI ÇA SERT ?\n" +
+              "Une cagnotte te permet d'organiser un cadeau collectif pour un proche, avec tout le monde.\n\n" +
+              "👥 LES PROCHES N'ONT PAS BESOIN DE L'APPLI\n" +
+              "Un lien de partage unique est généré. Envoie-le par WhatsApp, SMS ou email — tes proches contribuent directement depuis leur navigateur.\n\n" +
+              "💡 IDÉES DE CADEAUX\n" +
+              "Dans la fiche de ta cagnotte, des suggestions de cadeaux s'affichent automatiquement selon le montant collecté.\n\n" +
+              "📧 JUSTIFICATIF AUTOMATIQUE\n" +
+              "Chaque contributeur reçoit un reçu officiel par email dès son paiement. Ce reçu Stripe est valable comme justificatif comptable.\n\n" +
+              "🏁 CLÔTURER\n" +
+              "3 options : prolonger la date, adapter le cadeau au montant collecté (avec suggestions), ou rembourser tout le monde.\n\n" +
+              "🔒 Paiements 100% sécurisés par Stripe."
+            }
+          />
+          <TouchableOpacity
+            onPress={handleCreate}
+            disabled={!isValid || isPending}
+            style={[styles.saveBtn, (!isValid || isPending) && { opacity: 0.4 }]}
+          >
+            <Text style={styles.saveBtnText}>Créer</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
         {/* ── Accroche ──────────────────────────────── */}
         <View style={styles.catchCard}>
-          <Text style={styles.catchTitle}>🎁 À quoi ça sert, une cagnotte ?{'\n'}À tout faire… mais à plusieurs !</Text>
+          <Text style={styles.catchTitle}>🎁 À quoi ça sert, une cagnotte ?{'\n'}À tout faire… mais à plusieurs ! 🎁</Text>
           <Text style={styles.catchText}>
-            🎂 Cadeau, 🤝 coup de pouce, 🚀 projet fou : ici, chaque participation compte.{'\n'}
+            🎁 Cadeau, 🤝 coup de pouce, 🚀 projet fou : ici, chaque participation compte.{'\n'}
             <Text style={styles.catchItalic}>😄 (Et c'est bien plus sympa que de payer tout seul.)</Text>
           </Text>
         </View>
@@ -225,32 +244,37 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 28, color: C.primary, lineHeight: 32 },
-  topbarTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.xl, color: Colors.onSurface },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
+  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  topbarTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface },
+  topbarRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   saveBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: Radii.full, backgroundColor: C.primary },
   saveBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.white },
 
   content: { padding: Spacing[4], paddingBottom: 80 },
   catchCard: {
     marginBottom: Spacing[2],
-    paddingVertical: Spacing[4],
+    paddingVertical: Spacing[5],
     paddingHorizontal: Spacing[4],
     backgroundColor: C.primaryContainer + '40',
     borderRadius: Radii.xl,
-    gap: 8,
+    borderWidth: 1.5,
+    borderColor: C.primary + '55',
+    gap: 10,
   },
   catchTitle: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: Typography.xl,
-    color: Colors.onSurface,
-    lineHeight: 28,
+    fontSize: Typography['2xl'],
+    color: C.primary,
+    lineHeight: 34,
+    textAlign: 'center',
   },
   catchText: {
     fontFamily: 'BeVietnamPro_400Regular',
     fontSize: Typography.md,
     color: Colors.onSurfaceVariant,
     lineHeight: 22,
+    textAlign: 'center',
   },
   catchItalic: {
     fontFamily: 'BeVietnamPro_400Regular',
@@ -284,9 +308,9 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     justifyContent: 'center',
   },
   label: {
-    fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs,
-    textTransform: 'uppercase', letterSpacing: 0.8,
-    color: Colors.onSurfaceVariant,
+    fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.md,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    color: Colors.onSurface,
   },
   input: {
     backgroundColor: Colors.white, borderWidth: 0.5, borderColor: C.primaryContainer,
@@ -336,8 +360,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   infoEmoji: { fontSize: 20 },
   infoText: {
-    fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base,
-    color: Colors.onPrimaryContainer, lineHeight: 20, flex: 1,
+    fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.lg,
+    color: C.primary, lineHeight: 24, flex: 1,
   },
 
   ctaBtn: {

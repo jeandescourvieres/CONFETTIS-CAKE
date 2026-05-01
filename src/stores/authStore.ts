@@ -21,7 +21,7 @@ interface AuthState {
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   fetchProfile: () => Promise<void>;
-  updateProfile: (data: Partial<Pick<Profile, 'full_name' | 'avatar_url' | 'language' | 'show_signature'>>) => Promise<void>;
+  updateProfile: (data: Partial<Profile>) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({

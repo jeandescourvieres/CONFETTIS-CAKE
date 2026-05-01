@@ -33,7 +33,7 @@ const en = {
     taglineEvents_one: '{{count}} upcoming event soon 🎉',
     taglineEvents_other: '{{count}} upcoming events soon 🎉',
     taglineCalm: 'Everything is quiet for now ✨',
-    birthdays: '🎂 Birthdays',
+    birthdays: '🎁 Birthdays',
     nameDays: '🌸 Name Days',
     otherEvents: '📅 Other Events',
     quickAccess: '⚡ Quick Access',
@@ -275,7 +275,7 @@ const en = {
       title: '🌟 Referral code',
       sub: 'Share and earn AI credits',
       share: 'Share',
-      message: '🎂 Join Confettis & Cake with my referral code: {{code}}',
+      message: '🎁 Join Confettis & Cake with my referral code: {{code}}',
     },
     sections: {
       notifications: 'Notifications',

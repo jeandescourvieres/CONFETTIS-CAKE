@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const MISTRAL_MODEL = 'open-mistral-7b';
+const MISTRAL_MODEL = 'mistral-small-latest';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +8,8 @@ const corsHeaders = {
 };
 
 type Occasion =
-  | 'birthday' | 'nameday' | 'wedding' | 'birth'
+  | 'birthday' | 'nameday' | 'wedding' | 'engagement' | 'birth'
+  | 'baptism' | 'communion'
   | 'graduation' | 'promotion' | 'thanks' | 'newyear' | 'support' | 'custom'
   | 'christmas' | 'easter' | 'valentines' | 'mothersday' | 'fathersday' | 'halloween' | 'retirement';
 
@@ -24,7 +25,7 @@ interface OccasionExtras {
   supportType?: 'bereavement' | 'illness' | 'breakup' | 'hardtime' | 'encouragement';
 }
 
-type AppLanguage = 'fr' | 'en' | 'de' | 'es' | 'it' | 'ar' | 'pt';
+type AppLanguage = 'fr' | 'en' | 'de' | 'es' | 'it' | 'pt';
 
 interface GenerateRequest {
   format: 'song' | 'poem' | 'message' | 'joke';
@@ -34,12 +35,18 @@ interface GenerateRequest {
   age?: number | null;
   memories?: string | null;
   personality_tags?: string[];
+  favourite_color?: string | null; // couleur préférée du contact (optionnel)
   occasion: Occasion;
   late_mode?: boolean;
   extras?: OccasionExtras;
   style_hint?: string; // 'Court' | 'Moyen' | 'Long'
   language?: AppLanguage; // langue de génération (défaut: 'fr')
   is_regeneration?: boolean; // true = pas de déduction de crédit
+  sender_civilite?: 'M.' | 'Mme' | null; // Civilité de l'expéditeur → accord grammatical
+  // Mode spécial : message écrit à la 1ère personne par l'animal
+  pet_from_mode?: boolean;
+  pet_from_name?: string; // nom de l'animal (ex: "Rex")
+  pet_from_type?: string; // type d'animal (ex: "chien", "chat"…)
 }
 
 // Noms complets des langues pour le prompt Claude
@@ -49,13 +56,12 @@ const LANGUAGE_NAMES: Record<string, string> = {
   de: 'allemand (Deutsch)',
   es: 'espagnol (Español)',
   it: 'italien (Italiano)',
-  ar: 'arabe (العربية)',
   pt: 'portugais (Português)',
 };
 
 const RELATION_FR: Record<string, string> = {
   best_friend: 'meilleur·e ami·e', friend: 'ami·e', family: 'membre de la famille',
-  partner: 'partenaire amoureux·se', colleague: 'collègue', other: 'proche',
+  partner: 'partenaire amoureux·se', colleague: 'collègue', other: 'connaissance',
   // Sous-relations famille
   frère: 'frère', soeur: 'sœur', sœur: 'sœur',
   père: 'père', mere: 'mère', mère: 'mère',
@@ -64,6 +70,10 @@ const RELATION_FR: Record<string, string> = {
   cousin: 'cousin', cousine: 'cousine',
   fils: 'fils', fille: 'fille',
   neveu: 'neveu', niece: 'nièce', nièce: 'nièce',
+  // Boule de poils
+  'chien (animal de compagnie)': 'chien',
+  'chat (animal de compagnie)': 'chat',
+  'autre (animal de compagnie)': 'animal de compagnie',
 };
 
 const FORMAT_FR: Record<string, string> = {
@@ -79,7 +89,24 @@ const TONE_FR: Record<string, string> = {
   professional: 'chaleureux mais professionnel',
 };
 
+/**
+ * Extrait le prénom depuis un nom stocké au format "NOM Prénom".
+ * "DESCOURVIERES Michelle" → "Michelle"
+ * "Jean" → "Jean"
+ */
+function extractFirstName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length <= 1) return fullName;
+  // Si le premier mot est tout en majuscules, c'est le nom de famille
+  if (parts[0] === parts[0].toUpperCase() && /[A-ZÀÂÄÉÈÊËÎÏÔÙÛÜ]/.test(parts[0])) {
+    return parts.slice(1).join(' ');
+  }
+  return fullName;
+}
+
 function buildOccasionContext(req: GenerateRequest): string {
+  // Utiliser uniquement le prénom dans les prompts (le nom de famille perturbe l'IA)
+  const firstName = extractFirstName(req.contact_name);
   // Si la relation n'est pas dans le dictionnaire, on l'utilise telle quelle (saisie libre)
   const relation = RELATION_FR[req.relation] ?? req.relation;
   const extras = req.extras ?? {};
@@ -87,78 +114,132 @@ function buildOccasionContext(req: GenerateRequest): string {
     ? ' (NB : le message est envoyé en retard — intègre une touche légère d\'excuse ou d\'humour)' : '';
 
   switch (req.occasion) {
-    case 'birthday':
-      return `l'anniversaire de ${req.contact_name}${req.age ? ` qui fête ses ${req.age} ans` : ''}. C'est ${relation} de l'utilisateur.${lateMention}`;
+    case 'birthday': {
+      const isPetBirthday = req.relation.includes('(animal de compagnie)');
+      if (isPetBirthday) {
+        const animalType = req.relation.split('(')[0].trim(); // 'chien', 'chat', 'autre'
+        return `l'anniversaire de ${firstName}, ${animalType} de l'utilisateur.${lateMention}`;
+      }
+      return `l'anniversaire de ${firstName}${req.age ? ` qui fête ses ${req.age} ans` : ''}. C'est ${relation} de l'utilisateur.${lateMention}`;
+    }
 
     case 'nameday':
-      return `la fête (saint prénom) de ${req.contact_name}. C'est ${relation} de l'utilisateur.${lateMention}`;
+      return `la fête (saint prénom) de ${firstName}. C'est ${relation} de l'utilisateur.${lateMention}`;
 
     case 'wedding':
-      return `le mariage${extras.partner1Name ? ` de ${extras.partner1Name}` : ''}${extras.partner2Name ? ` et ${extras.partner2Name}` : ` de ${req.contact_name}`}. C'est ${relation} de l'utilisateur.`;
+      return `le mariage${extras.partner1Name ? ` de ${extras.partner1Name}` : ''}${extras.partner2Name ? ` et ${extras.partner2Name}` : ` de ${firstName}`}. C'est ${relation} de l'utilisateur.`;
+
+    case 'engagement':
+      return `les fiançailles${extras.partner1Name ? ` de ${extras.partner1Name}` : ''}${extras.partner2Name ? ` et ${extras.partner2Name}` : ` de ${firstName}`}. C'est ${relation} de l'utilisateur.`;
 
     case 'birth':
       return `la naissance de ${extras.babyName ? `bébé ${extras.babyName}` : 'leur bébé'}${extras.parentNames ? `, enfant de ${extras.parentNames}` : ''}. C'est ${relation} de l'utilisateur.`;
 
+    case 'baptism':
+      return `le baptême de ${extras.babyName ? extras.babyName : firstName}. C'est ${relation} de l'utilisateur.`;
+
+    case 'communion':
+      return `la communion de ${firstName}. C'est ${relation} de l'utilisateur.`;
+
     case 'graduation':
-      return `la réussite${extras.diplomaLabel ? ` au ${extras.diplomaLabel}` : ' aux examens'} de ${req.contact_name}. C'est ${relation} de l'utilisateur.`;
+      return `la réussite${extras.diplomaLabel ? ` au ${extras.diplomaLabel}` : ' aux examens'} de ${firstName}. C'est ${relation} de l'utilisateur.`;
 
     case 'promotion':
-      return `la promotion professionnelle de ${req.contact_name}${extras.newJobTitle ? ` (nouveau poste : ${extras.newJobTitle})` : ''}. C'est ${relation} de l'utilisateur.`;
+      return `la promotion professionnelle de ${firstName}${extras.newJobTitle ? ` (nouveau poste : ${extras.newJobTitle})` : ''}. C'est ${relation} de l'utilisateur.`;
 
     case 'thanks':
-      return `remercier ${req.contact_name}${extras.thankReason ? ` pour ${extras.thankReason}` : ''}. C'est ${relation} de l'utilisateur.`;
+      return `remercier ${firstName}${extras.thankReason ? ` pour ${extras.thankReason}` : ''}. C'est ${relation} de l'utilisateur.`;
 
     case 'newyear':
-      return `présenter les vœux du Nouvel An à ${req.contact_name}. C'est ${relation} de l'utilisateur.`;
+      return `présenter les vœux du Nouvel An à ${firstName}. C'est ${relation} de l'utilisateur.`;
 
     case 'christmas':
-      return `souhaiter un joyeux Noël à ${req.contact_name}. C'est ${relation} de l'utilisateur.`;
+      return `souhaiter un joyeux Noël à ${firstName}. C'est ${relation} de l'utilisateur.`;
 
     case 'easter':
-      return `souhaiter de joyeuses Pâques à ${req.contact_name}. C'est ${relation} de l'utilisateur.`;
+      return `souhaiter de joyeuses Pâques à ${firstName}. C'est ${relation} de l'utilisateur.`;
 
     case 'valentines':
-      return `envoyer un message de Saint-Valentin à ${req.contact_name}. C'est ${relation} de l'utilisateur.`;
+      return `envoyer un message de Saint-Valentin à ${firstName}. C'est ${relation} de l'utilisateur.`;
 
     case 'mothersday':
-      return `souhaiter une bonne fête des Mères à ${req.contact_name}. C'est ${relation} de l'utilisateur.`;
+      return `souhaiter une bonne fête des Mères à ${firstName}. C'est ${relation} de l'utilisateur.`;
 
     case 'fathersday':
-      return `souhaiter une bonne fête des Pères à ${req.contact_name}. C'est ${relation} de l'utilisateur.`;
+      return `souhaiter une bonne fête des Pères à ${firstName}. C'est ${relation} de l'utilisateur.`;
 
     case 'halloween':
-      return `envoyer un message d'Halloween à ${req.contact_name}. C'est ${relation} de l'utilisateur.`;
+      return `envoyer un message d'Halloween à ${firstName}. C'est ${relation} de l'utilisateur.`;
 
     case 'retirement':
-      return `célébrer le départ à la retraite de ${req.contact_name}. C'est ${relation} de l'utilisateur.`;
+      return `célébrer le départ à la retraite de ${firstName}. C'est ${relation} de l'utilisateur.`;
 
     case 'support': {
       const supportLabels: Record<string, string> = {
-        bereavement: `soutenir ${req.contact_name} face à un deuil ou une perte`,
-        illness: `soutenir ${req.contact_name} pendant une maladie ou une hospitalisation`,
-        breakup: `réconforter ${req.contact_name} après une séparation ou rupture`,
-        hardtime: `soutenir ${req.contact_name} dans une période difficile (stress, burn-out, déprime)`,
-        encouragement: `encourager ${req.contact_name} et lui envoyer un message de soutien moral`,
+        bereavement: `soutenir ${firstName} face à un deuil ou une perte`,
+        illness: `soutenir ${firstName} pendant une maladie ou une hospitalisation`,
+        breakup: `réconforter ${firstName} après une séparation ou rupture`,
+        hardtime: `soutenir ${firstName} dans une période difficile (stress, burn-out, déprime)`,
+        encouragement: `encourager ${firstName} et lui envoyer un message de soutien moral`,
       };
-      const supportCtx = extras.supportType ? supportLabels[extras.supportType] : `envoyer un message de soutien à ${req.contact_name}`;
+      const supportCtx = extras.supportType ? supportLabels[extras.supportType] : `envoyer un message de soutien à ${firstName}`;
       return `${supportCtx}. C'est ${relation} de l'utilisateur.`;
     }
 
     case 'custom':
-      return `${extras.customOccasionLabel ? extras.customOccasionLabel : `célébrer un événement spécial avec ${req.contact_name}`}. C'est ${relation} de l'utilisateur.`;
+      return `${extras.customOccasionLabel ? extras.customOccasionLabel : `célébrer un événement spécial avec ${firstName}`}. C'est ${relation} de l'utilisateur.`;
 
     default:
-      return `féliciter ${req.contact_name}. C'est ${relation} de l'utilisateur.`;
+      return `féliciter ${firstName}. C'est ${relation} de l'utilisateur.`;
   }
 }
 
 function buildOccasionGuidelines(req: GenerateRequest): string {
+  const firstName = extractFirstName(req.contact_name);
   switch (req.occasion) {
-    case 'birthday':
+    case 'birthday': {
+      const isPet = req.relation.includes('(animal de compagnie)');
+      if (isPet) {
+        const isDog = req.relation.includes('chien');
+        const isCat = req.relation.includes('chat');
+        if (isDog) {
+          return `**Consignes spécifiques anniversaire — Chien 🐶 :**
+- Ce message célèbre l'anniversaire d'un chien. Adopte un ton joyeux, drôle et affectueux.
+- Adresse-toi directement au chien par son prénom (${firstName}).
+- L'expéditeur est le maître/la maîtresse du chien — écris à la première personne du singulier.
+- Si des tags de personnalité sont fournis (passions, traits de caractère), intègre-les naturellement dans le texte — ne les liste pas.
+- Si des souvenirs ou anecdotes sont mentionnés dans le champ "Souvenirs", tisse-les de façon vivante et amusante.
+- Joue sur les thèmes qui font la joie d'un chien : les promenades, les câlins, la gamelle, les jouets, la balle, la fidélité sans faille.
+- Évite toute conversion d'âge en "années humaines".
+- Termine par une promesse tendre ou une blague affectueuse (ex: "Ce soir, c'est toi qui choisis le coin du canapé !").
+- Émojis conseillés : 🐶 🎂 🦴 ❤️ 🎾`;
+        } else if (isCat) {
+          return `**Consignes spécifiques anniversaire — Chat 🐱 :**
+- Ce message célèbre l'anniversaire d'un chat. Adopte un ton élégant, espiègle et légèrement ironique.
+- Adresse-toi au chat par son prénom (${firstName}), en le traitant comme une "Sa Majesté" ou un être supérieur qui daigne accepter les hommages.
+- L'expéditeur est l'"esclave humain" ou le serviteur dévoué — joue sur cette dynamique avec humour et autodérision.
+- Si des tags de personnalité sont fournis, intègre-les naturellement — le chat les possède évidemment depuis toujours et le sait très bien.
+- Si des souvenirs ou anecdotes sont mentionnés dans le champ "Souvenirs", tisse-les avec humour et une pointe d'ironie de la part de l'humain.
+- Joue sur les thèmes félinement incontournables : la sieste royale, l'indifférence calculée, la chasse aux jouets à 3h du matin, les ronrons mystérieux, le regard de jugement.
+- Évite toute conversion d'âge en "années humaines".
+- Termine sur une note où l'humain reconnaît humblement sa chance d'être choisi et toléré par ce chat.
+- Émojis conseillés : 🐱 👑 🎂 ✨ 😸`;
+        } else {
+          return `**Consignes spécifiques anniversaire — Animal de compagnie 🐾 :**
+- Ce message célèbre l'anniversaire d'un animal de compagnie. Adresse-toi à lui directement par son prénom (${firstName}).
+- L'expéditeur est son maître/sa maîtresse — ton tendre et complice.
+- Si des souvenirs ou anecdotes sont mentionnés, intègre-les avec chaleur et humour.
+- Célèbre ce compagnon unique avec tendresse et joie.
+- Émojis conseillés : 🐾 🎂 ❤️ 🎉`;
+        }
+      }
       return `**Consignes spécifiques anniversaire :**
 - Commence par une salutation adaptée à la relation (ex: "Hey frérot !" pour un frère, "Salut mon cœur !" pour un partenaire, "Cher [Prénom]" pour un collègue).
-- Intègre au moins 2 détails personnels dans le texte (personnalité, passion, souvenir mentionné…) — ne les liste pas, tisse-les naturellement.
+- **OBLIGATOIRE — Mention de l'âge :** ${req.age ? `${firstName} fête ses ${req.age} ans. Tu DOIS mentionner ce chiffre de façon naturelle dans le message (ex: "pour tes ${req.age} ans", "en ce beau jour de tes ${req.age} printemps", "tes ${req.age} ans méritent d'être célébrés", etc.). Ne l'omets sous aucun prétexte.` : `L'âge n'est pas connu — ne l'invente pas et ne mets pas de chiffre.`}
+- Si des détails personnels sont fournis (personnalité, souvenirs), intègre-les naturellement dans le texte — ne les liste pas.
+- **INTERDIT : n'invente AUCUN détail personnel** (voyage, hobby, souvenir, anecdote) qui n'est pas explicitement fourni. Si aucune info personnelle n'est disponible, génère un message chaleureux et sincère mais générique.
 - Ajoute une suggestion d'activité ou de cadeau en fin de message si pertinent et si le ton s'y prête.`;
+    }
 
     case 'nameday':
       return `**Consignes spécifiques fête du prénom :**
@@ -176,11 +257,39 @@ function buildOccasionGuidelines(req: GenerateRequest): string {
 - Exprime un vœu sincère pour leur avenir commun.
 - Termine sur une note festive et chaleureuse. 💍`;
 
+    case 'engagement':
+      return `**Consignes spécifiques fiançailles :**
+- Félicite le couple pour cette étape magnifique dans leur histoire d'amour.
+- Souligne la beauté de leur décision de s'engager l'un envers l'autre.
+- Si des détails sur le couple sont dans les souvenirs, intègre-les avec chaleur.
+- Exprime enthousiasme et joie pour cette belle nouvelle.
+- Termine sur un vœu romantique et chaleureux pour la suite (fiançailles, puis mariage). 💎`;
+
     case 'birth':
       return `**Consignes spécifiques naissance :**
 - Félicite les parents avec chaleur et émotion ("Quel bonheur de savoir que [bébé] a rejoint votre vie !").
 - Exprime des vœux tendres pour l'enfant et des encouragements pour les parents.
 - Si une cagnotte ou un cadeau est mentionné dans les souvenirs, intègre-le naturellement. 👶`;
+
+    case 'baptism':
+      return `**Consignes spécifiques baptême :**
+- Adopte un registre doux, spirituel et bienveillant. Ce message célèbre un moment solennel et intime.
+- Félicite la famille pour ce beau jour de grâce et de lumière.
+- Exprime des vœux tendres pour l'enfant : qu'il/elle grandisse entouré·e d'amour et de bienveillance.
+- Si le prénom du bébé est connu, adresse-lui un vœu direct ("Bienvenue dans cette grande famille, [prénom]").
+- Termine par une note de paix et de lumière, sans tomber dans le cliché religieux formel.
+- **INTERDIT absolument** : tout humour, toute légèreté déplacée, tout ton festif bruyant.
+- Émojis conseillés : 🕊️ 🌿 💛 ✨`;
+
+    case 'communion':
+      return `**Consignes spécifiques communion :**
+- Adopte un registre recueilli, bienveillant et solennel. Ce message marque un moment important dans la vie de l'enfant.
+- Félicite l'enfant pour cette étape spirituelle avec sincérité et chaleur.
+- Exprime de la fierté et de la tendresse pour ce jour particulier ("Tu grandis si bien, [prénom]").
+- Adresse un vœu pour l'avenir : sagesse, bonheur, et force dans les épreuves.
+- Si des souvenirs ou détails sont fournis, intègre-les avec délicatesse.
+- **INTERDIT absolument** : tout humour, toute légèreté déplacée, tout ton festif bruyant.
+- Émojis conseillés : ✝️ 🌿 💛 🕊️`;
 
     case 'promotion':
       return `**Consignes spécifiques promotion professionnelle :**
@@ -272,7 +381,65 @@ function buildOccasionGuidelines(req: GenerateRequest): string {
   }
 }
 
+const PET_FROM_PERSONALITIES: Record<string, string> = {
+  chien: 'un chien enthousiaste, joyeux, loyal et un peu maladroit — il adore les câlins, les promenades et sa gamelle',
+  chat: 'un chat hautain et mystérieux qui daigne accorder son attention — il se croit supérieur mais aime secrètement son humain',
+  lapin: 'un lapin doux, câlin et un peu timide — il aime les câlins et les légumes',
+  perroquet: 'un perroquet bavard, expressif et curieux — il répète les mots, imite les sons et adore attirer l\'attention',
+  hamster: 'un hamster actif et enjoué — il court dans sa roue, stocke des graines et fait des cabrioles',
+  poisson: 'un poisson sage et serein qui observe tout depuis son bocal avec une sagesse silencieuse',
+  cheval: 'un cheval fier, majestueux et noble — il galope librement et est d\'une loyauté sans faille',
+};
+
+function buildPetFromPrompt(req: GenerateRequest): string {
+  const petName = req.pet_from_name ?? 'l\'animal';
+  const petType = req.pet_from_type ?? 'autre';
+  const humanName = extractFirstName(req.contact_name);
+  const targetLang = req.language ?? 'fr';
+  const langName = LANGUAGE_NAMES[targetLang] ?? 'français';
+  const personality = PET_FROM_PERSONALITIES[petType] ?? 'un animal de compagnie attachant';
+
+  const occasionLabel: Record<string, string> = {
+    birthday: `Joyeux anniversaire à ${humanName} !`,
+    nameday: `Bonne fête à ${humanName} !`,
+    christmas: `Joyeux Noël à ${humanName} !`,
+    newyear: `Bonne année à ${humanName} !`,
+    thanks: `Remercier ${humanName} avec sa propre façon d'animal`,
+    custom: `Envoyer un bonjour spontané et affectueux à ${humanName}`,
+  };
+  const occasionContext = occasionLabel[req.occasion] ?? `Féliciter ${humanName}`;
+
+  let prompt = `Tu es ${petName}, ${personality}.
+
+Tu vas écrire un message à la première personne exactement comme si tu étais cet animal qui s'exprime.
+Adresse-toi directement à ${humanName}.
+**LANGUE DE GÉNÉRATION OBLIGATOIRE :** Génère le message UNIQUEMENT en ${langName}.
+**Occasion :** ${occasionContext}
+
+**Consignes strictes :**
+- Écris ENTIÈREMENT à la première personne, comme si tu étais vraiment ${petName} (${petType})
+- Adopte le vocabulaire, les tics et la personnalité de ta nature d'animal (ex : "Wouf !" pour un chien, des "Miaou..." condescendants pour un chat, des répétitions pour un perroquet, une sagesse contemplative pour un poisson)
+- Rends le message hilarant, attendrissant et totalement inattendu — l'objectif est de faire sourire ou pleurer de tendresse
+- Si des traits de caractère sont fournis, intègre-les naturellement dans le texte
+- Termine en signant du nom de l'animal suivi d'une patte 🐾 (ex : "Rex 🐾")
+- **INTERDIT :** ne brise jamais le 4e mur, ne révèle pas que c'est un humain qui écrit, ne dis pas "comme si j'étais un animal"
+
+**Longueur :** 2 à 4 phrases courtes et percutantes. Maximum 80 mots.
+Réponds UNIQUEMENT avec le message, sans explications ni titre.`;
+
+  if (req.personality_tags && req.personality_tags.length > 0) {
+    prompt += `\n**Traits de caractère de ${petName} :** ${req.personality_tags.join(', ')}`;
+  }
+
+  return prompt;
+}
+
 function buildSystemPrompt(req: GenerateRequest): string {
+  // Mode spécial : message écrit à la 1ère personne par l'animal
+  if (req.pet_from_mode) {
+    return buildPetFromPrompt(req);
+  }
+
   const format = FORMAT_FR[req.format] ?? 'un message';
   const tone = TONE_FR[req.tone] ?? 'chaleureux';
   const occasionContext = buildOccasionContext(req);
@@ -288,7 +455,49 @@ Génère ${format} pour ${occasionContext}
 **IMPORTANT — Relation :** Utilise uniquement la relation indiquée ci-dessus. N'invente pas de lien de parenté ou d'affection non spécifié (ne suppose pas que c'est une cousine, sœur, etc. si ce n'est pas précisé).
 **IMPORTANT — Point de vue :** Le message est écrit par UNE SEULE personne, à la première personne du singulier ("je", "mon", "ma", "mes"). N'utilise jamais "nous", "notre", "nos" sauf si le contexte l'impose explicitement (ex: mariage).`;
 
+  if (req.sender_civilite) {
+    const genre = req.sender_civilite === 'M.' ? 'masculin' : 'féminin';
+    prompt += `\n**Genre de l'expéditeur :** ${req.sender_civilite} — accorde le message au genre ${genre} pour l'expéditeur (ex : "je suis content" vs "je suis contente", "heureux" vs "heureuse", etc.).`;
+  }
+
   prompt += `\n**Formule de clôture :** Termine toujours le message par une formule chaleureuse et sincère adaptée au ton (ex: "Je t'embrasse", "Avec toute mon affection", "Bien à toi", "Plein de bisous"...). Ne mets pas de signature ni de prénom.`;
+
+  prompt += `\n**RÈGLE ABSOLUE — Anti-hallucination :** N'invente jamais de détails personnels (voyages, destinations, hobbies, souvenirs, anecdotes, lieux, événements passés) qui ne sont pas explicitement fournis dans le contexte. Si aucune information personnelle n'est disponible, génère un message chaleureux et sincère mais entièrement générique.`;
+
+  // ── Règle de ton obligatoire par occasion ─────────────────────────────────
+  const OCCASION_TONE_RULES: Partial<Record<Occasion, string>> = {
+    birthday:    'Joyeux, festif, chaleureux',
+    nameday:     'Chaleureux, bienveillant',
+    birth:       'Émerveillé, tendre, chaleureux',
+    baptism:     'Doux, spirituel, bienveillant',
+    communion:   'Recueilli, bienveillant, solennel',
+    engagement:  'Romantique, joyeux, chaleureux',
+    wedding:     'Romantique, solennel, émouvant',
+    graduation:  'Fier, encourageant, joyeux',
+    promotion:   'Fier, encourageant, joyeux',
+    retirement:  'Chaleureux, nostalgique, joyeux',
+    newyear:     'Festif, optimiste, chaleureux',
+    christmas:   'Chaleureux, magique, bienveillant',
+    easter:      'Joyeux, printanier, chaleureux',
+    valentines:  'Romantique, tendre, passionné',
+    mothersday:  'Tendre, émouvant, reconnaissant',
+    fathersday:  'Chaleureux, complice, reconnaissant',
+    halloween:   'Décalé, amusant, mystérieux',
+  };
+  const SOLEMN_OCCASIONS: Occasion[] = ['baptism', 'communion'];
+  const SUPPORT_HUMOR_BANNED: Array<string> = ['bereavement', 'illness', 'breakup', 'hardtime'];
+
+  const toneRule = OCCASION_TONE_RULES[req.occasion];
+  if (toneRule) {
+    prompt += `\n**RÈGLE ABSOLUE — Registre de l'occasion :** Le ton de ce message DOIT être : ${toneRule}. Adapte impérativement le registre à cette occasion, même si un style d'écriture différent a été sélectionné.`;
+  }
+
+  // Interdiction d'humour pour les occasions solennelles/sensibles
+  const isSolemnOccasion = SOLEMN_OCCASIONS.includes(req.occasion);
+  const isSupportHumorBanned = req.occasion === 'support' && req.extras?.supportType && SUPPORT_HUMOR_BANNED.includes(req.extras.supportType);
+  if (isSolemnOccasion || isSupportHumorBanned) {
+    prompt += `\n**INTERDIT ABSOLU :** Le ton humoristique, décalé ou festif bruyant est strictement interdit pour cette occasion. Même si l'utilisateur a sélectionné un style léger, tu dois imposer un registre ${isSolemnOccasion ? 'doux, solennel et bienveillant' : 'sobre, doux et compatissant'}.`;
+  }
 
   if (req.occasion === 'support') {
     prompt += `
@@ -302,6 +511,17 @@ Génère ${format} pour ${occasionContext}
 - Pour une période difficile : encourage sans banaliser ("ça va aller" est interdit).`;
   }
 
+  if (req.relation === 'other') {
+    prompt += `
+**RELATION — Connaissance :** Le destinataire est une simple connaissance (pas un ami proche).
+- Ton poli, neutre à légèrement chaleureux — ni trop familier, ni trop froid
+- Message court : 1 à 2 phrases maximum
+- Aucune référence personnelle ou intime
+- Pas d'enthousiasme exagéré
+- Emojis légers uniquement si vraiment adaptés
+- Le message doit sembler naturellement humain, varié à chaque génération`;
+  }
+
   const occasionGuidelines = buildOccasionGuidelines(req);
   if (occasionGuidelines) {
     prompt += `\n\n${occasionGuidelines}`;
@@ -309,6 +529,10 @@ Génère ${format} pour ${occasionContext}
 
   if (req.personality_tags && req.personality_tags.length > 0) {
     prompt += `\n**Personnalité du destinataire :** ${req.personality_tags.join(', ')}`;
+  }
+
+  if (req.favourite_color && req.favourite_color.trim()) {
+    prompt += `\n**Couleur préférée du destinataire :** ${req.favourite_color.trim()} — tu peux l'évoquer subtilement si c'est naturel dans le contexte.`;
   }
 
   if (req.memories && req.memories.trim()) {
@@ -426,7 +650,7 @@ Deno.serve(async (req: Request) => {
         model: MISTRAL_MODEL,
         messages: [{ role: 'user', content: systemPrompt }],
         max_tokens: 1024,
-        temperature: 0.9,
+        temperature: 0.72,
       }),
     });
 

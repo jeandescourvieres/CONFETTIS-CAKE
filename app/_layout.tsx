@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { StripeProvider } from '@stripe/stripe-react-native';
+import { Config } from '../src/constants/config';
 import { StatusBar } from 'expo-status-bar';
 import '../src/i18n'; // initialise i18next (doit être importé tôt)
 import i18n from '../src/i18n';
@@ -10,6 +12,13 @@ import {
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { Pacifico_400Regular } from '@expo-google-fonts/pacifico';
+import { Caveat_400Regular, Caveat_700Bold } from '@expo-google-fonts/caveat';
+import { DancingScript_400Regular, DancingScript_700Bold } from '@expo-google-fonts/dancing-script';
+import { Satisfy_400Regular } from '@expo-google-fonts/satisfy';
+import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
+import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
+import { Bangers_400Regular } from '@expo-google-fonts/bangers';
 import {
   BeVietnamPro_300Light,
   BeVietnamPro_400Regular,
@@ -76,22 +85,43 @@ function AuthGate({ onReady }: { onReady: () => void }) {
     })();
   }, [user]);
 
+  // Gère le tap sur une notification push → deep link vers le bon écran
+  useEffect(() => {
+    if (!user) return;
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as Record<string, unknown>;
+      if (!data) return;
+      // Notif J-1 avant envoi automatique → écran auto-sends pour annuler si besoin
+      if (data.type === 'auto_send_preview' || data.type === 'auto_send') {
+        router.push('/(app)/auto-sends/' as never);
+      } else if (data.type === 'reaction') {
+        router.push('/(app)/reactions' as never);
+      }
+    });
+    return () => sub.remove();
+  }, [user, router]);
+
   useEffect(() => {
     if (!isInitialized) return;
     const inAuthGroup = segments[0] === '(auth)';
-    if (!session && !inAuthGroup) {
+    const inCardGroup     = segments[0] === 'card';
+    const inGroupPage     = (segments[0] as string) === 'group';
+    const inReactionPage  = (segments[0] as string) === 'reaction';
+    const inGuestbookPage = (segments[0] as string) === 'guestbook';
+    if (!session && !inAuthGroup && !inCardGroup && !inGroupPage && !inReactionPage && !inGuestbookPage) {
       router.replace('/(auth)/onboarding');
       onReady();
     } else if (session && inAuthGroup) {
-      if (!_welcomeShown) {
-        _welcomeShown = true;
-        router.replace('/welcome');
-      } else {
-        router.replace('/(app)');
-      }
+      // Connexion depuis l'écran auth → toujours montrer le welcome
+      _welcomeShown = true;
+      router.replace('/welcome');
       onReady();
-    } else if (session && !inAuthGroup) {
-      // Déjà sur la bonne route — on peut afficher
+    } else if (session && !_welcomeShown && !inCardGroup && !inGroupPage && !inReactionPage && !inGuestbookPage) {
+      // Démarrage à froid avec session déjà active → montrer le welcome
+      _welcomeShown = true;
+      router.replace('/welcome');
+      onReady();
+    } else {
       onReady();
     }
   }, [session, isInitialized, segments, router]);
@@ -110,11 +140,20 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
+    Pacifico_400Regular,
+    Caveat_400Regular,
+    Caveat_700Bold,
     BeVietnamPro_300Light,
     BeVietnamPro_400Regular,
     BeVietnamPro_500Medium,
     BeVietnamPro_600SemiBold,
     BeVietnamPro_700Bold,
+    DancingScript_400Regular,
+    DancingScript_700Bold,
+    Satisfy_400Regular,
+    PatrickHand_400Regular,
+    SpecialElite_400Regular,
+    Bangers_400Regular,
   });
 
   useEffect(() => {
@@ -131,16 +170,21 @@ export default function RootLayout() {
   if (!fontsLoaded || !isInitialized) return null;
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthGate onReady={() => setNavigationReady(true)} />
-      <LanguageSync />
-      <StatusBar style="auto" backgroundColor={Colors.background} />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(app)" />
-        <Stack.Screen name="welcome" />
-      </Stack>
-      <ToastRenderer />
-    </QueryClientProvider>
+    <StripeProvider publishableKey={Config.stripePublishableKey}>
+      <QueryClientProvider client={queryClient}>
+        <AuthGate onReady={() => setNavigationReady(true)} />
+        <LanguageSync />
+        <StatusBar style="auto" backgroundColor={Colors.background} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(app)" />
+          <Stack.Screen name="welcome" />
+          <Stack.Screen name="card" />
+          <Stack.Screen name="reaction" />
+          <Stack.Screen name="guestbook" />
+        </Stack>
+        <ToastRenderer />
+      </QueryClientProvider>
+    </StripeProvider>
   );
 }
