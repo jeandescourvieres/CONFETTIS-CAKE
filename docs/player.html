@@ -128,6 +128,23 @@
     var pauseIcon   = '<rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/>';
     var playIconSvg = '<polygon points="5,3 19,12 5,21"/>';
 
+    var INTRO_MS = 1800; // durée de l'intro musicale avant la voix
+
+    function startVoice() {
+      document.getElementById('status').textContent = 'Lecture en cours...';
+      var vp = voiceAudio.play();
+      if (vp && typeof vp.catch === 'function') {
+        vp.catch(function(e) {
+          document.getElementById('status').textContent = '⚠️ Impossible de lire le message';
+          document.getElementById('errorMsg').style.display = 'block';
+          document.getElementById('errorMsg').textContent = e.message || 'Erreur lecture audio';
+          isPlaying = false;
+          document.getElementById('playIcon').innerHTML = playIconSvg;
+          document.getElementById('wave').classList.remove('playing');
+        });
+      }
+    }
+
     function togglePlay() {
       if (!ttsUrl) {
         document.getElementById('errorMsg').style.display = 'block';
@@ -135,28 +152,36 @@
         return;
       }
       if (!isPlaying) {
-        // Les deux play() doivent être appelés SYNCHRONEMENT dans le même
-        // geste utilisateur — iOS/Android bloquent play() dans un .then()
-        var vp = voiceAudio.play();
-        if (vp && typeof vp.catch === 'function') {
-          vp.catch(function(e) {
-            document.getElementById('status').textContent = '⚠️ Impossible de lire le message';
-            document.getElementById('errorMsg').style.display = 'block';
-            document.getElementById('errorMsg').textContent = e.message || 'Erreur lecture audio';
-            isPlaying = false;
-            document.getElementById('playIcon').innerHTML = playIconSvg;
-            document.getElementById('wave').classList.remove('playing');
-          });
-        }
+        isPlaying = true;
+        document.getElementById('playIcon').innerHTML = pauseIcon;
+        document.getElementById('wave').classList.add('playing');
+
         if (bgAudio && !bgMuted) {
+          // Démarrer la musique immédiatement
           bgAudio.volume = 0.35;
           var bp = bgAudio.play();
           if (bp && typeof bp.catch === 'function') bp.catch(function(){});
+
+          // iOS unlock : appeler play() puis pause() pour débloquer l'élément audio
+          var unlock = voiceAudio.play();
+          if (unlock && typeof unlock.then === 'function') {
+            unlock.then(function() { voiceAudio.pause(); voiceAudio.currentTime = 0; }).catch(function(){});
+          } else {
+            voiceAudio.pause(); voiceAudio.currentTime = 0;
+          }
+
+          // Lancer la voix après l'intro musicale
+          document.getElementById('status').textContent = '🎵 Intro...';
+          setTimeout(function() {
+            if (!isPlaying) return;
+            startVoice();
+          }, INTRO_MS);
+
+        } else {
+          // Pas de musique : démarrer la voix directement
+          startVoice();
         }
-        isPlaying = true;
-        document.getElementById('playIcon').innerHTML = pauseIcon;
-        document.getElementById('status').textContent = 'Lecture en cours...';
-        document.getElementById('wave').classList.add('playing');
+
       } else {
         voiceAudio.pause();
         if (bgAudio) bgAudio.pause();
@@ -181,11 +206,25 @@
     }
 
     voiceAudio.addEventListener('ended', function() {
-      if (bgAudio) { bgAudio.pause(); bgAudio.currentTime = 0; }
       isPlaying = false;
       document.getElementById('playIcon').innerHTML = playIconSvg;
       document.getElementById('status').textContent = '✓ Message écouté';
       document.getElementById('wave').classList.remove('playing');
+      if (bgAudio) {
+        var startVol = bgAudio.volume;
+        var steps = 20;
+        var i = 0;
+        var fade = setInterval(function() {
+          i++;
+          bgAudio.volume = Math.max(0, startVol * (1 - i / steps));
+          if (i >= steps) {
+            clearInterval(fade);
+            bgAudio.pause();
+            bgAudio.currentTime = 0;
+            bgAudio.volume = startVol;
+          }
+        }, 80);
+      }
     });
 
     voiceAudio.addEventListener('error', function() {
