@@ -135,14 +135,11 @@
         return;
       }
       if (!isPlaying) {
+        // Les deux play() doivent être appelés SYNCHRONEMENT dans le même
+        // geste utilisateur — iOS/Android bloquent play() dans un .then()
         var vp = voiceAudio.play();
-        if (vp) {
-          vp.then(function() {
-            if (bgAudio && !bgMuted) {
-              var bp = bgAudio.play();
-              if (bp) bp.catch(function(){});
-            }
-          }).catch(function(e) {
+        if (vp && typeof vp.catch === 'function') {
+          vp.catch(function(e) {
             document.getElementById('status').textContent = '⚠️ Impossible de lire le message';
             document.getElementById('errorMsg').style.display = 'block';
             document.getElementById('errorMsg').textContent = e.message || 'Erreur lecture audio';
@@ -150,8 +147,11 @@
             document.getElementById('playIcon').innerHTML = playIconSvg;
             document.getElementById('wave').classList.remove('playing');
           });
-        } else {
-          if (bgAudio && !bgMuted) { try { bgAudio.play(); } catch(e){} }
+        }
+        if (bgAudio && !bgMuted) {
+          bgAudio.volume = 0.35;
+          var bp = bgAudio.play();
+          if (bp && typeof bp.catch === 'function') bp.catch(function(){});
         }
         isPlaying = true;
         document.getElementById('playIcon').innerHTML = pauseIcon;
