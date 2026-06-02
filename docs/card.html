@@ -34,7 +34,7 @@
     #text-overlay {
       position: absolute;
       inset: 0;
-      bottom: 160px;
+      bottom: 52px;
       z-index: 2;
       display: flex;
       flex-direction: column;
@@ -474,6 +474,11 @@
         if (prefix) animEl(prefixEl, anim, Math.max(0, delay - 300));
         if (displayName) animEl(nameEl, anim, delay);
         if (suffix) animEl(sufEl, anim, delay + 200);
+      }
+
+      // ── Ajuste la zone texte si message présent ──────────
+      if (message) {
+        document.getElementById('text-overlay').style.bottom = '200px';
       }
 
       // ── Message personnel ─────────────────────────────
