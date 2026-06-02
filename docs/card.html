@@ -121,6 +121,24 @@
       font-style: italic;
     }
 
+    #tap-to-play {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    #tap-to-play .tap-icon { font-size: 52px; }
+    #tap-to-play .tap-label {
+      font-size: 16px; font-weight: 700;
+      color: rgba(255,255,255,0.9);
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
     #branding {
       position: absolute;
       bottom: 16px;
@@ -193,8 +211,12 @@
     </div>
 
     <div id="bg-fallback"></div>
-    <video id="bg-video" autoplay muted loop playsinline></video>
+    <video id="bg-video" muted loop playsinline></video>
     <div id="lottie-layer"></div>
+    <div id="tap-to-play" onclick="startVideo()">
+      <div class="tap-icon">▶️</div>
+      <div class="tap-label">Appuie pour lancer la carte</div>
+    </div>
 
     <div id="text-overlay" class="pos-center">
       <div id="prefix-text"></div>
@@ -278,10 +300,17 @@
         // ── Vidéo de fond ────────────────────────────────
         if (bg && bg.mp4_url) {
           var vid = document.getElementById('bg-video');
-          vid.src = bg.mp4_url;
-          vid.load();
           if (bg.dominant_color) {
             document.getElementById('bg-fallback').style.background = bg.dominant_color;
+          }
+          vid.src = bg.mp4_url;
+          vid.load();
+          var playPromise = vid.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(function() {
+              // Autoplay bloqué → afficher le bouton tap-to-play
+              document.getElementById('tap-to-play').style.display = 'flex';
+            });
           }
         }
 
@@ -373,6 +402,12 @@
         console.error(err);
         showError();
       }
+    }
+
+    function startVideo() {
+      var vid = document.getElementById('bg-video');
+      var tap = document.getElementById('tap-to-play');
+      vid.play().then(function() { tap.style.display = 'none'; }).catch(function(){});
     }
 
     loadCard();
