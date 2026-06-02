@@ -146,6 +146,17 @@
       <div id="name-text"></div>
       <div id="suffix-text"></div>
     </div>
+    <div id="morse-box" style="display:none;position:absolute;bottom:52px;left:12px;right:12px;z-index:3;">
+      <div style="background:rgba(0,20,0,0.85);border-radius:16px;padding:16px;border:1px solid #00ff88;box-shadow:0 0 20px rgba(0,255,136,0.3);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div id="morse-antenna" style="font-size:22px;">📡</div>
+          <div style="font-size:11px;color:#00ff88;font-family:monospace;letter-spacing:1px;">TRANSMISSION EN COURS</div>
+          <button id="morse-play-btn" onclick="playMorse()" style="margin-left:auto;background:#00ff88;border:none;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:#000;cursor:pointer;">▶ ÉCOUTER</button>
+        </div>
+        <div id="morse-code" style="font-family:monospace;font-size:16px;color:#00ff88;line-height:2;letter-spacing:3px;word-break:break-all;"></div>
+        <div id="morse-text" style="font-size:11px;color:rgba(0,255,136,0.5);margin-top:8px;font-style:italic;"></div>
+      </div>
+    </div>
     <div id="message-box" style="display:none;position:absolute;bottom:52px;left:12px;right:12px;z-index:3;background:linear-gradient(135deg,rgba(60,0,80,0.75),rgba(0,0,60,0.75));backdrop-filter:blur(16px);border-radius:20px;padding:18px 20px;border:1px solid rgba(255,255,255,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.4);">
       <div id="message-text" style="font-size:16px;color:rgba(255,255,255,0.95);line-height:1.65;white-space:pre-wrap;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"></div>
       <div id="message-from" style="font-size:13px;color:rgba(255,255,255,0.6);margin-top:10px;font-style:italic;text-align:right;"></div>
@@ -172,8 +183,9 @@
   var message = p.get('msg')   || '';
   var sender  = p.get('from')  || '';
   var bgKey   = p.get('bg')    || '';
-  var photoUrl = p.get('photo') || '';
-  var animKey  = p.get('anim')  || '';
+  var photoUrl  = p.get('photo') || '';
+  var animKey   = p.get('anim')  || '';
+  var morseMode = p.get('morse') === '1';
 
   // Lance la musique de fond si demandée
   var bgAudio = null;
@@ -377,6 +389,50 @@
   }
 
   // ── Chargement principal ─────────────────────────────────────────────────────
+  // ── Morse Code ──────────────────────────────────────────────────────────────
+  var MORSE = {
+    'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---',
+    'K':'-.-','L':'.-..','M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':'.-.','S':'...','T':'-',
+    'U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..',
+    '0':'-----','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.',
+    '.':'.-.-.-',',':'--..--','?':'..--..','!':'-.-.--',' ':'/'
+  };
+
+  function toMorse(text) {
+    var accents = {'À':'A','Â':'A','Ä':'A','Ç':'C','È':'E','É':'E','Ê':'E','Ë':'E',
+                   'Î':'I','Ï':'I','Ô':'O','Ö':'O','Ù':'U','Û':'U','Ü':'U','Ÿ':'Y'};
+    var clean = text.toUpperCase().split('').map(function(c){ return accents[c] || c; }).join('');
+    return clean.split('').map(function(c){ return MORSE[c] || ''; }).filter(function(c){ return c; }).join(' ').replace(/\s+\/\s+/g,' / ');
+  }
+
+  function playMorse() {
+    var btn = document.getElementById('morse-play-btn');
+    btn.disabled = true; btn.textContent = '⏳';
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var dot = 0.06, dash = 0.18, gap = 0.06, letterGap = 0.18;
+    var t = ctx.currentTime + 0.1;
+    var code = document.getElementById('morse-code').textContent;
+    var tokens = code.split('');
+    for (var i = 0; i < tokens.length; i++) {
+      var c = tokens[i];
+      if (c === '.') { _beep(ctx, t, dot); t += dot + gap; }
+      else if (c === '-') { _beep(ctx, t, dash); t += dash + gap; }
+      else if (c === ' ') { if (tokens[i+1] === '/') { t += 0.42; i += 2; } else { t += letterGap; } }
+    }
+    setTimeout(function(){ btn.disabled = false; btn.textContent = '▶ ÉCOUTER'; }, (t - ctx.currentTime)*1000 + 300);
+  }
+
+  function _beep(ctx, start, dur) {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sine'; o.frequency.value = 700;
+    g.gain.setValueAtTime(0, start);
+    g.gain.linearRampToValueAtTime(0.5, start + 0.01);
+    g.gain.setValueAtTime(0.5, start + dur - 0.01);
+    g.gain.linearRampToValueAtTime(0, start + dur);
+    o.start(start); o.stop(start + dur);
+  }
+
   async function loadCard() {
     if (!cardId) { showError(); return; }
     try {
@@ -476,8 +532,19 @@
         if (suffix) animEl(sufEl, anim, delay + 200);
       }
 
-      // ── Ajuste la zone texte si message présent ──────────
-      if (message) {
+      // ── Mode Morse ────────────────────────────────────────
+      if (morseMode && message) {
+        var morseBox = document.getElementById('morse-box');
+        var morseCode = document.getElementById('morse-code');
+        var morseText = document.getElementById('morse-text');
+        morseCode.textContent = toMorse(message);
+        morseText.textContent = message;
+        morseBox.style.display = 'block';
+        document.getElementById('text-overlay').style.bottom = '240px';
+        // Antenne qui clignote
+        var ant = document.getElementById('morse-antenna');
+        setInterval(function(){ ant.style.opacity = ant.style.opacity === '0.3' ? '1' : '0.3'; }, 500);
+      } else if (message) {
         document.getElementById('text-overlay').style.bottom = '200px';
       }
 
