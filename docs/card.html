@@ -122,6 +122,7 @@
       <div id="message-text" style="font-size:13px;color:rgba(255,255,255,0.92);line-height:1.6;white-space:pre-wrap;"></div>
       <div id="message-from" style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:6px;font-style:italic;"></div>
     </div>
+    <div id="mute-btn" onclick="toggleMute()" style="display:none;position:absolute;top:16px;right:16px;z-index:5;background:rgba(0,0,0,0.4);border-radius:99px;padding:8px 14px;cursor:pointer;font-size:14px;color:#fff;font-weight:600;">🔊 Son</div>
     <div id="branding">Créé avec <a href="https://confetticake.fr" target="_blank">Confettis &amp; Cake</a> 🎂</div>
   </div>
 
@@ -130,12 +131,23 @@
   var SUPABASE_URL = 'https://rlwxcbnsqokpirhzzurj.supabase.co';
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsd3hjYm5zcW9rcGlyaHp6dXJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjM0NjgsImV4cCI6MjA5MDUzOTQ2OH0.D7SBfjjnEqlJHplNyjVoqVzG-olLL6LFrHABzmieUC0';
 
+  var SUPABASE_STORAGE = 'https://rlwxcbnsqokpirhzzurj.supabase.co/storage/v1/object/public/generated-audio/bg-music/';
   var p = new URLSearchParams(window.location.search);
   var cardId  = p.get('id')   || '';
   var name    = p.get('name') || '';
   var age     = p.get('age')  || '';
   var message = p.get('msg')  || '';
   var sender  = p.get('from') || '';
+  var bgKey   = p.get('bg')   || '';
+
+  // Lance la musique de fond si demandée
+  var bgAudio = null;
+  if (bgKey) {
+    bgAudio = new Audio(SUPABASE_STORAGE + bgKey + '.mp3');
+    bgAudio.loop   = true;
+    bgAudio.volume = 0.4;
+    bgAudio.play().catch(function(){});
+  }
 
   // ── Thèmes d'animation par particules ──────────────────────────────────────
   var THEMES = {
@@ -405,6 +417,16 @@
         : 'Carte animée 🎉 — Confettis & Cake';
 
     } catch(err) { showError(); }
+  }
+
+  // Affiche bouton mute si musique active
+  if (bgKey) document.getElementById('mute-btn').style.display = 'block';
+
+  var muted = false;
+  function toggleMute() {
+    muted = !muted;
+    if (bgAudio) bgAudio.volume = muted ? 0 : 0.4;
+    document.getElementById('mute-btn').textContent = muted ? '🔇 Muet' : '🔊 Son';
   }
 
   function showError() {
