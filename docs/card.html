@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Confettis &amp; Cake — Carte animée</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1a2e;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #card-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      aspect-ratio: 9/16;
+      overflow: hidden;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+
+    #bg-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    }
+
+    #bg-fallback {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: linear-gradient(160deg, #9b6bb5, #c084fc, #f472b6);
+    }
+
+    #lottie-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    #text-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      gap: 8px;
+      opacity: 0;
+    }
+
+    #text-overlay.pos-top    { justify-content: flex-start; padding-top: 60px; }
+    #text-overlay.pos-bottom { justify-content: flex-end;   padding-bottom: 60px; }
+    #text-overlay.pos-center { justify-content: center; }
+
+    #prefix-text {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    #name-text {
+      font-size: 42px;
+      font-weight: 900;
+      text-align: center;
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+    }
+
+    #suffix-text {
+      font-size: 28px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .shadow-text { text-shadow: 0 2px 12px rgba(0,0,0,0.6), 0 0 30px rgba(0,0,0,0.3); }
+
+    #message-box {
+      position: absolute;
+      bottom: 60px;
+      left: 20px;
+      right: 20px;
+      z-index: 3;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(10px);
+      border-radius: 14px;
+      padding: 14px 16px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    #message-box.visible { opacity: 1; transform: translateY(0); }
+    #message-text {
+      font-size: 13px;
+      color: rgba(255,255,255,0.92);
+      line-height: 1.5;
+      white-space: pre-wrap;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    #message-from {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 6px;
+      font-style: italic;
+    }
+
+    #branding {
+      position: absolute;
+      bottom: 16px;
+      left: 0; right: 0;
+      z-index: 4;
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.5px;
+    }
+    #branding a { color: rgba(255,255,255,0.6); text-decoration: none; }
+
+    #loading {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+      gap: 16px;
+    }
+    #loading-spinner {
+      width: 44px; height: 44px;
+      border: 3px solid rgba(155,107,181,0.3);
+      border-top-color: #9b6bb5;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    #loading-text { font-size: 14px; color: rgba(255,255,255,0.6); }
+    #error-box {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+      gap: 12px;
+      padding: 32px;
+      text-align: center;
+    }
+    #error-box .err-icon { font-size: 48px; }
+    #error-box .err-title { font-size: 18px; font-weight: 700; color: #fff; }
+    #error-box .err-sub { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.5; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bounceIn {
+      0%   { opacity: 0; transform: scale(0.3); }
+      50%  { opacity: 1; transform: scale(1.05); }
+      70%  { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div id="card-wrap">
+    <div id="loading">
+      <div id="loading-spinner"></div>
+      <div id="loading-text">Chargement de ta carte…</div>
+    </div>
+    <div id="error-box">
+      <div class="err-icon">🎂</div>
+      <div class="err-title">Carte introuvable</div>
+      <div class="err-sub">Ce lien n'est plus valide ou la carte a été supprimée.</div>
+    </div>
+
+    <div id="bg-fallback"></div>
+    <video id="bg-video" autoplay muted loop playsinline></video>
+    <div id="lottie-layer"></div>
+
+    <div id="text-overlay" class="pos-center">
+      <div id="prefix-text"></div>
+      <div id="name-text"></div>
+      <div id="suffix-text"></div>
+    </div>
+
+    <div id="message-box">
+      <div id="message-text"></div>
+      <div id="message-from"></div>
+    </div>
+
+    <div id="branding">
+      Créé avec <a href="https://confetticake.fr" target="_blank">Confettis &amp; Cake</a> 🎂
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <script>
+    var SUPABASE_URL  = 'https://rlwxcbnsqokpirhzzurj.supabase.co';
+    var SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsd3hjYm5zcW9rcGlyaHp6dXJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjM0NjgsImV4cCI6MjA5MDUzOTQ2OH0.D7SBfjjnEqlJHplNyjVoqVzG-olLL6LFrHABzmieUC0';
+
+    var params   = new URLSearchParams(window.location.search);
+    var cardId   = params.get('id')      || '';
+    var name     = params.get('name')    || '';
+    var age      = params.get('age')     || '';
+    var message  = params.get('msg')     || '';
+    var sender   = params.get('from')    || '';
+
+    function showError() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error-box').style.display = 'flex';
+    }
+
+    function applyAnimation(el, animName, delayMs) {
+      var duration = animName === 'bounce' ? '0.8s' : '0.7s';
+      var easing   = animName === 'bounce' ? 'cubic-bezier(0.36,0.07,0.19,0.97)' : 'cubic-bezier(0.25,0.46,0.45,0.94)';
+      var keyframe = animName === 'slide_up' ? 'slideUp' :
+                     animName === 'bounce'   ? 'bounceIn' : 'fadeIn';
+      el.style.animation = 'none';
+      el.style.opacity   = '0';
+      setTimeout(function() {
+        el.style.animation = keyframe + ' ' + duration + ' ' + easing + ' forwards';
+      }, delayMs);
+    }
+
+    function typewriter(el, text, delayMs) {
+      el.style.opacity = '1';
+      el.textContent   = '';
+      var i = 0;
+      setTimeout(function tick() {
+        if (i <= text.length) {
+          el.textContent = text.slice(0, i);
+          i++;
+          setTimeout(tick, 60);
+        }
+      }, delayMs);
+    }
+
+    async function loadCard() {
+      if (!cardId) { showError(); return; }
+
+      try {
+        var url = SUPABASE_URL + '/rest/v1/card_templates'
+          + '?id=eq.' + encodeURIComponent(cardId)
+          + '&active=eq.true'
+          + '&select=*,background:card_backgrounds(*),effect:card_effects(*),text_style:card_text_styles(*)';
+
+        var res = await fetch(url, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        var data = await res.json();
+        if (!data || !data[0]) { showError(); return; }
+
+        var card   = data[0];
+        var bg     = card.background;
+        var effect = card.effect;
+        var style  = card.text_style;
+        var cfg    = style ? style.config : {};
+
+        // ── Vidéo de fond ────────────────────────────────
+        if (bg && bg.mp4_url) {
+          var vid = document.getElementById('bg-video');
+          vid.src = bg.mp4_url;
+          vid.load();
+          if (bg.dominant_color) {
+            document.getElementById('bg-fallback').style.background = bg.dominant_color;
+          }
+        }
+
+        // ── Lottie ───────────────────────────────────────
+        if (effect && effect.lottie_url) {
+          try {
+            lottie.loadAnimation({
+              container:     document.getElementById('lottie-layer'),
+              path:          effect.lottie_url,
+              renderer:      'svg',
+              loop:          true,
+              autoplay:      true,
+            });
+          } catch(e) { /* silent */ }
+        }
+
+        // ── Texte overlay ────────────────────────────────
+        var overlay    = document.getElementById('text-overlay');
+        var prefixEl   = document.getElementById('prefix-text');
+        var nameEl     = document.getElementById('name-text');
+        var suffixEl   = document.getElementById('suffix-text');
+
+        var position   = cfg.position || 'center';
+        overlay.className = 'pos-' + position;
+
+        var color      = cfg.color || '#ffffff';
+        var hasShadow  = cfg.shadow !== false;
+        var shadowCls  = hasShadow ? ' shadow-text' : '';
+
+        var displayName = card.mode === 'age'
+          ? (age || '')
+          : card.mode === 'age_name'
+          ? ((age ? age + ' ans' : '') + (name ? ' • ' + name : ''))
+          : (name || '');
+
+        var prefix = cfg.prefix || '';
+        var suffix = cfg.suffix || '';
+
+        prefixEl.textContent = prefix;
+        prefixEl.className   = 'shadow-text';
+        prefixEl.style.color = color;
+        prefixEl.style.fontSize = (cfg.prefix_size || 18) + 'px';
+        if (!prefix) prefixEl.style.display = 'none';
+
+        nameEl.textContent = displayName;
+        nameEl.className   = 'shadow-text';
+        nameEl.style.color = color;
+        nameEl.style.fontSize = (cfg.name_size || 42) + 'px';
+
+        suffixEl.textContent = suffix;
+        suffixEl.className   = 'shadow-text';
+        suffixEl.style.color = color;
+        if (!suffix) suffixEl.style.display = 'none';
+
+        // ── Animation du texte ───────────────────────────
+        var anim  = cfg.animation || 'fade_in';
+        var delay = cfg.animation_delay_ms || 600;
+        overlay.style.opacity = '1';
+
+        if (anim === 'typewriter' && displayName) {
+          if (prefix) { prefixEl.style.opacity = '1'; }
+          typewriter(nameEl, displayName, delay);
+          if (suffix) { setTimeout(function(){ suffixEl.style.opacity = '1'; }, delay + displayName.length * 60 + 200); }
+        } else {
+          if (prefix)      applyAnimation(prefixEl, anim, Math.max(0, delay - 300));
+          applyAnimation(nameEl, anim, delay);
+          if (suffix)      applyAnimation(suffixEl, anim, delay + 200);
+        }
+
+        // ── Message ──────────────────────────────────────
+        if (message) {
+          var msgBox  = document.getElementById('message-box');
+          var msgText = document.getElementById('message-text');
+          var msgFrom = document.getElementById('message-from');
+          msgText.textContent = message;
+          if (sender) msgFrom.textContent = '— ' + sender;
+          // Remonter le branding si message présent
+          document.getElementById('branding').style.display = 'none';
+          setTimeout(function(){ msgBox.classList.add('visible'); }, delay + 800);
+        }
+
+        // ── Cacher le loader ─────────────────────────────
+        document.getElementById('loading').style.display = 'none';
+        document.title = displayName
+          ? 'Une carte pour ' + displayName + ' 🎉 — Confettis & Cake'
+          : 'Carte animée 🎉 — Confettis & Cake';
+
+      } catch(err) {
+        console.error(err);
+        showError();
+      }
+    }
+
+    loadCard();
+  </script>
+</body>
+</html>
