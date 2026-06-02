@@ -46,29 +46,35 @@
     #text-overlay.pos-top    { justify-content: flex-start; padding-top: 80px; }
     #text-overlay.pos-bottom { justify-content: flex-end;   padding-bottom: 80px; }
     #text-overlay.pos-center { justify-content: center; }
+    #occasion-emoji {
+      font-size: 80px;
+      text-align: center;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.4));
+      animation: fadeIn 0.8s ease forwards;
+    }
     #prefix-text {
-      font-size: 22px; font-weight: 700;
+      font-size: 26px; font-weight: 700;
       text-align: center; line-height: 1.3;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.6);
-      letter-spacing: 1px;
+      text-shadow: 0 2px 14px rgba(0,0,0,0.6);
+      letter-spacing: 2px;
       text-transform: uppercase;
     }
     #name-text {
-      font-size: 52px; font-weight: 900;
-      text-align: center; line-height: 1.05;
+      font-size: 64px; font-weight: 900;
+      text-align: center; line-height: 1.0;
       letter-spacing: -1px;
-      text-shadow: 0 3px 20px rgba(0,0,0,0.6);
+      text-shadow: 0 4px 24px rgba(0,0,0,0.6);
     }
     #suffix-text {
-      font-size: 32px; font-weight: 700;
+      font-size: 36px; font-weight: 700;
       text-align: center;
       text-shadow: 0 2px 12px rgba(0,0,0,0.5);
     }
     #deco-line {
-      width: 60px; height: 3px;
+      width: 80px; height: 3px;
       background: rgba(255,255,255,0.5);
       border-radius: 99px;
-      margin: 4px auto;
+      margin: 6px auto;
     }
     #branding {
       position: absolute;
@@ -122,6 +128,7 @@
     </div>
     <canvas id="bg-canvas"></canvas>
     <div id="text-overlay" class="pos-center">
+      <div id="occasion-emoji"></div>
       <div id="prefix-text"></div>
       <div id="deco-line"></div>
       <div id="name-text"></div>
@@ -370,6 +377,16 @@
         } catch(e) {}
       }
 
+      // ── Emoji occasion ───────────────────────────────
+      var OCCASION_EMOJI = {
+        birthday:'🎂', birthday_late:'⏰', nameday:'🌸', valentines:'💕',
+        wedding:'💍', birth:'👶', graduation:'🎓', mothersday:'💐',
+        fathersday:'👔', christmas:'🎄', newyear:'🎆', support:'🤗',
+        thanks:'🙏', courage:'💪', weekend:'🌞', universal:'🌟'
+      };
+      var occEmoji = OCCASION_EMOJI[card.occasion] || '🎉';
+      document.getElementById('occasion-emoji').textContent = occEmoji;
+
       // ── Texte ─────────────────────────────────────────
       var overlay  = document.getElementById('text-overlay');
       var prefixEl = document.getElementById('prefix-text');
@@ -432,14 +449,29 @@
     } catch(err) { showError(); }
   }
 
-  // Affiche bouton mute si musique active
-  if (bgKey) document.getElementById('mute-btn').style.display = 'block';
-
   var muted = false;
   function toggleMute() {
     muted = !muted;
     if (bgAudio) bgAudio.volume = muted ? 0 : 0.4;
     document.getElementById('mute-btn').textContent = muted ? '🔇 Muet' : '🔊 Son';
+  }
+
+  // Démarrer la musique au premier tap (contourne l'autoplay mobile)
+  if (bgKey) {
+    document.getElementById('mute-btn').style.display = 'block';
+    var audioStarted = false;
+    function tryStartAudio() {
+      if (audioStarted || !bgAudio) return;
+      bgAudio.play().then(function() {
+        audioStarted = true;
+      }).catch(function(){});
+    }
+    // Essai immédiat
+    tryStartAudio();
+    // Si bloqué, démarre au premier tap
+    document.getElementById('card-wrap').addEventListener('click', function() {
+      tryStartAudio();
+    }, { once: false });
   }
 
   function showError() {
