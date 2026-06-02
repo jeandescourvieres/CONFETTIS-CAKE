@@ -202,10 +202,10 @@
       };}
     },
     balloons: {
-      bg: ['#4834d4','#686de0'],
+      bg: ['#1a6bc4','#4834d4'],
       particles: function(){ return {
-        shapes: ['circle'], colors: ['#fd79a8','#fdcb6e','#74b9ff','#55efc4','#ff7675','#a29bfe','#fff'],
-        count: 35, speedY: [-3.5,-1], speedX: [-0.8,0.8], rotation: false, size: [28,56]
+        shapes: ['balloon'], colors: ['#fd79a8','#fdcb6e','#74b9ff','#ff7675','#a29bfe','#55efc4','#f9ca24'],
+        count: 22, speedY: [-2.5,-0.8], speedX: [-0.5,0.5], rotation: false, size: [32,56]
       };}
     },
     stars: {
@@ -223,10 +223,10 @@
       };}
     },
     flowers: {
-      bg: ['#6c5ce7','#c44569'],
+      bg: ['#c44569','#e056fd'],
       particles: function(){ return {
-        shapes: ['circle','star'], colors: ['#fd79a8','#ff7675','#fdcb6e','#fff','#a29bfe','#ffeaa7'],
-        count: 70, speedY: [0.5,2.5], speedX: [-1.5,1.5], rotation: true, size: [8,22]
+        shapes: ['petal'], colors: ['#fd79a8','#ff7675','#fdcb6e','#fff','#fab1d3','#ffeaa7','#e056fd'],
+        count: 55, speedY: [0.8,2.5], speedX: [-1.2,1.2], rotation: true, size: [14,30]
       };}
     },
     snow: {
@@ -298,13 +298,13 @@
       ctx.closePath();
     }
 
+    // Cœur classique symétrique
     function drawHeart(ctx, x, y, s) {
+      var r = s * 0.5;
       ctx.beginPath();
-      ctx.moveTo(x, y + s * 0.3);
-      ctx.bezierCurveTo(x, y, x - s, y, x - s, y + s * 0.3);
-      ctx.bezierCurveTo(x - s, y + s * 0.7, x, y + s, x, y + s * 1.2);
-      ctx.bezierCurveTo(x, y + s, x + s, y + s * 0.7, x + s, y + s * 0.3);
-      ctx.bezierCurveTo(x + s, y, x, y, x, y + s * 0.3);
+      ctx.moveTo(x, y + r * 1.5);
+      ctx.bezierCurveTo(x - r * 2, y + r * 0.5, x - r * 2, y - r, x, y - r * 0.2);
+      ctx.bezierCurveTo(x + r * 2, y - r, x + r * 2, y + r * 0.5, x, y + r * 1.5);
       ctx.closePath();
     }
 
@@ -324,6 +324,19 @@
         else if (pt.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, pt.w/2, 0, Math.PI*2); ctx.fill(); }
         else if (pt.shape === 'star')   { drawStar(ctx, 0, 0, pt.w/2); ctx.fill(); }
         else if (pt.shape === 'heart')  { drawHeart(ctx, 0, 0, pt.w/2); ctx.fill(); }
+        else if (pt.shape === 'balloon') {
+          // Corps ovale
+          ctx.beginPath(); ctx.ellipse(0, -pt.w*0.3, pt.w*0.38, pt.w*0.5, 0, 0, Math.PI*2); ctx.fill();
+          // Nœud
+          ctx.beginPath(); ctx.arc(0, pt.w*0.22, pt.w*0.07, 0, Math.PI*2); ctx.fill();
+          // Ficelle
+          ctx.strokeStyle = pt.color; ctx.globalAlpha = pt.alpha * 0.5; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(0, pt.w*0.29); ctx.quadraticCurveTo(pt.w*0.15, pt.w*0.55, 0, pt.w*0.75); ctx.stroke();
+        }
+        else if (pt.shape === 'petal') {
+          // Ellipse allongée = pétale
+          ctx.beginPath(); ctx.ellipse(0, -pt.w*0.3, pt.w*0.2, pt.w*0.5, 0, 0, Math.PI*2); ctx.fill();
+        }
         ctx.restore();
 
         pt.x   += pt.vx;
