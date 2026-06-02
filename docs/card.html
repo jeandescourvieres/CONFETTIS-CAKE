@@ -118,6 +118,10 @@
       <div id="name-text"></div>
       <div id="suffix-text"></div>
     </div>
+    <div id="message-box" style="display:none;position:absolute;bottom:52px;left:16px;right:16px;z-index:3;background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);border-radius:14px;padding:14px 16px;">
+      <div id="message-text" style="font-size:13px;color:rgba(255,255,255,0.92);line-height:1.6;white-space:pre-wrap;"></div>
+      <div id="message-from" style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:6px;font-style:italic;"></div>
+    </div>
     <div id="branding">Créé avec <a href="https://confetticake.fr" target="_blank">Confettis &amp; Cake</a> 🎂</div>
   </div>
 
@@ -383,6 +387,16 @@
         if (prefix) animEl(prefixEl, anim, Math.max(0, delay - 300));
         if (displayName) animEl(nameEl, anim, delay);
         if (suffix) animEl(sufEl, anim, delay + 200);
+      }
+
+      // ── Message personnel ─────────────────────────────
+      if (message) {
+        var msgBox  = document.getElementById('message-box');
+        var msgText = document.getElementById('message-text');
+        var msgFrom = document.getElementById('message-from');
+        msgText.textContent = message;
+        if (sender) msgFrom.textContent = '— ' + sender;
+        msgBox.style.display = 'block';
       }
 
       document.getElementById('loading').style.display = 'none';
