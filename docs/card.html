@@ -270,16 +270,17 @@
 
     var particles = [];
     for (var i = 0; i < cfg.count; i++) {
+      var shape = pick(cfg.shapes);
       particles.push({
         x:     rand(0, W),
         y:     rand(-H, 0),
         w:     rand(cfg.size[0], cfg.size[1]),
         h:     rand(cfg.size[0], cfg.size[1]),
         color: pick(cfg.colors),
-        shape: pick(cfg.shapes),
+        shape: shape,
         vx:    rand(cfg.speedX[0], cfg.speedX[1]),
         vy:    rand(cfg.speedY[0], cfg.speedY[1]),
-        rot:   rand(0, Math.PI * 2),
+        rot:   (shape === 'balloon') ? 0 : rand(0, Math.PI * 2),
         rotV:  cfg.rotation ? rand(-0.05, 0.05) : 0,
         alpha: rand(0.7, 1),
       });
@@ -297,13 +298,14 @@
       ctx.closePath();
     }
 
-    // Cœur classique symétrique
     function drawHeart(ctx, x, y, s) {
-      var r = s * 0.5;
+      var w = s * 0.55;
       ctx.beginPath();
-      ctx.moveTo(x, y + r * 1.5);
-      ctx.bezierCurveTo(x - r * 2, y + r * 0.5, x - r * 2, y - r, x, y - r * 0.2);
-      ctx.bezierCurveTo(x + r * 2, y - r, x + r * 2, y + r * 0.5, x, y + r * 1.5);
+      ctx.moveTo(x, y + w);
+      ctx.bezierCurveTo(x - w * 0.1, y + w * 0.6, x - w * 1.5, y + w * 0.4, x - w * 1.5, y);
+      ctx.bezierCurveTo(x - w * 1.5, y - w * 0.8, x - w * 0.6, y - w * 1.2, x, y - w * 0.6);
+      ctx.bezierCurveTo(x + w * 0.6, y - w * 1.2, x + w * 1.5, y - w * 0.8, x + w * 1.5, y);
+      ctx.bezierCurveTo(x + w * 1.5, y + w * 0.4, x + w * 0.1, y + w * 0.6, x, y + w);
       ctx.closePath();
     }
 
@@ -333,8 +335,13 @@
           ctx.beginPath(); ctx.moveTo(0, pt.w*0.29); ctx.quadraticCurveTo(pt.w*0.15, pt.w*0.55, 0, pt.w*0.75); ctx.stroke();
         }
         else if (pt.shape === 'petal') {
-          // Ellipse allongée = pétale
-          ctx.beginPath(); ctx.ellipse(0, -pt.w*0.3, pt.w*0.2, pt.w*0.5, 0, 0, Math.PI*2); ctx.fill();
+          // Pétale pointu aux deux extrémités
+          var pw = pt.w * 0.28, ph = pt.w * 0.55;
+          ctx.beginPath();
+          ctx.moveTo(0, -ph);
+          ctx.bezierCurveTo(pw, -ph * 0.3, pw, ph * 0.3, 0, ph);
+          ctx.bezierCurveTo(-pw, ph * 0.3, -pw, -ph * 0.3, 0, -ph);
+          ctx.closePath(); ctx.fill();
         }
         ctx.restore();
 
