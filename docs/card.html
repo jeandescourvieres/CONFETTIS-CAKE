@@ -76,6 +76,16 @@
       border-radius: 99px;
       margin: 6px auto;
     }
+    #contact-photo {
+      display: none;
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(255,255,255,0.8);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      margin-bottom: 4px;
+      animation: fadeIn 0.8s ease forwards;
+    }
     #branding {
       position: absolute;
       bottom: 16px; left: 0; right: 0;
@@ -128,6 +138,7 @@
     </div>
     <canvas id="bg-canvas"></canvas>
     <div id="text-overlay" class="pos-center">
+      <img id="contact-photo" alt="" />
       <div id="occasion-emoji"></div>
       <div id="prefix-text"></div>
       <div id="deco-line"></div>
@@ -138,6 +149,7 @@
       <div id="message-text" style="font-size:13px;color:rgba(255,255,255,0.92);line-height:1.6;white-space:pre-wrap;"></div>
       <div id="message-from" style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:6px;font-style:italic;"></div>
     </div>
+    <div id="music-hint" style="display:none;position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:5;background:rgba(0,0,0,0.55);border-radius:99px;padding:8px 18px;font-size:13px;color:#fff;font-weight:600;white-space:nowrap;">🎵 Appuie sur la carte pour la musique</div>
     <div id="mute-btn" onclick="toggleMute()" style="display:none;position:absolute;top:16px;right:16px;z-index:5;background:rgba(0,0,0,0.4);border-radius:99px;padding:8px 14px;cursor:pointer;font-size:14px;color:#fff;font-weight:600;">🔊 Son</div>
     <div id="branding">
       Créé par <strong style="color:rgba(255,255,255,0.75)">ConfettiCake</strong> by <a href="https://confetticake.fr" target="_blank">Confettis &amp; Cake</a>
@@ -153,12 +165,13 @@
 
   var SUPABASE_STORAGE = 'https://rlwxcbnsqokpirhzzurj.supabase.co/storage/v1/object/public/generated-audio/bg-music/';
   var p = new URLSearchParams(window.location.search);
-  var cardId  = p.get('id')   || '';
-  var name    = p.get('name') || '';
-  var age     = p.get('age')  || '';
-  var message = p.get('msg')  || '';
-  var sender  = p.get('from') || '';
-  var bgKey   = p.get('bg')   || '';
+  var cardId  = p.get('id')    || '';
+  var name    = p.get('name')  || '';
+  var age     = p.get('age')   || '';
+  var message = p.get('msg')   || '';
+  var sender  = p.get('from')  || '';
+  var bgKey   = p.get('bg')    || '';
+  var photoUrl = p.get('photo') || '';
 
   // Lance la musique de fond si demandée
   var bgAudio = null;
@@ -377,6 +390,14 @@
         } catch(e) {}
       }
 
+      // ── Photo du contact ─────────────────────────────
+      if (photoUrl) {
+        var photoEl = document.getElementById('contact-photo');
+        photoEl.src = photoUrl;
+        photoEl.style.display = 'block';
+        document.getElementById('occasion-emoji').style.display = 'none';
+      }
+
       // ── Emoji occasion ───────────────────────────────
       var OCCASION_EMOJI = {
         birthday:'🎂', birthday_late:'⏰', nameday:'🌸', valentines:'💕',
@@ -458,20 +479,25 @@
 
   // Démarrer la musique au premier tap (contourne l'autoplay mobile)
   if (bgKey) {
-    document.getElementById('mute-btn').style.display = 'block';
     var audioStarted = false;
-    function tryStartAudio() {
-      if (audioStarted || !bgAudio) return;
+    // Essai autoplay immédiat
+    bgAudio.play().then(function() {
+      audioStarted = true;
+      document.getElementById('mute-btn').style.display = 'block';
+      document.getElementById('music-hint').style.display = 'none';
+    }).catch(function() {
+      // Autoplay bloqué → afficher l'invite
+      document.getElementById('music-hint').style.display = 'block';
+    });
+    // Démarre au premier tap sur la carte
+    document.getElementById('card-wrap').addEventListener('click', function() {
+      if (audioStarted) return;
       bgAudio.play().then(function() {
         audioStarted = true;
+        document.getElementById('mute-btn').style.display = 'block';
+        document.getElementById('music-hint').style.display = 'none';
       }).catch(function(){});
-    }
-    // Essai immédiat
-    tryStartAudio();
-    // Si bloqué, démarre au premier tap
-    document.getElementById('card-wrap').addEventListener('click', function() {
-      tryStartAudio();
-    }, { once: false });
+    });
   }
 
   function showError() {
