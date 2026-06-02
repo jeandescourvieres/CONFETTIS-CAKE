@@ -34,6 +34,7 @@
     #text-overlay {
       position: absolute;
       inset: 0;
+      bottom: 160px;
       z-index: 2;
       display: flex;
       flex-direction: column;
@@ -44,7 +45,7 @@
       opacity: 0;
     }
     #text-overlay.pos-top    { justify-content: flex-start; padding-top: 80px; }
-    #text-overlay.pos-bottom { justify-content: flex-end;   padding-bottom: 80px; }
+    #text-overlay.pos-bottom { justify-content: flex-end; }
     #text-overlay.pos-center { justify-content: center; }
     #occasion-emoji {
       font-size: 120px;
@@ -173,6 +174,7 @@
   var sender  = p.get('from')  || '';
   var bgKey   = p.get('bg')    || '';
   var photoUrl = p.get('photo') || '';
+  var animKey  = p.get('anim')  || '';
 
   // Lance la musique de fond si demandée
   var bgAudio = null;
@@ -378,7 +380,9 @@
       var wrap   = document.getElementById('card-wrap');
       canvas.width  = wrap.clientWidth  || 360;
       canvas.height = wrap.clientHeight || 640;
-      var theme = getTheme(eff.effect_type || '', card.occasion || '');
+      var theme = animKey && THEMES[animKey]
+        ? THEMES[animKey]
+        : getTheme(eff.effect_type || '', card.occasion || '');
       startParticles(canvas, theme);
 
       // ── Lottie (si disponible) ─────────────────────────
