@@ -188,6 +188,7 @@
   var photoShape = p.get('photo_shape') || 'round';
   var animKey    = p.get('anim')        || '';
   var morseMode  = p.get('morse') === '1';
+  var msgBgKey   = p.get('msg_bg') || '';
 
   // Lance la musique de fond si demandée
   var bgAudio = null;
@@ -197,6 +198,27 @@
     bgAudio.volume = 0.4;
     bgAudio.play().catch(function(){});
   }
+
+  // ── Couleurs du fond du message ─────────────────────────────────────────────
+  var MSG_BG = {
+    violet:   'linear-gradient(135deg,rgba(60,0,80,0.82),rgba(0,0,60,0.82))',
+    rouge:    'linear-gradient(135deg,rgba(120,0,30,0.85),rgba(70,0,20,0.85))',
+    rose:     'linear-gradient(135deg,rgba(120,0,80,0.82),rgba(80,0,60,0.82))',
+    bleu:     'linear-gradient(135deg,rgba(0,20,100,0.85),rgba(0,10,55,0.85))',
+    vert:     'linear-gradient(135deg,rgba(0,65,30,0.85),rgba(0,35,15,0.85))',
+    or:       'linear-gradient(135deg,rgba(85,55,0,0.88),rgba(50,30,0,0.88))',
+    noir:     'linear-gradient(135deg,rgba(12,12,12,0.92),rgba(0,0,0,0.92))',
+  };
+  var THEME_MSG_BG = {
+    confetti:  MSG_BG.violet,
+    birthday:  MSG_BG.violet,
+    hearts:    MSG_BG.rouge,
+    stars:     'linear-gradient(135deg,rgba(5,5,42,0.88),rgba(10,5,62,0.88))',
+    balloons:  'linear-gradient(135deg,rgba(0,22,85,0.85),rgba(8,0,55,0.85))',
+    flowers:   MSG_BG.rose,
+    snow:      'linear-gradient(135deg,rgba(10,32,72,0.87),rgba(5,15,42,0.87))',
+    fireworks: 'linear-gradient(135deg,rgba(8,4,26,0.93),rgba(22,16,0,0.88))',
+  };
 
   // ── Thèmes d'animation par particules ──────────────────────────────────────
   var THEMES = {
@@ -561,6 +583,10 @@
         var msgFrom = document.getElementById('message-from');
         msgText.textContent = message;
         if (sender) msgFrom.textContent = sender;
+        var resolvedBg = (msgBgKey && MSG_BG[msgBgKey])
+          ? MSG_BG[msgBgKey]
+          : (THEME_MSG_BG[animKey] || THEME_MSG_BG[eff.effect_type || ''] || MSG_BG.violet);
+        msgBox.style.background = resolvedBg;
         msgBox.style.display = 'block';
       }
 
