@@ -187,8 +187,9 @@
   var photoSize  = p.get('photo_size')  || 'md';
   var photoShape = p.get('photo_shape') || 'round';
   var animKey    = p.get('anim')        || '';
-  var morseMode  = p.get('morse') === '1';
-  var msgBgKey   = p.get('msg_bg') || '';
+  var morseMode   = p.get('morse') === '1';
+  var msgBgKey    = p.get('msg_bg')  || '';
+  var customTitle = p.get('title')   || '';
 
   // Lance la musique de fond si demandée
   var bgAudio = null;
@@ -531,7 +532,7 @@
                       : card.mode === 'age_name' ? ((age ? age + ' ans' : '') + (name ? ' • ' + name : ''))
                       : (name || '');
 
-      var prefix = cfg.prefix || '';
+      var prefix = customTitle || cfg.prefix || '';
       var suffix = cfg.suffix || '';
 
       prefixEl.style.color      = color;

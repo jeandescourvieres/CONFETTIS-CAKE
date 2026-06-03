@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { BackHeader } from '../../src/components/ui/BackHeader';
@@ -26,9 +27,9 @@ type Step =
 const STEPS: Step[] = [
   { n: '1',  emoji: '👥', title: 'La gestion des contacts',        desc: 'Tu peux les créer manuellement ou les importer directement (après sélection) depuis les contacts de ton téléphone. Dans les 2 cas, leur date de naissance et leur prénom devront être bien renseignés pour activer la détection automatique des anniversaires et des fêtes.\n\n🐾 Tu peux aussi ajouter l\'animal de compagnie d\'un proche comme contact ! Choisis la relation "Animal de compagnie" et renseigne le champ "Animal de qui ?" avec le prénom du propriétaire. Dans ta liste, tu verras alors "🐾 Animal de Michel" sous le nom de l\'animal — impossible de les confondre !' },
   { n: '2',  emoji: '🔔', title: 'Les alertes',                    desc: 'L\'appli va t\'envoyer une notification 7 jours avant chaque anniversaire ou fête des contacts que tu as créés. Plus de surprise de dernière minute !' },
-  { n: '3',  emoji: '✦',  title: 'Envoyer un message IA',          desc: 'Pour générer ton message IA, choisis un contact, l\'occasion, le format (chanson, poème, message, humour) et la tonalité. L\'IA compose un texte unique en quelques secondes.\n\n🌍 Ton contact est étranger ? Sélectionne sa langue dans le sélecteur "Langue du message" — l\'IA rédigera directement dans cette langue. Tu peux aussi enregistrer la langue préférée de chaque contact dans sa fiche pour qu\'elle soit pré-sélectionnée automatiquement.\n\n🐾 Et ça, c\'est notre feature préférée ! Dans la fiche d\'un contact, si tu lui as ajouté un animal de compagnie, un bouton spécial apparaît : "Message de la part de [nom de l\'animal]". Tape dessus, choisis un message rigolo parmi plusieurs propositions… et envoie-le signé de la patte de son animal ! Médor qui félicite son maître pour son anniversaire, c\'est irrésistible 😄' },
+  { n: '3',  emoji: '✦',  title: 'Envoyer un message IA',          desc: 'Pour générer ton message IA, choisis un contact, l\'occasion, le format (chanson, poème, message, humour) et la tonalité. L\'IA compose un texte unique en quelques secondes.\n\n💡 Idées & modèles : en mode "À ma façon", appuie sur "💡 Idées" pour choisir parmi des dizaines de modèles classés par occasion et longueur (court, moyen, long).\n\n✍️ Signature personnalisée : en bas de l\'aperçu, le bouton "Signature" te permet d\'ajouter ton prénom ou un surnom, de choisir son style visuel, et de l\'activer ou désactiver en un tap.\n\n🌍 Traduction : le bouton fixe "🌍 Traduire ce message" apparaît toujours en bas — tape dessus pour traduire ton message en anglais, espagnol, allemand, italien ou portugais en un tap.\n\n🎭 En poème : tape "🎭 En poème ✍️" pour réécrire ton message sous forme de poème avec rimes, en conservant le sens et les émojis.\n\n🐾 Feature préférée ! Dans la fiche d\'un contact avec un animal, un bouton "Message de la part de [animal]" apparaît — envoie un message signé de la patte de Médor !' },
   { n: '4',  emoji: '↺',  title: 'Régénère gratuitement ton message IA', desc: 'Le premier message IA coûte 1 crédit. Les suivants pour la même création sont GRATUITS — parce que l\'IA peut parfois proposer un texte maladroit ou qui ne te correspond pas. Tu peux relancer autant de fois que nécessaire jusqu\'à trouver le message parfait, qui ne te coûtera donc, en final, qu\'un crédit !' },
-  { n: '5',  emoji: '✏️', title: 'Tu préfères écrire toi-même ?',  desc: 'Pas de problème ! Et c\'est gratuit en plus et autant de fois que tu veux ! En bas du générateur, le bouton "✏️ Écrire moi-même" te permet de saisir ton propre texte. Et tu bénéficies quand même de toutes les options de partage (QR code, copie...) sans utiliser de crédit IA.' },
+  { n: '5',  emoji: '✏️', title: 'Tu préfères écrire toi-même ?',  desc: 'Pas de problème — et c\'est gratuit, sans limite ! En bas du générateur, le bouton "✏️ À ma façon" te permet de saisir ton propre texte. Tu bénéficies de toutes les options de mise en forme (8 styles d\'écriture, taille, italique), des idées & modèles ("💡 Idées"), de la traduction, du poème, de la signature — exactement comme avec l\'IA, mais tu gardes le contrôle total sur le contenu.' },
   { n: '6',  emoji: '📊', title: 'Les 3 plans d\'utilisation de l\'appli', subSteps: [
     { emoji: '💜', title: 'Le plan Gratuit',             desc: 'Tu démarres avec des crédits offerts. En version gratuite : 5 créations IA par mois, 2 occasions (Anniversaire & Fête), 2 formats (Message & Humour). Des publicités apparaissent dans l\'app. Tu peux écrire tes messages manuellement, gratuitement et sans limite.' },
     { emoji: '✦',  title: 'Le plan Essentiel — 2,49 €/mois', desc: 'Le juste milieu ! 10 créations IA par mois, toutes les occasions (8), tous les formats (Chanson, Poème, Message, Humour), toutes les tonalités, 3 cagnottes actives, historique illimité — et zéro publicité.' },
@@ -45,13 +46,23 @@ const STEPS: Step[] = [
   { n: '15', emoji: '🎨', title: 'Personnalise les couleurs',        desc: 'L\'appli s\'adapte à ton style ! Dans Mon profil → "Couleur de l\'appli", choisis parmi 9 ambiances : Rose 🌸, Corail 🧡, Soleil 🌅, Océan 🔵, Nature 🌿, Prune 🍇, Or 💛, Gris 🩶 ou Noir 🖤. Le changement est immédiat sur toute l\'appli.' },
   { n: '16', emoji: '💑', title: 'Le mode couple',                   desc: 'Connecte ton compte avec celui de ton/ta partenaire pour partager vos agendas de contacts.\n\nComment ça marche ?\n1. L\'un de vous va dans "Mode couple" (accueil → "💑 Mode couple").\n2. Il crée une invitation → un code à 6 lettres s\'affiche (ex. ABCDEF).\n3. Il partage ce code à l\'autre.\n4. L\'autre saisit le code dans "Rejoindre avec un code".\n5. Le lien est activé !\n\nUne fois en mode couple :\n• Vous voyez chacun les contacts de l\'autre dans vos listes (avec le badge 💑).\n• Les anniversaires et fêtes du partenaire apparaissent dans l\'agenda principal.\n• Un bloc "Agenda de [prénom]" s\'affiche sur l\'accueil.\n\n💔 Dissocier le lien à tout moment depuis la page "Mode couple" → "Dissocier le mode couple". Les contacts redeviennent privés immédiatement.' },
   { n: '17', emoji: '🗓', title: 'Fêtes & Journées généralistes',   desc: 'En plus des anniversaires et fêtes de tes contacts, l\'appli te rappelle les grandes fêtes de l\'année :\n\n🎆 Jour de l\'An · ❤️ Saint-Valentin · 👵 Fête des grand-mères · 💜 Journée de la femme · 🐟 Poisson d\'avril · 🌹 Fête des secrétaires · 🌹 Fête du travail · 💐 Fête des mères · 🏘️ Fête des voisins · 🎵 Fête de la musique · 🔥 Saint-Jean · 👨 Fête des pères · 🤝 Journée de l\'amitié · 🐱 Journée du chat · 🐶 Journée du chien · 🎃 Halloween · 👒 Sainte-Catherine · 🎄 Noël\n\n📍 Où les trouver ?\n• Sur l\'accueil : un bloc "Les fêtes spéciales à venir" apparaît automatiquement quand une fête approche.\n• Dans le calendrier : clique sur "Les fêtes spéciales à venir" pour voir toutes les fêtes du mois.\n\n🔔 Tu reçois aussi une notification quelques jours avant chaque fête.\n\n✨ Pour les fêtes liées à des proches (Saint-Valentin, Fête des mères, Fête des pères, Halloween, Noël…), un bouton "Créer un message" t\'amène directement dans le générateur avec l\'occasion déjà pré-sélectionnée.' },
+
+  { n: '18', emoji: '🎴', title: 'Les cartes animées',              desc: 'Envoie une carte animée unique à la place (ou en plus) d\'un message texte !\n\n🃏 Galerie : parcours plus de 60 cartes classées par occasion (anniversaire, mariage, noël, soutien…) et par genre (elle, lui, enfant). Chaque carte s\'anime avec le prénom de ton proche et, pour les anniversaires milestones, affiche son âge en grand ("Enfin 40 ans !").\n\n✨ Carte IA : un wizard en 5 étapes — tu choisis le contact, l\'occasion, le style visuel, le message, et la carte est générée automatiquement depuis nos templates.\n\n🔗 Partage : un simple lien (WhatsApp, email, SMS…) suffit. Ton proche clique et voit la carte animée directement dans son navigateur — aucune app à installer.\n\nAccès : footer → onglet Contacts → fiche contact → "Envoyer une carte 🎴", ou footer → Cartes.' },
+
+  { n: '19', emoji: '🎛️', title: 'Mode Apprentissage & Mode Complet', desc: 'Confettis & Cake propose deux expériences selon ton niveau :\n\n🟣 Mode Apprentissage : navigation simplifiée, les 3 fonctions essentielles en avant (Message IA, Modèle, À ma façon), guides intermédiaires pour comprendre chaque étape. Idéal pour commencer.\n\n🟠 Mode Complet : toutes les fonctionnalités accessibles, navigation rapide avec raccourcis vers numérologie, zodiaque, compatibilité, cagnottes, cartes. Pour les utilisateurs qui connaissent déjà l\'appli.\n\n🔄 Changer de mode à tout moment : Paramètres → "Mode d\'affichage" → "Changer de mode". Tu retombes sur la page de sélection et tu choisis.' },
+
+  { n: '20', emoji: '🌤️', title: 'Accueil intelligent',             desc: 'L\'écran d\'accueil s\'adapte à ta journée :\n\n🌤️ Météo en direct : la météo de ta ville s\'affiche avec un fond coloré selon les conditions (soleil, nuages, pluie, orage, neige). Appuie dessus pour voir les détails.\n\n🌸 Fête du jour : le prénom fêté aujourd\'hui s\'affiche automatiquement. Appuie sur "En savoir plus sur [prénom]" pour accéder à la fiche complète du prénom (signification, origine, numérologie…).\n\n📜 Dicton du jour : un dicton ou proverbe change chaque jour pour une touche de sagesse.\n\n📅 Agenda intégré : les événements des jours suivants (anniversaires, fêtes, rappels) s\'affichent directement sur l\'accueil, regroupés par période.' },
+
+  { n: '21', emoji: '📖', title: 'Livre d\'or',                     desc: 'Le livre d\'or te permet de collecter des messages de tes proches sur une page partageable.\n\nComment ça marche ?\n1. Dans le footer → "Livre d\'or".\n2. Partage ton lien de livre d\'or via WhatsApp, SMS ou email.\n3. Tes proches ouvrent le lien, laissent un message et une note.\n4. Tous les messages apparaissent dans ton livre d\'or, classés chronologiquement.\n\nParfait pour un anniversaire, un mariage, une retraite : tous les proches contribuent sans avoir l\'app !' },
+
+  { n: '22', emoji: '🔊', title: 'Lecture à voix haute (TTS)',      desc: 'Fais lire ton message à voix haute par une voix IA !\n\nDans l\'aperçu du message, appuie sur le bouton "🔊 Écouter le message". L\'IA génère un fichier audio avec une voix naturelle — tu peux écouter avant d\'envoyer, et même partager l\'audio directement.\n\n🎙️ Disponible en voix masculine et féminine. La langue de lecture suit automatiquement la langue de ton message.' },
 ];
 
 // ── Démarrage rapide ────────────────────────────────────────────────────────
 const QUICK_STEPS = [
-  { n: '1', emoji: '👥', title: 'Ajouter un contact', desc: "Va dans l'onglet Contacts → bouton '+ Ajouter un contact 👤'. Renseigne le prénom et la date de naissance — c'est tout ce qu'il faut pour démarrer !", route: '/(app)/contacts/index' },
-  { n: '2', emoji: '✨', title: 'Générer un message IA', desc: "Dans la fiche de ton contact, appuie sur 'Envoyer un message ✨'. Choisis l'occasion, le format et la tonalité — l'IA crée un texte unique en quelques secondes.", route: '/(app)/contacts/index' },
-  { n: '3', emoji: '📤', title: 'Envoyer le message', desc: "Sur la page d'aperçu, choisis ton canal : WhatsApp 💬, SMS 📱, Email 📧 ou Copier 📋. Ton message est prêt à partir !", route: '/(app)/create/index' },
+  { n: '1', emoji: '👥', title: 'Ajouter un contact', desc: "Va dans l'onglet Contacts → bouton '+ Ajouter un contact 👤'. Renseigne le prénom et la date de naissance — c'est tout ce qu'il faut pour démarrer !", route: '/(app)/contacts' },
+  { n: '2', emoji: '✨', title: 'Générer un message IA', desc: "Dans la fiche de ton contact, appuie sur 'Envoyer un message ✨'. Choisis l'occasion, le format et la tonalité — l'IA crée un texte unique en quelques secondes.", route: '/(app)/contacts' },
+  { n: '3', emoji: '📤', title: 'Envoyer le message', desc: "Sur la page d'aperçu, choisis ton canal : WhatsApp 💬, SMS 📱, Email 📧 ou Copier 📋. Ton message est prêt à partir !", route: '/(app)/create' },
   { n: '4', emoji: '🔔', title: 'Activer les alertes', desc: "Dans Paramètres → Notifications, active les rappels pour ne plus jamais rater un anniversaire ou une fête !", route: '/(app)/settings' },
 ];
 
@@ -73,7 +84,7 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'Comment ajouter un contact ?',
     answer: "Dans le footer, appuie sur l'onglet Contacts, puis sur le bouton '+ Ajouter un contact 👤' en haut de l'écran.",
     ctaLabel: 'Voir Contacts ▶️',
-    onCta: (router) => router.push('/(app)/contacts/index' as never),
+    onCta: (router) => router.push('/(app)/contacts' as never),
   },
   {
     id: 'faq_civility',
@@ -89,7 +100,15 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'Comment ajouter un animal de compagnie ?',
     answer: "Dans la fiche d'un contact, va dans la section 'Nature de ta relation', appuie sur 'Animal de compagnie 🐾' puis sur '+ Ajouter un animal'.",
     ctaLabel: 'Voir mes contacts ▶️',
-    onCta: (router) => router.push('/(app)/contacts/index' as never),
+    onCta: (router) => router.push('/(app)/contacts' as never),
+  },
+  {
+    id: 'faq_child',
+    category: 'Contacts & profil',
+    question: 'Comment ajouter l\'enfant d\'un contact ?',
+    answer: "Dans la fiche d'un contact (ex : Sophie), descends jusqu'à la section 'Enfants 👶' et appuie sur '+ Ajouter un enfant'. Tu renseignes le prénom, le genre, la date de naissance et la fête.\n\nEn faisant ça, tu débloques deux super fonctions :\n🎂 Envoyer un message à Sophie pour l'anniversaire ou la fête de son enfant\n💌 Générer un message comme si c'était l'enfant qui écrivait à Sophie (ou à son père) — 'Bon anni Maman !' — avec des modèles drôles et touchants\n🎴 Accompagner le message d'une carte animée\n\nSi tu lies Sophie à son partenaire via la section 'Partenaire 💑', l'enfant apparaît automatiquement dans la fiche du partenaire. Pas besoin de le saisir deux fois !",
+    ctaLabel: 'Voir mes contacts ▶️',
+    onCta: (router) => router.push('/(app)/contacts' as never),
   },
   {
     id: 'faq_interests',
@@ -97,7 +116,7 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'Comment renseigner les centres d\'intérêt ?',
     answer: "Dans la fiche d'un contact, descends jusqu'à la section 'Centres d'intérêt' et appuie sur '+ Ajouter un centre d'intérêt'.",
     ctaLabel: 'Voir mes contacts ▶️',
-    onCta: (router) => router.push('/(app)/contacts/index' as never),
+    onCta: (router) => router.push('/(app)/contacts' as never),
   },
   // Messages & envois
   {
@@ -106,7 +125,7 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'Comment envoyer un message personnalisé ?',
     answer: "Dans la fiche d'un contact, appuie sur le bouton 'Envoyer un message ✨'. L'IA génère un message unique selon l'occasion.",
     ctaLabel: 'Voir mes contacts ▶️',
-    onCta: (router) => router.push('/(app)/contacts/index' as never),
+    onCta: (router) => router.push('/(app)/contacts' as never),
   },
   {
     id: 'faq_auto_send',
@@ -114,7 +133,7 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'Comment programmer un envoi automatique ?',
     answer: "Dans la fiche d'un contact, va dans la section 'Envoi automatique' et appuie sur 'Activer le pilote automatique 🤖'.",
     ctaLabel: 'Voir les envois auto ▶️',
-    onCta: (router) => router.push('/(app)/auto-sends/index' as never),
+    onCta: (router) => router.push('/(app)/auto-sends' as never),
   },
   {
     id: 'faq_music',
@@ -122,7 +141,7 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'Comment ajouter une musique à mon message ?',
     answer: "Dans l'écran de composition du message (après avoir choisi un contact et une occasion), descends jusqu'à la section 'Ajouter une musique 🎵' et choisis une ambiance.",
     ctaLabel: 'Créer un message ▶️',
-    onCta: (router) => router.push('/(app)/create/index' as never),
+    onCta: (router) => router.push('/(app)/create' as never),
   },
   {
     id: 'faq_writing_style',
@@ -130,7 +149,7 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'Comment changer le style d\'écriture ?',
     answer: "Dans l'écran de composition du message, descends jusqu'à la section 'Style d'écriture ✍️'. Choisis parmi 8 styles : Standard, Manuscrit gras, Élégant, Romantique, Enfantin, Calligraphie, Vintage, Comic.",
     ctaLabel: 'Créer un message ▶️',
-    onCta: (router) => router.push('/(app)/create/index' as never),
+    onCta: (router) => router.push('/(app)/create' as never),
   },
   // Notifications
   {
@@ -172,7 +191,7 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'Qu\'est-ce que le chemin de vie ?',
     answer: "Dans la fiche d'un contact, descends jusqu'à la section 'Signification numérologique' et consulte le bloc 'Chemin de vie'. C'est le chiffre calculé depuis la date de naissance — il révèle la mission de vie d'une personne.",
     ctaLabel: 'Voir mes contacts ▶️',
-    onCta: (router) => router.push('/(app)/contacts/index' as never),
+    onCta: (router) => router.push('/(app)/contacts' as never),
   },
   {
     id: 'faq_compat',
@@ -180,8 +199,50 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'Comment fonctionne la compatibilité ?',
     answer: "Dans la fiche d'un contact, appuie sur le bouton 'Compatibilité avec [prénom du contact]' pour accéder à l'analyse complète de votre compatibilité astrologique et numérologique.",
     ctaLabel: 'Voir Compatibilité ▶️',
-    onCta: (router) => router.push('/(app)/couple/index' as never),
+    onCta: (router) => router.push('/(app)/couple' as never),
   },
+  // Cartes & nouveautés
+  {
+    id: 'faq_carte_animee',
+    category: 'Cartes & nouveautés',
+    question: 'Comment envoyer une carte animée ?',
+    answer: "Dans le footer → Contacts → fiche contact → 'Envoyer une carte 🎴'. Ou depuis l'accueil (mode complet) → 'Cartes animées'.\n\nTon proche reçoit un simple lien — en l'ouvrant il découvre la carte animée sans avoir besoin de l'appli.\n\nCe que tu peux personnaliser :\n• ✍️ Titre — remplace le texte d'en-tête par ce que tu veux (ex : 'Joyeux Noël', 'Bon courage')\n• 💬 Message personnel — texte affiché dans un encadré en bas de la carte (max. 500 caractères)\n• 🎨 Fond du message — s'adapte automatiquement au thème choisi, ou choisis parmi 7 couleurs (Violet, Rouge, Rose, Bleu, Vert, Or, Noir)\n• 📸 Photo — selfie, galerie ou photo du contact, avec choix de la taille (Petite / Moyenne / Grande) et de la forme (Ronde / Carrée)\n• 🎵 Musique — 8 ambiances au choix (Festive, Piano, Guitare, Jazz…)\n• 🎊 Animation — 7 thèmes de particules (Confetti, Cœurs, Étoiles, Ballons, Pétales, Flocons, Feux d'artifice)\n• 📡 Mode Morse — le message est converti en code Morse avec bips audio (pour les fans de délire !)",
+    ctaLabel: 'Voir les cartes ▶️',
+    onCta: (router) => router.push('/(app)/cards' as never),
+  },
+  {
+    id: 'faq_changer_mode',
+    category: 'Cartes & nouveautés',
+    question: 'Comment passer du Mode Apprentissage au Mode Complet ?',
+    answer: "Va dans Paramètres → section 'Mode d'affichage' → bouton 'Changer de mode'. La page de sélection s'affiche — choisis ton mode et appuie sur le bouton correspondant.",
+    ctaLabel: 'Voir Paramètres ▶️',
+    onCta: (router) => router.push('/(app)/settings' as never),
+  },
+  {
+    id: 'faq_traduction',
+    category: 'Cartes & nouveautés',
+    question: 'Comment traduire mon message dans une autre langue ?',
+    answer: "Dans l'aperçu de ton message (après génération ou saisie), appuie sur le bouton fixe '🌍 Traduire ce message'. Choisis la langue cible (Anglais, Espagnol, Allemand, Italien, Portugais) — l'IA traduit en quelques secondes. Le bouton '↩ Texte original' te permet de revenir à la version initiale.",
+    ctaLabel: 'Créer un message ▶️',
+    onCta: (router) => router.push('/(app)/create' as never),
+  },
+  {
+    id: 'faq_poeme',
+    category: 'Cartes & nouveautés',
+    question: 'Comment réécrire mon message en poème ?',
+    answer: "Dans l'aperçu du message, appuie sur le bouton '🎭 En poème ✍️'. L'IA réécrit ton message en 2-3 strophes de 4 vers avec des rimes, en conservant le sens, le destinataire et les émojis. Le bouton '↩ Texte original' te permet de revenir au texte initial.",
+    ctaLabel: 'Créer un message ▶️',
+    onCta: (router) => router.push('/(app)/create' as never),
+  },
+  {
+    id: 'faq_livre_or',
+    category: 'Cartes & nouveautés',
+    question: 'Comment utiliser le livre d\'or ?',
+    answer: "Dans le footer → onglet 'Livre d'or'. Partage ton lien avec tes proches. Ils ouvrent le lien dans leur navigateur (sans app), laissent un message et une note. Tous les messages s'affichent dans ton livre d'or en temps réel.",
+    ctaLabel: 'Voir le livre d\'or ▶️',
+    onCta: (router) => router.push('/(app)/guestbook' as never),
+  },
+
   // Technique
   {
     id: 'faq_backup',
@@ -238,7 +299,7 @@ export default function HelpScreen() {
   const [supportMsg, setSupportMsg] = useState('');
   const [supportLoading, setSupportLoading] = useState(false);
 
-  useFocusEffect(useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []));
+  useTabScrollToTop('help', () => scrollRef.current?.scrollTo({ y: 0, animated: false }));
 
   const handleSupportSend = async () => {
     if (!supportEmail.trim() || !supportMsg.trim()) {
@@ -259,7 +320,7 @@ export default function HelpScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <BackHeader title="" />
+      <BackHeader title="📖 Aide & Mode d'emploi" />
 
       {/* Section selector — 2 lignes */}
       <View style={styles.sectionGrid}>
@@ -297,6 +358,20 @@ export default function HelpScreen() {
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
+        {/* ── Guide A-Z ───────────────────────────────── */}
+        <TouchableOpacity
+          onPress={() => router.push('/(app)/glossaire' as never)}
+          activeOpacity={0.85}
+          style={{ marginBottom: Spacing[4], backgroundColor: C.primaryContainer, borderRadius: Radii.xl, padding: Spacing[4], flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: C.primary + '40' }}
+        >
+          <Text style={{ fontSize: 28 }}>📚</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.md, color: C.primary }}>Guide A-Z de l'appli</Text>
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, marginTop: 2, lineHeight: 17 }}>Toutes les fonctions classées par ordre alphabétique, avec barre de recherche.</Text>
+          </View>
+          <Text style={{ color: C.primary, fontSize: 20 }}>›</Text>
+        </TouchableOpacity>
+
         {/* ── 🚀 Démarrage rapide ─────────────────────── */}
         {section === 'start' && (
           <>
@@ -316,7 +391,7 @@ export default function HelpScreen() {
                       <Text style={styles.stepDesc}>{step.desc}</Text>
                       <TouchableOpacity
                         style={[styles.ctaSmall, { backgroundColor: C.primaryContainer }]}
-                        onPress={() => router.push(step.route as never)}
+                        onPress={() => router.navigate(step.route as never)}
                         activeOpacity={0.8}
                       >
                         <Text style={[styles.ctaSmallText, { color: C.primary }]}>Voir comment faire ▶️</Text>

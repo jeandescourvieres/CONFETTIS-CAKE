@@ -36,8 +36,9 @@ export default function CardPreviewScreen() {
   const [senderName, setSenderName] = useState(paramSender ?? '');
   const [cardMusic, setCardMusic] = useState<string>('aucune');
   const [cardAnim, setCardAnim]   = useState<string>('confetti');
-  const [morseMode,   setMorseMode]   = useState<boolean>(false);
-  const [cardMsgBg,   setCardMsgBg]   = useState<string>('');
+  const [morseMode,    setMorseMode]    = useState<boolean>(false);
+  const [cardMsgBg,    setCardMsgBg]    = useState<string>('');
+  const [cardTitle,    setCardTitle]    = useState<string>('');
 
   const CARD_ANIMS = [
     { key: 'confetti',  emoji: '🎊', label: 'Particules'       },
@@ -170,9 +171,10 @@ export default function CardPreviewScreen() {
     if (cardAnim) params.set('anim', cardAnim);
     if (morseMode) params.set('morse', '1');
     if (cardMsgBg) params.set('msg_bg', cardMsgBg);
+    if (cardTitle.trim()) params.set('title', cardTitle.trim());
     const cardLink = `https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?${params.toString()}`;
     return `🎉 Une carte animée pour toi${recipientName ? `, ${recipientName}` : ''} !\n\n🔗 ${cardLink}\n\n— Créé avec Confettis & Cake 🎂`;
-  }, [recipientName, recipientAge, id, generatedMessage, senderName, cardPhotoUri, cardPhotoSize, cardPhotoShape, cardMusic, cardAnim, morseMode, personalMessage, cardMsgBg]);
+  }, [recipientName, recipientAge, id, generatedMessage, senderName, cardPhotoUri, cardPhotoSize, cardPhotoShape, cardMusic, cardAnim, morseMode, personalMessage, cardMsgBg, cardTitle]);
 
   const handleShare = useCallback(async () => {
     try {
@@ -301,28 +303,39 @@ export default function CardPreviewScreen() {
           <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 20, color: '#fff', marginBottom: 4 }}>
             🎴 Message festif animé
           </Text>
-          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 13, color: 'rgba(255,255,255,0.9)', lineHeight: 20, marginBottom: 8 }}>
-            {'Ton proche reçoit un lien. En l\'ouvrant, il découvre une animation festive avec son prénom, ton message et une musique — sans avoir besoin de l\'appli. ✨'}
+          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 13, color: 'rgba(255,255,255,0.9)', lineHeight: 20, marginBottom: 10 }}>
+            {'Ton proche reçoit un lien. En l\'ouvrant, il découvre une animation festive personnalisée — sans avoir besoin de l\'appli. ✨'}
           </Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radii.lg, padding: 10, alignItems: 'center', gap: 4 }}>
-              <Text style={{ fontSize: 20 }}>🎉</Text>
-              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 10, color: '#fff', textAlign: 'center' }}>Animation festive</Text>
-            </View>
-            <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radii.lg, padding: 10, alignItems: 'center', gap: 4 }}>
-              <Text style={{ fontSize: 20 }}>✍️</Text>
-              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 10, color: '#fff', textAlign: 'center' }}>Prénom + message</Text>
-            </View>
-            <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radii.lg, padding: 10, alignItems: 'center', gap: 4 }}>
-              <Text style={{ fontSize: 20 }}>🎵</Text>
-              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 10, color: '#fff', textAlign: 'center' }}>Musique de fond</Text>
-            </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+            {[
+              { e: '🎊', l: 'Animation' },
+              { e: '✍️', l: 'Titre libre' },
+              { e: '💬', l: 'Message perso' },
+            ].map((f) => (
+              <View key={f.l} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radii.lg, padding: 8, alignItems: 'center', gap: 3 }}>
+                <Text style={{ fontSize: 18 }}>{f.e}</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 9, color: '#fff', textAlign: 'center' }}>{f.l}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {[
+              { e: '📸', l: 'Photo (taille + forme)' },
+              { e: '🎨', l: 'Fond coloré' },
+              { e: '🎵', l: 'Musique / 📡 Morse' },
+            ].map((f) => (
+              <View key={f.l} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radii.lg, padding: 8, alignItems: 'center', gap: 3 }}>
+                <Text style={{ fontSize: 18 }}>{f.e}</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 9, color: '#fff', textAlign: 'center' }}>{f.l}</Text>
+              </View>
+            ))}
           </View>
         </LinearGradient>
 
         {/* Champ prénom */}
         <View style={styles.nameRow}>
-          <Text style={styles.nameLabel}>Prénom du destinataire — 👁 l'aperçu s'active dès qu'il est rempli</Text>
+          <Text style={styles.nameLabel}>Prénom du destinataire</Text>
+          <Text style={styles.nameSub}>Affiché en grand sur la carte animée — l'aperçu s'active dès qu'il est rempli 👁</Text>
           <TextInput
             style={[styles.nameInput, nameEditing && styles.nameInputFocused]}
             value={recipientName}
@@ -340,6 +353,7 @@ export default function CardPreviewScreen() {
         {/* Champ "De la part de" */}
         <View style={styles.nameRow}>
           <Text style={styles.nameLabel}>De la part de (optionnel)</Text>
+          <Text style={styles.nameSub}>Signature affichée en bas du message — peut être un surnom, un animal, un groupe…</Text>
           <TextInput
             style={styles.nameInput}
             value={senderName}
@@ -347,6 +361,22 @@ export default function CardPreviewScreen() {
             placeholder="Ex : Lucas, Nemo le poisson rouge…"
             placeholderTextColor={Colors.onSurfaceVariant}
             maxLength={40}
+            returnKeyType="done"
+            autoCorrect={false}
+          />
+        </View>
+
+        {/* Titre personnalisé */}
+        <View style={styles.nameRow}>
+          <Text style={styles.nameLabel}>✍️ Titre de la carte (optionnel)</Text>
+          <Text style={styles.nameSub}>Remplace le texte d'en-tête par défaut — ex : "Joyeux Noël", "Félicitations !", "Bon courage"…</Text>
+          <TextInput
+            style={styles.nameInput}
+            value={cardTitle}
+            onChangeText={setCardTitle}
+            placeholder="Ex : Joyeux Noël, Félicitations, Bon courage…"
+            placeholderTextColor={Colors.onSurfaceVariant}
+            maxLength={50}
             returnKeyType="done"
             autoCorrect={false}
           />
@@ -371,8 +401,9 @@ export default function CardPreviewScreen() {
 
         {/* Message personnel */}
         <View style={styles.nameRow}>
+          <Text style={styles.nameSub} numberOfLines={0}>{'Texte affiché dans un encadré en bas de la carte — sur fond coloré. Le fond s\'adapte automatiquement à l\'animation, ou tu peux choisir une couleur ci-dessous.'}</Text>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <Text style={styles.nameLabel}>Message personnel (optionnel)</Text>
+            <Text style={styles.nameLabel}>💬 Message personnel (optionnel)</Text>
             <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: Colors.onSurfaceVariant }}>
               {personalMessage.length}/500
             </Text>
@@ -392,6 +423,7 @@ export default function CardPreviewScreen() {
         {!!personalMessage.trim() && (
           <View style={[styles.nameRow, { gap: 8 }]}>
             <Text style={styles.nameLabel}>🎨 Fond du message</Text>
+            <Text style={styles.nameSub}>Choisis la couleur de l'encadré — "Auto" l'adapte au thème d'animation (rouge pour cœurs, bleu nuit pour étoiles, etc.)</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {([
                 { key: '',       color: '#555',    label: 'Auto'   },
@@ -425,6 +457,7 @@ export default function CardPreviewScreen() {
         {/* Photo */}
         <View style={styles.nameRow}>
           <Text style={styles.nameLabel}>📸 Photo (optionnel)</Text>
+          <Text style={styles.nameSub}>Apparaît en médaillon sur la carte — selfie, photo de profil ou photo du contact. Choisis ensuite sa taille et sa forme.</Text>
           <TouchableOpacity
             style={[styles.nameInput, { height: 50, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 10 }]}
             onPress={handlePickCardPhoto}
@@ -454,6 +487,7 @@ export default function CardPreviewScreen() {
         {!!cardPhotoUri && (
           <View style={[styles.nameRow, { gap: 10 }]}>
             <Text style={styles.nameLabel}>Taille de la photo</Text>
+            <Text style={styles.nameSub}>Petite (discrète), Moyenne (équilibrée), Grande (très visible)</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {([
                 { key: 'sm', emoji: '🔹', label: 'Petite' },
@@ -504,6 +538,7 @@ export default function CardPreviewScreen() {
         {/* Sélecteur musique */}
         <View style={styles.nameRow}>
           <Text style={styles.nameLabel}>🎵 Musique de fond (optionnel)</Text>
+          <Text style={styles.nameSub}>Joue en boucle à l'ouverture de la carte — démarre au premier tap sur mobile si bloquée par le navigateur</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
             {CARD_MUSIC.map((m) => (
               <TouchableOpacity
@@ -529,6 +564,7 @@ export default function CardPreviewScreen() {
         {/* Sélecteur animation */}
         <View style={styles.nameRow}>
           <Text style={styles.nameLabel}>🎊 Animation</Text>
+          <Text style={styles.nameSub}>Particules animées en arrière-plan — le fond du message s'adapte automatiquement à ce choix</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
             {CARD_ANIMS.map((a) => (
               <TouchableOpacity
@@ -588,6 +624,7 @@ export default function CardPreviewScreen() {
                   urlParams.set('photo_shape', cardPhotoShape);
                 }
                 if (cardMsgBg) urlParams.set('msg_bg', cardMsgBg);
+                if (cardTitle.trim()) urlParams.set('title', cardTitle.trim());
                 Linking.openURL(`https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?${urlParams.toString()}`);
               }}
               activeOpacity={0.85}
@@ -722,6 +759,13 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.base,
     color: Colors.onSurface,
+  },
+  nameSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 16,
+    marginTop: -2,
   },
   nameInput: {
     height: 48,
