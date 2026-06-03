@@ -182,10 +182,12 @@
   var age     = p.get('age')   || '';
   var message = p.get('msg')   || '';
   var sender  = p.get('from')  || '';
-  var bgKey   = p.get('bg')    || '';
-  var photoUrl  = p.get('photo') || '';
-  var animKey   = p.get('anim')  || '';
-  var morseMode = p.get('morse') === '1';
+  var bgKey      = p.get('bg')          || '';
+  var photoUrl   = p.get('photo')       || '';
+  var photoSize  = p.get('photo_size')  || 'md';
+  var photoShape = p.get('photo_shape') || 'round';
+  var animKey    = p.get('anim')        || '';
+  var morseMode  = p.get('morse') === '1';
 
   // Lance la musique de fond si demandée
   var bgAudio = null;
@@ -475,6 +477,10 @@
         var photoEl = document.getElementById('contact-photo');
         photoEl.src = photoUrl;
         photoEl.style.display = 'block';
+        var sizePx = { sm: 66, md: 90, lg: 140 }[photoSize] || 90;
+        photoEl.style.width  = sizePx + 'px';
+        photoEl.style.height = sizePx + 'px';
+        photoEl.style.borderRadius = photoShape === 'square' ? '14px' : '50%';
         document.getElementById('occasion-emoji').style.display = 'none';
       }
 
