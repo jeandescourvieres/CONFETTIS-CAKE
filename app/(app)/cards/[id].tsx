@@ -173,6 +173,9 @@ export default function CardPreviewScreen() {
     if (cardMsgBg) params.set('msg_bg', cardMsgBg);
     if (cardTitle.trim()) params.set('title', cardTitle.trim());
     const cardLink = `https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?${params.toString()}`;
+    if (morseMode) {
+      return `📡 ${recipientName ? recipientName + ', tu' : 'Tu'} as reçu un message secret en code Morse !\n\nSauras-tu le décoder ? 🔐\n\n🔗 ${cardLink}\n\n— Créé avec Confettis & Cake 🎂`;
+    }
     return `🎉 Une carte animée pour toi${recipientName ? `, ${recipientName}` : ''} !\n\n🔗 ${cardLink}\n\n— Créé avec Confettis & Cake 🎂`;
   }, [recipientName, recipientAge, id, generatedMessage, senderName, cardPhotoUri, cardPhotoSize, cardPhotoShape, cardMusic, cardAnim, morseMode, personalMessage, cardMsgBg, cardTitle]);
 
@@ -601,9 +604,9 @@ export default function CardPreviewScreen() {
             <Text style={[styles.morseToggleSub, morseMode && { color: '#00cc66' }]}>
               {morseMode
                 ? (personalMessage.trim()
-                    ? '· − · · ·  −− −− ···  Ton message personnel sera converti en bips !'
+                    ? '· − · · ·  Activé ! Le destinataire voit le code, écoute les bips, et peut révéler le message caché d\'un tap 🤫'
                     : '⚠️ Tape un message personnel ci-dessus pour activer le Morse')
-                : 'Convertit le texte du "Message personnel" en code Morse avec bips — tape un message ci-dessus 😄'}
+                : 'Ton message personnel est converti en points/tirets. Le destinataire entend les bips, déchiffre le code — et peut révéler le texte original d\'un tap 🔐'}
             </Text>
           </View>
         </TouchableOpacity>

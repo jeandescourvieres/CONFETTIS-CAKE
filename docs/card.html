@@ -154,7 +154,10 @@
           <button id="morse-play-btn" onclick="playMorse()" style="margin-left:auto;background:#00ff88;border:none;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:#000;cursor:pointer;">▶ ÉCOUTER</button>
         </div>
         <div id="morse-code" style="font-family:monospace;font-size:16px;color:#00ff88;line-height:2;letter-spacing:3px;word-break:break-all;"></div>
-        <div id="morse-text" style="font-size:11px;color:rgba(0,255,136,0.5);margin-top:8px;font-style:italic;"></div>
+        <div style="margin-top:10px;text-align:center;">
+          <button id="reveal-btn" onclick="revealMessage()" style="background:transparent;border:1px solid rgba(0,255,136,0.4);border-radius:20px;padding:6px 16px;font-size:12px;color:rgba(0,255,136,0.7);cursor:pointer;letter-spacing:0.5px;">🔓 Révéler le message</button>
+        </div>
+        <div id="morse-text" style="display:none;font-size:14px;color:#00ff88;margin-top:10px;font-style:italic;text-align:center;line-height:1.5;padding:8px;border-top:1px solid rgba(0,255,136,0.2);"></div>
       </div>
     </div>
     <div id="message-box" style="display:none;position:absolute;bottom:52px;left:12px;right:12px;z-index:3;background:linear-gradient(135deg,rgba(60,0,80,0.75),rgba(0,0,60,0.75));backdrop-filter:blur(16px);border-radius:20px;padding:18px 20px;border:1px solid rgba(255,255,255,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.4);">
@@ -445,6 +448,15 @@
       else if (c === ' ') { if (tokens[i+1] === '/') { t += 0.42; i += 2; } else { t += letterGap; } }
     }
     setTimeout(function(){ btn.disabled = false; btn.textContent = '▶ ÉCOUTER'; }, (t - ctx.currentTime)*1000 + 300);
+  }
+
+  function revealMessage() {
+    var txt = document.getElementById('morse-text');
+    var btn = document.getElementById('reveal-btn');
+    var visible = txt.style.display !== 'none';
+    txt.style.display = visible ? 'none' : 'block';
+    btn.textContent   = visible ? '🔓 Révéler le message' : '🔒 Cacher le message';
+    btn.style.color   = visible ? 'rgba(0,255,136,0.7)' : '#00ff88';
   }
 
   function _beep(ctx, start, dur) {
