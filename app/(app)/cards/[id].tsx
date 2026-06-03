@@ -599,7 +599,11 @@ export default function CardPreviewScreen() {
               Mode Morse {morseMode ? '— ACTIVÉ' : ''}
             </Text>
             <Text style={[styles.morseToggleSub, morseMode && { color: '#00cc66' }]}>
-              {morseMode ? '· − · · ·  −− −− ···  Le message sera en bips !' : 'Pour les fans de délire — message converti en code Morse avec bips 😄'}
+              {morseMode
+                ? (personalMessage.trim()
+                    ? '· − · · ·  −− −− ···  Ton message personnel sera converti en bips !'
+                    : '⚠️ Tape un message personnel ci-dessus pour activer le Morse')
+                : 'Convertit le texte du "Message personnel" en code Morse avec bips — tape un message ci-dessus 😄'}
             </Text>
           </View>
         </TouchableOpacity>
@@ -625,6 +629,7 @@ export default function CardPreviewScreen() {
                 }
                 if (cardMsgBg) urlParams.set('msg_bg', cardMsgBg);
                 if (cardTitle.trim()) urlParams.set('title', cardTitle.trim());
+                if (morseMode) urlParams.set('morse', '1');
                 Linking.openURL(`https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?${urlParams.toString()}`);
               }}
               activeOpacity={0.85}

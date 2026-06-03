@@ -578,7 +578,7 @@
       }
 
       // ── Message personnel ─────────────────────────────
-      if (message) {
+      if (message && !morseMode) {
         var msgBox  = document.getElementById('message-box');
         var msgText = document.getElementById('message-text');
         var msgFrom = document.getElementById('message-from');
