@@ -369,7 +369,7 @@ export default function CardPreviewScreen() {
         {/* Titre personnalisé */}
         <View style={styles.nameRow}>
           <Text style={styles.nameLabel}>✍️ Titre de la carte (optionnel)</Text>
-          <Text style={styles.nameSub}>Remplace le texte d'en-tête par défaut — ex : "Joyeux Noël", "Félicitations !", "Bon courage"…</Text>
+          <Text style={styles.nameSub}>Remplace le texte d'en-tête par défaut (ex : "Pour toi", "Félicitations !", "Bon courage"…) — max. 50 caractères</Text>
           <TextInput
             style={styles.nameInput}
             value={cardTitle}
@@ -401,7 +401,7 @@ export default function CardPreviewScreen() {
 
         {/* Message personnel */}
         <View style={styles.nameRow}>
-          <Text style={styles.nameSub} numberOfLines={0}>{'Texte affiché dans un encadré en bas de la carte — sur fond coloré. Le fond s\'adapte automatiquement à l\'animation, ou tu peux choisir une couleur ci-dessous.'}</Text>
+          <Text style={styles.nameSub} numberOfLines={0}>{'Texte affiché dans un encadré en bas de la carte — max. 500 caractères (environ 5 lignes). Le fond s\'adapte automatiquement à l\'animation, ou choisis une couleur ci-dessous.'}</Text>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <Text style={styles.nameLabel}>💬 Message personnel (optionnel)</Text>
             <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: Colors.onSurfaceVariant }}>
