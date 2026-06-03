@@ -471,6 +471,34 @@
   }
 
   async function loadCard() {
+    // ── Mode Morse autonome (sans template de carte) ─────────────────────────
+    if (morseMode && message && !cardId) {
+      var canvas = document.getElementById('bg-canvas');
+      var wrap   = document.getElementById('card-wrap');
+      canvas.width  = wrap.clientWidth  || 360;
+      canvas.height = wrap.clientHeight || 640;
+      var theme = (animKey && THEMES[animKey]) ? THEMES[animKey] : THEMES.stars;
+      startParticles(canvas, theme);
+      if (name) {
+        var nameEl = document.getElementById('name-text');
+        nameEl.textContent   = name;
+        nameEl.style.color   = '#ffffff';
+        nameEl.style.fontSize = '52px';
+        var overlay = document.getElementById('text-overlay');
+        overlay.style.opacity = '1';
+        overlay.style.bottom  = '240px';
+      }
+      var morseBox = document.getElementById('morse-box');
+      document.getElementById('morse-code').textContent = toMorse(message);
+      document.getElementById('morse-text').textContent = message;
+      morseBox.style.display = 'block';
+      var ant = document.getElementById('morse-antenna');
+      setInterval(function(){ ant.style.opacity = ant.style.opacity === '0.3' ? '1' : '0.3'; }, 500);
+      document.getElementById('loading').style.display = 'none';
+      document.title = name ? 'Message secret pour ' + name + ' 📡' : 'Message secret en Morse 📡';
+      return;
+    }
+
     if (!cardId) { showError(); return; }
     try {
       var res  = await fetch(

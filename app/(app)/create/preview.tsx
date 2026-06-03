@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,28 +14,41 @@ import {
   Modal,
   Animated,
   Image,
+  Switch,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
+import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 import { useCreateStore } from '../../../src/stores/createStore';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useAIGenerate } from '../../../src/hooks/useAIGenerate';
 import { useWritingAssistant } from '../../../src/hooks/useWritingAssistant';
-import { markMessageSent, updateMessageContent, updateMessageStyle, updateMessagePhoto } from '../../../src/services/messages.service';
+import { markMessageSent, updateMessageContent, updateMessageStyle, updateMessagePhoto, deleteMessage } from '../../../src/services/messages.service';
 import { buildSignatureText, getSignatureLabels } from '../../../src/utils/signature';
 import { useCreateGroupMessage, useGroupMessage, formatSigners, groupShareUrl } from '../../../src/hooks/useGroupMessages';
 import { fetchMusicStatus } from '../../../src/services/music.service';
 import { useMusicGeneration } from '../../../src/hooks/useMusicGeneration';
 import { useTTSGeneration } from '../../../src/hooks/useTTSGeneration';
+import { saveTTSBgMusic } from '../../../src/services/tts.service';
 import type { TTSVoiceKey } from '../../../src/types/models';
+import { Config } from '../../../src/constants/config';
+import * as SecureStore from 'expo-secure-store';
 import { FeatureIntroCard } from '../../../src/components/ui/FeatureIntroCard';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 import { supabase } from '../../../src/services/supabase';
+import { MANUAL_STARTERS, pickRandom } from '../../../src/constants/manualStarters';
+import { FESTIVE_IMAGES, FESTIVE_OVERLAY, getFestiveImageUrl, hasFestiveImages } from '../../../src/utils/festiveImageUrl';
+import { resolveGenderTokens } from '../../../src/utils/genderTokens';
 import { useContacts } from '../../../src/hooks/useContacts';
 import { saveMessage } from '../../../src/services/messages.service';
 import type { Contact } from '../../../src/types/models';
@@ -114,14 +127,24 @@ function AudioPreviewPlayer({ messageId }: { messageId: string | null }) {
 function TTSPlayer({ ttsUrl }: { ttsUrl: string }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef   = useRef<Audio.Sound | null>(null);
+  const mountedRef = useRef(true);
   const [isPlaying,   setIsPlaying]   = useState(false);
   const [positionMs,  setPositionMs]  = useState(0);
   const [durationMs,  setDurationMs]  = useState(0);
 
   useEffect(() => {
+    mountedRef.current = true;
     Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true, staysActiveInBackground: false });
-    return () => { soundRef.current?.unloadAsync(); };
+    return () => {
+      mountedRef.current = false;
+      const s = soundRef.current;
+      if (s) {
+        // Stopper avant de décharger pour éviter le deadlock expo-av
+        s.stopAsync().catch(() => {}).finally(() => s.unloadAsync().catch(() => {}));
+        soundRef.current = null;
+      }
+    };
   }, []);
 
   const togglePlay = async () => {
@@ -130,12 +153,13 @@ function TTSPlayer({ ttsUrl }: { ttsUrl: string }) {
         { uri: ttsUrl },
         { shouldPlay: true },
         (status) => {
-          if (!status.isLoaded) return;
+          if (!mountedRef.current || !status.isLoaded) return;
           setPositionMs(status.positionMillis ?? 0);
           setDurationMs(status.durationMillis ?? 0);
           if (status.didJustFinish) { setIsPlaying(false); setPositionMs(0); }
         },
       );
+      if (!mountedRef.current) { sound.unloadAsync().catch(() => {}); return; }
       soundRef.current = sound;
       setIsPlaying(true);
     } else {
@@ -187,6 +211,75 @@ const IDEAS_OCCASIONS: { value: string; label: string; emoji: string; color: str
   { value: 'halloween',  label: 'Halloween',      emoji: '🎃', color: '#E65100' },
   { value: 'retirement', label: 'Retraite',       emoji: '🌴', color: '#00796B' },
   { value: 'support',    label: 'Soutien',        emoji: '🤍', color: '#5C8FA8' },
+  { value: 'greetings', label: 'Coucou !',        emoji: '👋', color: '#43A047' },
+];
+
+// ── PS d'excuse de retard ─────────────────────────────────────────────────────
+const LATE_PS_OPTIONS = [
+  { emoji: '😅', label: 'Autodérision tendre', text: "PS : Je sais, je suis un peu en retard... mais tu comptes tellement pour moi que je ne pouvais vraiment pas laisser passer ça sans te le dire ! 😅🙈" },
+  { emoji: '😄', label: 'Humour léger', text: "PS : Oui, oui, je sais... je suis en retard 😬 Mais l'essentiel c'est que je pense à toi, non ? 😄" },
+  { emoji: '💛', label: 'Court & direct', text: "PS : Un peu de retard, beaucoup d'affection. 💛" },
+  { emoji: '🌸', label: 'Poétique', text: "PS : Le calendrier m'a échappé, mais mes pensées pour toi, jamais. 🌸" },
+  { emoji: '🫶', label: 'Chaleureux', text: "PS : Promis, la prochaine fois je serai à l'heure ! En attendant... je t'embrasse fort. 🫶" },
+  { emoji: '✨', label: 'Sincère', text: "PS : Les vrais sentiments n'ont pas de date d'expiration. Je te le dis du fond du cœur. ✨" },
+];
+
+// ── Formules de clôture ───────────────────────────────────────────────────────
+const CLOSING_FORMULAS: { value: string; label: string; group: string }[] = [
+  { value: 'Bien à toi',                      label: 'Bien à toi',                      group: 'Amical' },
+  { value: 'Grosses bises',                   label: 'Grosses bises',                   group: 'Amical' },
+  { value: 'Bisous',                          label: 'Bisous',                          group: 'Amical' },
+  { value: 'Gros bisous',                     label: 'Gros bisous',                     group: 'Amical' },
+  { value: 'Plein de gros bisous',            label: 'Plein de gros bisous',            group: 'Amical' },
+  { value: 'Avec toute mon affection',        label: 'Avec toute mon affection',        group: 'Amical' },
+  { value: 'À très vite',                     label: 'À très vite',                     group: 'Amical' },
+  { value: 'Amicalement',                     label: 'Amicalement',                     group: 'Semi-formel' },
+  { value: 'Bien amicalement',               label: 'Bien amicalement',               group: 'Semi-formel' },
+  { value: 'Avec mes pensées',               label: 'Avec mes pensées',               group: 'Semi-formel' },
+  { value: 'Sincèrement',                     label: 'Sincèrement',                     group: 'Formel' },
+  { value: 'Bien à vous',                     label: 'Bien à vous',                     group: 'Formel' },
+  { value: 'Cordialement',                    label: 'Cordialement',                    group: 'Formel' },
+  { value: 'Avec mes meilleures salutations',  label: 'Avec mes meilleures salutations',  group: 'Formel' },
+  { value: 'Avec mes sincères salutations',    label: 'Avec mes sincères salutations',    group: 'Formel' },
+];
+const CLOSING_GROUPS = ['Amical', 'Semi-formel', 'Formel'];
+const CLOSING_GROUP_COLOR: Record<string, string> = {
+  'Amical':      '#E91E8C',
+  'Semi-formel': '#5C8FA8',
+  'Formel':      '#6D4C41',
+};
+
+// ── Inversion du lien famille (contact → expéditeur) ─────────────────────────
+const LIEN_INVERSE: Record<string, { m: string; f: string }> = {
+  'fils':         { m: 'père',      f: 'mère'       },
+  'fille':        { m: 'père',      f: 'mère'       },
+  'gendre':       { m: 'beau-père', f: 'belle-mère' },
+  'belle-fille':  { m: 'beau-père', f: 'belle-mère' },
+  'frère':        { m: 'frère',     f: 'sœur'       },
+  'sœur':         { m: 'frère',     f: 'sœur'       },
+  'père':         { m: 'fils',      f: 'fille'      },
+  'mère':         { m: 'fils',      f: 'fille'      },
+  'grand-père':   { m: 'grand-père',f: 'grand-mère' },
+  'grand-mère':   { m: 'grand-père',f: 'grand-mère' },
+  'petit-fils':   { m: 'grand-père',f: 'grand-mère' },
+  'petite-fille': { m: 'grand-père',f: 'grand-mère' },
+  'oncle':        { m: 'neveu',     f: 'nièce'      },
+  'tante':        { m: 'neveu',     f: 'nièce'      },
+  'cousin':       { m: 'cousin',    f: 'cousine'    },
+  'cousine':      { m: 'cousin',    f: 'cousine'    },
+  'beau-frère':   { m: 'beau-frère',f: 'belle-sœur' },
+  'belle-sœur':   { m: 'beau-frère',f: 'belle-sœur' },
+};
+
+// ── Formules d'appel ──────────────────────────────────────────────────────────
+const OPENING_FORMULAS: { value: string }[] = [
+  { value: 'Bonjour {prénom},'   },
+  { value: 'Salut {prénom},'     },
+  { value: 'Coucou {prénom},'    },
+  { value: 'Hello {prénom},'     },
+  { value: 'Cher {prénom},'      },
+  { value: 'Très cher {prénom},' },
+  { value: 'Mon cher {prénom},'  },
 ];
 
 // ── Share channels ────────────────────────────────────────────────────────────
@@ -194,21 +287,35 @@ const SHARE_CHANNELS = [
   { id: 'whatsapp', label: 'WhatsApp', emoji: '💬', color: '#25D366' },
   { id: 'sms', label: 'SMS', emoji: '📱', color: Colors.primary },
   { id: 'email', label: 'Email', emoji: '📧', color: '#EA4335' },
-  { id: 'copy', label: 'Copier', emoji: '📋', color: Colors.onSurfaceVariant },
+  { id: 'copy', label: 'Copier', emoji: '📋', color: Colors.onSurfaceVariant, sub: 'Messenger, Insta,\nTikTok…', info: true },
 ];
 
 // ── Type de style de police ───────────────────────────────────────────────────
-type FontStyle = 'standard' | 'caveat_bold' | 'dancing' | 'satisfy' | 'patrick' | 'pacifico' | 'special_elite' | 'bangers';
+type FontStyle = 'standard' | 'caveat_bold' | 'dancing' | 'dancing_sc' | 'satisfy' | 'patrick' | 'pacifico' | 'special_elite' | 'bangers' | 'merriweather' | 'oswald' | 'roboto_slab' | 'space_mono' | 'playfair' | 'times_new_roman' | 'comic_sans' | 'verdana' | 'book_antiqua';
 
-const FONT_STYLES: { value: FontStyle; label: string; font: string; preview: string }[] = [
-  { value: 'standard',     label: 'Standard',    font: 'BeVietnamPro_400Regular',  preview: 'Abc' },
-  { value: 'caveat_bold',  label: 'Manuscrit gras',    font: 'Caveat_700Bold',           preview: 'Abc' },
-  { value: 'dancing',      label: 'Manuscrit élégant', font: 'DancingScript_400Regular',  preview: 'Abc' },
-  { value: 'satisfy',      label: 'Manuscrit romantique', font: 'Satisfy_400Regular',     preview: 'Abc' },
-  { value: 'patrick',      label: 'Manuscrit enfantin',  font: 'PatrickHand_400Regular',  preview: 'Abc' },
-  { value: 'pacifico',     label: 'Calligraphie',  font: 'Pacifico_400Regular',          preview: 'Abc' },
-  { value: 'special_elite',label: 'Vintage',       font: 'SpecialElite_400Regular',      preview: 'Abc' },
-  { value: 'bangers',      label: 'Comic',         font: 'Bangers_400Regular',           preview: 'Abc' },
+const FONT_STYLES: { value: FontStyle; label: string; font: string; group: string }[] = [
+  // ── Classique ──
+  { value: 'standard',      label: 'Standard',            font: 'BeVietnamPro_400Regular',   group: 'Classique' },
+  { value: 'caveat_bold',   label: 'Gras',                font: 'BeVietnamPro_700Bold',       group: 'Classique' },
+  { value: 'dancing',       label: 'Léger',               font: 'BeVietnamPro_300Light',      group: 'Classique' },
+  { value: 'merriweather',  label: 'Merriweather',        font: 'Merriweather_400Regular',    group: 'Classique' },
+  { value: 'playfair',      label: 'Playfair Display',    font: 'PlayfairDisplay_400Regular', group: 'Classique' },
+  { value: 'oswald',        label: 'Oswald',              font: 'Oswald_400Regular',          group: 'Classique' },
+  { value: 'roboto_slab',   label: 'Roboto Slab',         font: 'RobotoSlab_400Regular',      group: 'Classique' },
+  { value: 'space_mono',    label: 'Space Mono',          font: 'SpaceMono_400Regular',       group: 'Classique' },
+  // ── Manuscrit ──
+  { value: 'satisfy',       label: 'Satisfy',             font: 'Satisfy_400Regular',         group: 'Manuscrit' },
+  { value: 'patrick',       label: 'Patrick Hand',        font: 'PatrickHand_400Regular',     group: 'Manuscrit' },
+  { value: 'pacifico',      label: 'Pacifico',            font: 'Pacifico_400Regular',        group: 'Manuscrit' },
+  { value: 'dancing_sc',    label: 'Dancing Script',      font: 'DancingScript_400Regular',   group: 'Manuscrit' },
+  // ── Déco ──
+  { value: 'special_elite', label: 'Vintage',             font: 'SpecialElite_400Regular',    group: 'Déco' },
+  { value: 'bangers',       label: 'Comic',               font: 'Bangers_400Regular',         group: 'Déco' },
+  // ── Système ──
+  { value: 'times_new_roman', label: 'Times New Roman',  font: 'TimesNewRoman',              group: 'Système' },
+  { value: 'comic_sans',      label: 'Comic Sans MS',     font: 'ComicSansMS',                group: 'Système' },
+  { value: 'verdana',         label: 'Verdana',           font: 'Verdana',                    group: 'Système' },
+  { value: 'book_antiqua',    label: 'Book Antiqua',      font: 'BookAntiqua',                group: 'Système' },
 ];
 
 function getFontFamily(fs: string): string {
@@ -292,7 +399,10 @@ function FloatingParticle({ emoji, delay, x }: { emoji: string; delay: number; x
 export default function PreviewScreen() {
   const router = useRouter();
   const C = useColors();
-  const { autoGen } = useLocalSearchParams<{ autoGen?: string }>();
+  const { autoGen, prefillMessage, petImageUrl, noEdit, petDirection, petName, petType, petBreed, petGender, petOwnerName, petId, petOwnerId, petThirdId, petThirdName, petPersonalityTags, fromTemplate, manualMode } = useLocalSearchParams<{ autoGen?: string; prefillMessage?: string; petImageUrl?: string; noEdit?: string; petDirection?: string; petName?: string; petType?: string; petBreed?: string; petGender?: string; petOwnerName?: string; petId?: string; petOwnerId?: string; petThirdId?: string; petThirdName?: string; petPersonalityTags?: string; fromTemplate?: string; manualMode?: string }>();
+  const isNoEdit = noEdit === '1';
+  const isManualEntry = manualMode === '1';
+  const isFromTemplate = fromTemplate === '1' || (!!prefillMessage && prefillMessage.trim().length > 0);
   const { generate, isPending } = useAIGenerate();
   const { i18n } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
@@ -308,7 +418,9 @@ export default function PreviewScreen() {
     contactEmail,
     generatedContent,
     savedMessageId,
+    sessionKey,
     setGeneratedContent,
+    setSavedMessageId,
     relation,
     familySubRelation,
     fontStyle,
@@ -322,12 +434,15 @@ export default function PreviewScreen() {
   const assist = useWritingAssistant();
 
   const isSong = format === 'song';
+
+  const musicStyle = `${occasion} ${musicVoice === 'female' ? 'female vocal' : musicVoice === 'male' ? 'male vocal' : ''}`.trim();
+
   const music = useMusicGeneration({
     messageId: savedMessageId ?? '',
     initialStatus: 'none',
     initialAudioUrl: null,
     lyrics: generatedContent,
-    style: `${occasion} ${musicVoice === 'female' ? 'female vocal' : musicVoice === 'male' ? 'male vocal' : ''}`.trim(),
+    style: musicStyle,
     tone,
     userId: profile?.id ?? '',
   });
@@ -340,8 +455,234 @@ export default function PreviewScreen() {
   }, [isSong, savedMessageId]);
 
   const [sending, setSending] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const isManuscript = fontStyle !== 'standard';
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  // ── Traduction du message ────────────────────────────────────────────────────
+  const TRANSLATE_LANGS = [
+    { code: 'en', flag: '🇬🇧', label: 'Anglais' },
+    { code: 'de', flag: '🇩🇪', label: 'Allemand' },
+    { code: 'es', flag: '🇪🇸', label: 'Espagnol' },
+    { code: 'it', flag: '🇮🇹', label: 'Italien' },
+    { code: 'pt', flag: '🇵🇹', label: 'Portugais' },
+  ];
+  const [showTranslatePicker, setShowTranslatePicker] = useState(false);
+  const [isTranslating, setIsTranslating]             = useState(false);
+  const [isRewritingPoem, setIsRewritingPoem]         = useState(false);
+  const originalContentRef                            = useRef<string | null>(null);
+  const originalOpeningRef                            = useRef<string | null>(null);
+  const originalClosingRef                            = useRef<string | null>(null);
+  const originalShowLatePSRef                         = useRef<boolean>(false);
+  const originalSelectedPSIdxRef                      = useRef<number>(0);
+  const scrollRef                                      = useRef<ScrollView>(null);
+  const sigSectionY                                    = useRef<number>(0);
+  const editInputRef                                   = useRef<import('react-native').TextInput>(null);
+  const messageCardRef                                 = useRef<View>(null);
+  const shareWrapperRef                                = useRef<View>(null);
+
+  // Réinitialise tout l'état local à chaque nouveau message (sessionKey change via bumpSessionKey())
+  const prevSessionKeyRef = useRef(sessionKey);
+  useEffect(() => {
+    if (prevSessionKeyRef.current !== sessionKey) {
+      prevSessionKeyRef.current = sessionKey;
+      // Visuels
+      setShowFestiveImage(false);
+      setFestiveSlug(null);
+      setShowSenderPhoto(false);
+      setPhotoUri(null);
+      setPhotoShape('round');
+      // Décorations message
+      setOpeningFormula(null);
+      setClosingFormula(null);
+      setBgTheme('none');
+      setShowLatePS(false);
+      setSelectedPSIdx(0);
+      // Accordéons
+      setSigOpen(false);
+      setOpeningOpen(false);
+      setClosingOpen(false);
+      setBgOpen(false);
+      setPhotoOpen(false);
+      setMultiOpen(false);
+      setTtsOpen(false);
+      setLatePSOpen(false);
+      // Multi-contacts
+      setExtraContacts([]);
+      // Édition
+      setIsEditing(false);
+      setLocalContent('');
+      // Panneau idées
+      setIdeasStep('closed');
+    }
+  }, [sessionKey]);
+
+  const [showMicHint, setShowMicHint]                  = useState(false);
+  const [senderPhotoUri, setSenderPhotoUri]             = useState<string | null>(() => profile?.avatar_url ?? null);
+  const [showSenderPhoto, setShowSenderPhoto]           = useState<boolean>(false);
+  const [photoShape, setPhotoShape]                     = useState<'round' | 'square'>('round');
+  const [showFestiveImage, setShowFestiveImage]         = useState(false);
+  const [festiveSlug, setFestiveSlug]                   = useState<string | null>(null);
+
+  const handlePickSenderPhoto = (onCancel?: () => void) => {
+    Alert.alert('Ta photo', 'Choisir depuis…', [
+      { text: 'Annuler', style: 'cancel', onPress: () => onCancel?.() },
+      {
+        text: '📷 Prendre un selfie',
+        onPress: () => {
+          Alert.alert(
+            'Astuce recadrage',
+            'Après la photo, centre ton visage dans le cadre puis appuie sur "Redimensionner" en haut pour valider.',
+            [{
+              text: "C'est parti ! 📸",
+              onPress: async () => {
+                const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                if (status !== 'granted') { onCancel?.(); return; }
+                const result = await ImagePicker.launchCameraAsync({
+                  cameraType: ImagePicker.CameraType.front,
+                  allowsEditing: true,
+                  aspect: [1, 1],
+                  quality: 0.8,
+                });
+                if (!result.canceled && result.assets[0]) {
+                  setSenderPhotoUri(result.assets[0].uri);
+                  setShowSenderPhoto(true);
+                } else { onCancel?.(); }
+              },
+            },
+            { text: 'Annuler', style: 'cancel', onPress: () => onCancel?.() }],
+          );
+        },
+      },
+      {
+        text: '🖼️ Choisir dans la galerie',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') { onCancel?.(); return; }
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
+          if (!result.canceled && result.assets[0]) {
+            setSenderPhotoUri(result.assets[0].uri);
+            setShowSenderPhoto(true);
+          } else { onCancel?.(); }
+        },
+      },
+      {
+        text: '👤 Utiliser ma photo de profil',
+        onPress: () => {
+          if (profile?.avatar_url) {
+            setSenderPhotoUri(profile.avatar_url);
+            setShowSenderPhoto(true);
+          } else { onCancel?.(); }
+        },
+      },
+    ]);
+  };
+
+  const handleTranslate = async (targetLang: string) => {
+    const body = isEditing ? localContent.trim() : generatedContent.trim();
+    if (!body) return;
+
+    // Sauvegarde l'état complet avant la première traduction
+    if (!originalContentRef.current) {
+      originalContentRef.current = body;
+      originalOpeningRef.current = openingFormula;
+      originalClosingRef.current = closingFormula;
+      originalShowLatePSRef.current = showLatePS;
+      originalSelectedPSIdxRef.current = selectedPSIdx;
+    }
+
+    // Assemble le message complet pour une traduction cohérente
+    const resolvedOpening = openingFormula
+      ? resolveOpening(openingFormula).replace('{prénom}', contactFirstName)
+      : null;
+    const parts = [resolvedOpening, body, closingFormula].filter(Boolean) as string[];
+    if (showLatePS) parts.push(activePSText);
+    const textToTranslate = parts.join('\n\n');
+
+    setShowTranslatePicker(false);
+    setIsTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-message', {
+        body: { text_to_translate: textToTranslate, language: targetLang },
+      });
+      if (error || !data?.content) throw new Error('Traduction échouée');
+      isContentReplaceRef.current = true;
+      setGeneratedContent(data.content as string);
+      if (isEditing) setLocalContent(data.content as string);
+      // Tout est intégré dans le corps traduit — on vide les éléments séparés pour éviter les doublons
+      setOpeningFormula(null);
+      setClosingFormula(null);
+      if (showLatePS) setShowLatePS(false);
+      if (savedMessageId) {
+        try { await import('../../../src/services/messages.service').then(m => m.updateMessageContent(savedMessageId, data.content as string)); } catch { /* non-bloquant */ }
+      }
+    } catch {
+      Alert.alert('Traduction', 'La traduction a échoué. Réessaie dans un instant.');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleRewriteAsPoem = async () => {
+    const textToRewrite = isEditing ? localContent.trim() : generatedContent.trim();
+    if (!textToRewrite) return;
+    if (!originalContentRef.current) originalContentRef.current = textToRewrite;
+    setIsRewritingPoem(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-message', {
+        body: { text_to_rewrite_as_poem: textToRewrite },
+      });
+      if (error || !data?.content) throw new Error('Réécriture échouée');
+      isContentReplaceRef.current = true;
+      setGeneratedContent(data.content as string);
+      if (isEditing) setLocalContent(data.content as string);
+      if (savedMessageId) {
+        try { await import('../../../src/services/messages.service').then(m => m.updateMessageContent(savedMessageId, data.content as string)); } catch { /* non-bloquant */ }
+      }
+    } catch {
+      Alert.alert('Poème', 'La réécriture a échoué. Réessaie dans un instant.');
+    } finally {
+      setIsRewritingPoem(false);
+    }
+  };
+
+  const handleRestoreOriginal = () => {
+    if (!originalContentRef.current) return;
+    isContentReplaceRef.current = true;
+    setGeneratedContent(originalContentRef.current);
+    if (isEditing) setLocalContent(originalContentRef.current);
+    setOpeningFormula(originalOpeningRef.current);
+    setClosingFormula(originalClosingRef.current);
+    setShowLatePS(originalShowLatePSRef.current);
+    setSelectedPSIdx(originalSelectedPSIdxRef.current);
+    originalContentRef.current = null;
+    originalOpeningRef.current = null;
+    originalClosingRef.current = null;
+    originalShowLatePSRef.current = false;
+    originalSelectedPSIdxRef.current = 0;
+    setShowTranslatePicker(false);
+  };
   const [writingHelpVisible, setWritingHelpVisible] = useState(false);
+  const [copyHelpVisible, setCopyHelpVisible] = useState(false);
+  const [imageHelpVisible, setImageHelpVisible] = useState(false);
+  const [fontPickerVisible, setFontPickerVisible] = useState(false);
+
+  // Charger la police préférée au montage
+  useEffect(() => {
+    SecureStore.getItemAsync('preferred_font_style').then((saved) => {
+      if (saved && FONT_STYLES.find(s => s.value === saved)) setFontStyle(saved as FontStyle);
+    }).catch(() => {});
+  }, []);
 
   // ── Panneau "Idées" — occasions → modèles ───────────────────────────────────
   const [ideasStep, setIdeasStep] = useState<'closed' | 'occasion' | 'templates'>('closed');
@@ -350,6 +691,7 @@ export default function PreviewScreen() {
   const [ideasLongueur, setIdeasLongueur] = useState<'court' | 'moyen' | 'long'>('court');
   const [ideasTemplates, setIdeasTemplates] = useState<{ id: string; title: string; content: string }[]>([]);
   const [ideasLoading, setIdeasLoading] = useState(false);
+  const [ideasFullPreview, setIdeasFullPreview] = useState<{ display: string; raw: string } | null>(null);
 
   const openIdeasOccasion = () => {
     setIdeasStep(ideasStep === 'closed' ? 'occasion' : 'closed');
@@ -371,7 +713,19 @@ export default function PreviewScreen() {
       .eq('longueur', longueur)
       .eq('is_system', true)
       .order('created_at', { ascending: true });
-    setIdeasTemplates((data as { id: string; title: string; content: string }[]) ?? []);
+
+    const remoteTemplates = (data as { id: string; title: string; content: string }[]) ?? [];
+
+    if (remoteTemplates.length > 0) {
+      setIdeasTemplates(remoteTemplates);
+    } else {
+      // Fallback sur les modèles locaux MANUAL_STARTERS
+      const starterSet = MANUAL_STARTERS[occ as keyof typeof MANUAL_STARTERS];
+      const texts: string[] = starterSet?.[ton]?.[longueur] ?? [];
+      const picked = pickRandom(texts, texts.length);
+      setIdeasTemplates(picked.map((content, i) => ({ id: `local-${i}`, title: content.slice(0, 40), content })));
+    }
+
     setIdeasLoading(false);
   };
 
@@ -382,11 +736,18 @@ export default function PreviewScreen() {
   };
 
   const applyIdeasTemplate = (content: string) => {
-    const firstName = contactName.trim().split(' ').slice(1).join(' ') || contactName.trim().split(' ')[0] || '';
+    const parts = contactName.trim().split(/\s+/);
+    const firstName = (() => { const f = parts.filter((w) => !(w === w.toUpperCase() && /[A-Z]/.test(w))); return f.join(' ') || parts[0] || 'toi'; })();
     const currentYear = new Date().getFullYear().toString();
-    const filled = content
-      .replace(/\{prenom\}/gi, firstName || 'toi')
-      .replace(/\{annee\}/gi, currentYear);
+    const filled = resolveGenderTokens(content, senderGender, contactGender)
+      .replace(/\{prenom\}/gi, firstName)
+      .replace(/\[Prénom\]/gi, firstName)
+      .replace(/\{annee\}/gi, currentYear)
+      .replace(/\r\n/g, '\n')
+      .replace(/\n+/g, '\n\n')
+      .replace(/([.!?…])[^\S\n]+([A-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜÇ\p{Emoji_Presentation}])/gu, '$1\n\n$2')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
     setLocalContent(filled);
     assist.dismissImproved();
     setIdeasStep('closed');
@@ -394,25 +755,75 @@ export default function PreviewScreen() {
 
   // ── Contacts (pour multi-envoi) ─────────────────────────────────────────────
   const { data: allContacts = [] } = useContacts();
+  const contactObj = allContacts.find((c) => c.id === contactId) ?? null;
+  const contactGender: 'f' | 'm' = contactObj?.civilite === 'Mme' ? 'f' : 'm';
+  const resolveOpening = (formula: string): string => {
+    if (contactGender !== 'f') return formula;
+    return formula
+      .replace('Mon cher', 'Ma chère')
+      .replace('Très cher', 'Très chère')
+      .replace('Cher ', 'Chère ');
+  };
+
+  const resolveGender = (text: string, gender: 'm' | 'f'): string => {
+    if (gender === 'f') {
+      return text
+        .replace(/heureux\(se\)/gi, 'heureuse')
+        .replace(/\(se\)/gi, 'se')
+        .replace(/eux\(se\)/gi, 'euse')
+        .replace(/\(e\)/gi, 'e')
+        .replace(/\(ère\)/gi, 'ère')
+        .replace(/\(ive\)/gi, 'ive')
+        .replace(/\(rice\)/gi, 'rice')
+        .replace(/\(trice\)/gi, 'trice');
+    }
+    return text
+      .replace(/heureux\(se\)/gi, 'heureux')
+      .replace(/\([^)]+\)/g, '');
+  };
 
   // ── Accordéon — état ouvert/fermé des 5 sections ────────────────────────────
-  const [sigOpen,     setSigOpen]     = useState(false);
-  const [bgOpen,      setBgOpen]      = useState(false);
+  const [sigOpen,         setSigOpen]         = useState(false);
+  const [openingOpen,     setOpeningOpen]     = useState(false);
+  const [openingFormula,  setOpeningFormula]  = useState<string | null>(null);
+  const [closingOpen,     setClosingOpen]     = useState(false);
+  const [closingFormula,  setClosingFormula]  = useState<string | null>(null);
+  const [bgOpen,          setBgOpen]          = useState(false);
   const [photoOpen,   setPhotoOpen]   = useState(false);
   const [multiOpen,   setMultiOpen]   = useState(false);
-  const [musicOpen,   setMusicOpen]   = useState(false);
   const [ttsOpen,     setTtsOpen]     = useState(false);
+  const [morseMode,   setMorseMode]   = useState(false);
+  const [bgMusicOpen, setBgMusicOpen] = useState(false);
+  const [latePSOpen,    setLatePSOpen]    = useState(false);
+  const [showLatePS,    setShowLatePS]    = useState(false);
+  const [selectedPSIdx, setSelectedPSIdx] = useState(0);
+  const activePSText = LATE_PS_OPTIONS[selectedPSIdx].text;
+
+  useEffect(() => {
+    if (sigOpen) {
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ y: sigSectionY.current, animated: true });
+      }, 100);
+    }
+  }, [sigOpen]);
 
   // ── Multi-destinataires ──────────────────────────────────────────────────────
   const [extraContacts,       setExtraContacts]       = useState<Contact[]>([]);
   const [contactSearch,       setContactSearch]       = useState('');
   const [multiSendProgress,   setMultiSendProgress]   = useState<{ current: number; total: number } | null>(null);
 
-  const filteredContacts = allContacts.filter((c) => {
-    if (c.id === contactId) return false; // exclure le contact principal
-    if (!contactSearch.trim()) return true;
-    return c.name.toLowerCase().includes(contactSearch.toLowerCase());
-  });
+  const filteredContacts = allContacts
+    .filter((c) => {
+      if (c.id === contactId) return false;
+      if (!contactSearch.trim()) return true;
+      return c.name.toLowerCase().includes(contactSearch.toLowerCase());
+    })
+    .sort((a, b) => {
+      // Tri par nom de famille (première partie du champ "NOM Prénom")
+      const lastA = a.name.trim().split(' ')[0].toLowerCase();
+      const lastB = b.name.trim().split(' ')[0].toLowerCase();
+      return lastA.localeCompare(lastB, 'fr');
+    });
 
   const toggleExtraContact = (contact: Contact) => {
     setExtraContacts((prev) =>
@@ -473,7 +884,7 @@ export default function PreviewScreen() {
   const [recipientCustom, setRecipientCustom] = useState('');
 
   // ── Signature personnalisée ──────────────────────────────────────────────────
-  type SigType = 'prenom' | 'lien' | 'lien_prenom' | 'nom_complet' | 'surnom';
+  type SigType = 'prenom' | 'lien' | 'lien_prenom' | 'nom_complet' | 'surnom' | 'none';
   const [sigType, setSigType] = useState<SigType>('prenom');
   const [sigCustom, setSigCustom] = useState('');
   const [sigHelpVisible, setSigHelpVisible] = useState(false);
@@ -483,19 +894,6 @@ export default function PreviewScreen() {
   const [bgHelpVisible, setBgHelpVisible] = useState(false);
   const activeBgTheme = BG_THEMES.find((t) => t.id === bgTheme) ?? BG_THEMES[0];
 
-  // ── Message musical ──────────────────────────────────────────────────────────
-  type MusicAmbiance = 'auto' | 'joyeux' | 'emouvant' | 'doux' | 'majestueux' | 'drole';
-  const [musicAmbiance, setMusicAmbiance] = useState<MusicAmbiance>('auto');
-  const [musicHelpVisible, setMusicHelpVisible] = useState(false);
-  const MUSIC_AMBIANCES: { id: MusicAmbiance; emoji: string; label: string }[] = [
-    { id: 'auto',       emoji: '🤖', label: 'Auto IA'    },
-    { id: 'joyeux',     emoji: '🎉', label: 'Joyeux'     },
-    { id: 'emouvant',   emoji: '💛', label: 'Émouvant'   },
-    { id: 'doux',       emoji: '🌸', label: 'Doux'       },
-    { id: 'majestueux', emoji: '✨', label: 'Majestueux' },
-    { id: 'drole',      emoji: '😄', label: 'Drôle'      },
-  ];
-
   // ── Message vocal (TTS) ──────────────────────────────────────────────────────
   const TTS_VOICES: { key: TTSVoiceKey; emoji: string; label: string; sub: string }[] = [
     { key: 'homme_neutre',     emoji: '🎙️', label: 'Homme',     sub: 'Neutre'      },
@@ -503,15 +901,63 @@ export default function PreviewScreen() {
     { key: 'femme_douce',      emoji: '🎤', label: 'Femme',     sub: 'Douce'       },
     { key: 'femme_joyeuse',    emoji: '🎤', label: 'Femme',     sub: 'Joyeuse'     },
   ];
-  const [ttsVoiceKey,   setTtsVoiceKey]   = useState<TTSVoiceKey>('femme_douce');
+  const [ttsVoiceKey,    setTtsVoiceKey]    = useState<TTSVoiceKey>('femme_douce');
+  const [ttsBgMusic,     setTtsBgMusic]     = useState<string>('piano');
   const [ttsHelpVisible, setTtsHelpVisible] = useState(false);
   const tts = useTTSGeneration();
 
-  // Préfixe possessif Ton/Ta selon le lien
-  const LIEN_FEMININ = new Set(['mère', 'sœur', 'grand-mère', 'tante', 'fille', 'cousine', 'petite-fille', 'belle-sœur']);
+  const TTS_BG_MUSIC_ALL: { key: string; emoji: string; label: string }[] = [
+    { key: 'aucune',     emoji: '🔇', label: 'Aucune'      },
+    { key: 'piano',      emoji: '🎹', label: 'Piano'       },
+    { key: 'guitare',    emoji: '🎸', label: 'Guitare'     },
+    { key: 'festif',     emoji: '🎉', label: 'Festive'     },
+    { key: 'romantique', emoji: '🎻', label: 'Romantique'  },
+    { key: 'berceuse',   emoji: '🌙', label: 'Berceuse'    },
+    { key: 'classique',  emoji: '🎼', label: 'Classique'   },
+    { key: 'triomphal',  emoji: '🎺', label: 'Triomphal'   },
+    { key: 'jazz',       emoji: '🎷', label: 'Jazz'        },
+    { key: 'noel',       emoji: '🎄', label: 'Noël'        },
+    { key: 'halloween',  emoji: '🎃', label: 'Halloween'   },
+    { key: 'tendre',     emoji: '💛', label: 'Tendre'      },
+  ];
+
+  const TTS_BG_MUSIC_BY_OCCASION: Record<string, string[]> = {
+    birthday:   ['aucune', 'festif',     'jazz',      'piano'    ],
+    nameday:    ['aucune', 'tendre',     'piano',     'guitare'  ],
+    wedding:    ['aucune', 'romantique', 'classique', 'piano'    ],
+    engagement: ['aucune', 'romantique', 'jazz',      'piano'    ],
+    birth:      ['aucune', 'berceuse',   'piano',     'tendre'   ],
+    baptism:    ['aucune', 'classique',  'tendre',    'piano'    ],
+    communion:  ['aucune', 'classique',  'piano',     'tendre'   ],
+    graduation: ['aucune', 'triomphal',  'festif',    'jazz'     ],
+    promotion:  ['aucune', 'triomphal',  'jazz',      'festif'   ],
+    thanks:     ['aucune', 'tendre',     'piano',     'guitare'  ],
+    newyear:    ['aucune', 'festif',     'jazz',      'triomphal'],
+    christmas:  ['aucune', 'noel',       'classique', 'piano'    ],
+    easter:     ['aucune', 'guitare',    'piano',     'classique'],
+    valentines: ['aucune', 'romantique', 'jazz',      'piano'    ],
+    mothersday: ['aucune', 'tendre',     'piano',     'guitare'  ],
+    fathersday: ['aucune', 'jazz',       'guitare',   'piano'    ],
+    halloween:  ['aucune', 'halloween',  'festif',    'piano'    ],
+    retirement: ['aucune', 'jazz',       'guitare',   'piano'    ],
+    support:    ['aucune', 'piano',      'tendre',    'guitare'  ],
+    greetings:  ['aucune', 'festif',     'guitare',   'jazz'     ],
+  };
+
+  const occasionMusicKeys = TTS_BG_MUSIC_BY_OCCASION[occasion] ?? ['aucune', 'piano', 'guitare', 'festif'];
+  const TTS_BG_MUSIC = TTS_BG_MUSIC_ALL.filter((m) => occasionMusicKeys.includes(m.key))
+    .sort((a, b) => occasionMusicKeys.indexOf(a.key) - occasionMusicKeys.indexOf(b.key));
+
+  // Genre de l'expéditeur — pour inverser correctement le lien famille
+  const senderGender: 'm' | 'f' = profile?.civilite === 'Mme' ? 'f' : 'm';
+
+  // Préfixe possessif Ton/Ta selon le lien inversé
+  const LIEN_FEMININ = new Set(['mère', 'sœur', 'grand-mère', 'tante', 'fille', 'cousine', 'petite-fille', 'belle-sœur', 'belle-fille', 'belle-mère', 'nièce']);
   const possessiveLien = (lien: string) => {
-    const prefix = LIEN_FEMININ.has(lien.toLowerCase()) ? 'Ta' : 'Ton';
-    return `${prefix} ${lien.charAt(0).toUpperCase()}${lien.slice(1)}`;
+    const lower = lien.toLowerCase();
+    const inverted = LIEN_INVERSE[lower]?.[senderGender] ?? lien;
+    const prefix = LIEN_FEMININ.has(inverted.toLowerCase()) ? 'Ta' : 'Ton';
+    return `${prefix} ${inverted.charAt(0).toUpperCase()}${inverted.slice(1)}`;
   };
 
   const nameParts2 = (profile?.full_name ?? '').trim().split(' ');
@@ -521,6 +967,7 @@ export default function PreviewScreen() {
   const computedSig = (() => {
     if (!sigType) return senderFirst || null;
     switch (sigType) {
+      case 'none': return null;
       case 'prenom': return senderFirst || null;
       case 'lien': return familySubRelation ? possessiveLien(familySubRelation) : null;
       case 'lien_prenom': return familySubRelation && senderFirst ? `${possessiveLien(familySubRelation)} ${senderFirst}` : senderFirst || null;
@@ -551,22 +998,118 @@ export default function PreviewScreen() {
     } catch { /* silent */ }
   };
 
+  const normalizeTemplateContent = (text: string) =>
+    text
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
   // Mode manuel (contenu vide / espace) → mémorisé pour toute la session
   const isManualMode = useRef(generatedContent.trim() === '');
   const [isEditing, setIsEditing] = useState(isManualMode.current);
-  const [localContent, setLocalContent] = useState(isManualMode.current ? '' : generatedContent);
+  const [localContent, setLocalContent] = useState(
+    isManualMode.current ? '' : normalizeTemplateContent(generatedContent)
+  );
   const isFirstRender = useRef(true);
+  // Empêche le useEffect de généredContent de réinitialiser isEditing lors d'une traduction/poème/restore
+  const isContentReplaceRef = useRef(false);
+  // Ref pour appliquer le prefill une seule fois (immunise contre les re-runs de useFocusEffect)
+  const appliedPrefillRef = useRef<string | null>(null);
+
+  // Gestion du focus : prefill bibliothèque (prioritaire) OU mode manuel
+  // Le prefill est intégré ici pour éviter toute course avec la useFocusEffect
+  useFocusEffect(
+    useCallback(() => {
+      if (isNoEdit) { setIsEditing(false); return; }
+
+      // Mode "À ma façon" — force toujours le mode édition actif dès l'arrivée
+      if (isManualEntry && !appliedPrefillRef.current) {
+        appliedPrefillRef.current = 'manual';
+        isManualMode.current = true;
+        setLocalContent('');
+        setIsEditing(true);
+        InteractionManager.runAfterInteractions(() => {
+          setTimeout(() => editInputRef.current?.focus(), 300);
+        });
+        return;
+      }
+
+      // Template DB — arrive directement en zone de saisie avec contenu formaté
+      if (fromTemplate === '1' && generatedContent.trim() && !appliedPrefillRef.current) {
+        appliedPrefillRef.current = 'template';
+        const normalized = resolveGender(normalizeTemplateContent(generatedContent), senderGender);
+        isContentReplaceRef.current = true;
+        setGeneratedContent(normalized);
+        setLocalContent(normalized);
+        isManualMode.current = false;
+        setIsEditing(true);
+        return;
+      }
+
+      // Pré-remplissage depuis les librairies (Mode Jeune, BFF, etc.) — une seule fois par message
+      if (prefillMessage && prefillMessage.trim() && appliedPrefillRef.current !== prefillMessage) {
+        appliedPrefillRef.current = prefillMessage;
+        const formatted = resolveGender(
+          normalizeTemplateContent(prefillMessage),
+          senderGender
+        );
+        setGeneratedContent(formatted);
+        setLocalContent(formatted);
+        isManualMode.current = false;
+        setIsEditing(false);
+        return;
+      }
+
+      // Mode manuel : si pas de prefill et pas de contenu IA
+      if (!appliedPrefillRef.current) {
+        const isManual = generatedContent.trim() === '';
+        isManualMode.current = isManual;
+        if (isManual) {
+          setIsEditing(true);
+          setLocalContent('');
+        }
+      }
+    }, [generatedContent, isNoEdit, prefillMessage, fromTemplate, isManualEntry])
+  );
+
+  // Reset TTS quand le store est réinitialisé (nouveau message) — savedMessageId revient à null
+  useEffect(() => {
+    if (savedMessageId === null && (tts.isReady || tts.isFailed || tts.isLoading)) {
+      tts.reset();
+      setTtsBgMusic('piano');
+    }
+  }, [savedMessageId]);
 
   // Auto-génération si lancé depuis l'accueil (quick-send)
   useEffect(() => {
     if (autoGen === '1') generate();
   }, []);
 
+  // Focus clavier après la transition de navigation (évite le conflit animation/clavier)
+  useEffect(() => {
+    if (!isEditing) return;
+    const interaction = InteractionManager.runAfterInteractions(() => {
+      const t = setTimeout(() => editInputRef.current?.focus(), 300);
+      return () => clearTimeout(t);
+    });
+    return () => interaction.cancel();
+  }, [isEditing]);
+
   // Sync quand le contenu change (après régénération) — skip le premier rendu
+  // isContentReplaceRef évite de sortir du mode édition lors d'une traduction/poème/restore
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
-    setLocalContent(generatedContent);
-    setIsEditing(false);
+    if (isContentReplaceRef.current) {
+      isContentReplaceRef.current = false;
+      const isManual = generatedContent.trim() === '';
+      isManualMode.current = isManual;
+      if (!isManual) setLocalContent(normalizeTemplateContent(generatedContent));
+      return;
+    }
+    const isManual = generatedContent.trim() === '';
+    isManualMode.current = isManual;
+    setLocalContent(isManual ? '' : normalizeTemplateContent(generatedContent));
+    if (!isManual) setIsEditing(false);
   }, [generatedContent]);
 
   const handleSaveEdit = async () => {
@@ -584,11 +1127,11 @@ export default function PreviewScreen() {
   const sigLabels = showSig ? getSignatureLabels(i18n.language) : null;
 
   const formatEmoji: Record<string, string> = { song: '🎵', poem: '✍️', message: '💬', joke: '✨' };
-  // contactName stocké "NOM Prénom" → afficher "Prénom NOM"
-  const nameParts = contactName.trim().split(' ');
-  const contactFirstName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : nameParts[0];
-  const contactLastName  = nameParts[0] ?? '';
-  const contactFullName  = nameParts.length > 1 ? `${contactFirstName} ${contactLastName}` : contactFirstName;
+  // contactName stocké "NOM Prénom" → extraire le prénom (parties non tout-en-majuscules)
+  const nameParts = contactName.trim().split(/\s+/);
+  const contactFirstName = (() => { const f = nameParts.filter((w) => !(w === w.toUpperCase() && /[A-Z]/.test(w))); return f.join(' ') || nameParts[0] || contactName; })();
+  const contactLastName  = nameParts.find((w) => w === w.toUpperCase() && /[A-Z]/.test(w)) ?? '';
+  const contactFullName  = contactLastName ? `${contactFirstName} ${contactLastName}` : contactFirstName;
 
   const recipientLabel = (() => {
     switch (recipientType) {
@@ -602,10 +1145,12 @@ export default function PreviewScreen() {
   const title = recipientLabel ? `Pour ${recipientLabel}` : 'Votre message';
   const emoji = formatEmoji[format] ?? '💬';
 
-  const senderFirstName = computedSig;
+  const senderFirstName = (petDirection === 'from' || petDirection === 'from_to_third') && petName
+    ? petName
+    : computedSig;
 
   const reactionLink = savedMessageId
-    ? `\n\n💬 Réagis à ce message : https://confetticake.fr/reaction/${savedMessageId}`
+    ? `\n\n💬 Réagis à ce message : https://confetticake.fr/reaction.html?id=${savedMessageId}`
     : '';
 
   // ── Envoi vers un seul destinataire (texte + phone + email prédéfinis) ────────
@@ -652,18 +1197,87 @@ export default function PreviewScreen() {
     }
   };
 
+  const captureAndShare = async (): Promise<boolean> => {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      const uri = await captureRef(shareWrapperRef, { format: 'png', quality: 1 });
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) return false;
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Envoyer le message' });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleShare = async (channelId: string) => {
-    const closing = senderFirstName ? `\n\n${senderFirstName}` : '';
-    const bodyText = `${generatedContent}${closing}${reactionLink}`;
+    // Si en mode écriture : sauvegarder le texte en cours ET l'utiliser directement
+    const contentToSend = isEditing ? localContent.trim() : generatedContent;
+    if (!contentToSend) return;
+    if (isEditing) {
+      setGeneratedContent(contentToSend);
+      setIsEditing(false);
+      if (savedMessageId) {
+        try { await updateMessageContent(savedMessageId, contentToSend); } catch { /* non-bloquant */ }
+      }
+    }
+
+    // Sauvegarder en DB si pas encore fait (template / manuel) → nécessaire pour le lien de réaction
+    let effectiveMsgId = savedMessageId;
+    if (!effectiveMsgId && profile?.id && contentToSend.trim()) {
+      try {
+        const saved = await saveMessage(profile.id, {
+          contact_id:   contactId   ?? null,
+          contact_name: contactName,
+          format, tone,
+          content: contentToSend,
+          relation: relation ?? 'friend',
+        });
+        effectiveMsgId = saved.id;
+        setSavedMessageId(saved.id);
+      } catch { /* non-bloquant */ }
+    }
+    const effectiveReactionLink = effectiveMsgId
+      ? `\n\n💬 Réagis à ce message : https://confetticake.fr/reaction.html?id=${effectiveMsgId}`
+      : '';
+    const resolvedOpening = openingFormula
+      ? resolveOpening(openingFormula).replace('{prénom}', contactFirstName)
+      : null;
+    const openingLine = resolvedOpening ? `${resolvedOpening}\n` : '';
+    const formuleLine = closingFormula ? `\n${closingFormula}` : '';
+    const closing = senderFirstName ? `\n${senderFirstName}` : '';
+    const bodyText = `${openingLine}${contentToSend}${formuleLine}${closing}${effectiveReactionLink}`;
     const fullText = `${emoji} ${title}\n\n${bodyText}`;
     const baseText = channelId === 'email' ? bodyText : fullText;
-    const text = showSig ? baseText + buildSignatureText(i18n.language) : baseText;
+    const vocalUrl = (tts.isReady && savedMessageId)
+      ? `https://confetticake.fr/vocal.html?id=${savedMessageId}&bg=${ttsBgMusic}`
+      : null;
+    const bgMusicUrl = null;
+    const ttsLine = vocalUrl ? `\n🎙️ ${vocalUrl}` : '';
+    const morseUrl = morseMode && contentToSend
+      ? `https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?morse=1&msg=${encodeURIComponent(contentToSend)}&name=${encodeURIComponent(contactFirstName)}&anim=stars`
+      : null;
+    const morseLine = morseUrl ? `\n📡 Mode décalé Morse 😄 : ${morseUrl}` : '';
+    const text = (showSig ? baseText + buildSignatureText(i18n.language) : baseText) + (showLatePS ? '\n\n' + activePSText : '') + ttsLine + morseLine;
 
     setSending(true);
     try {
-      // ── Contact principal ────────────────────────────────────────────────────
-      const sent = await sendToOne(channelId, text, contactPhone, contactEmail);
-      if (!sent) { setSending(false); return; }
+      // WhatsApp → toujours partager en image (pleine largeur dans le chat)
+      // Autres canaux → image seulement si attachment visuel, sinon texte
+
+      const hasVisualAttachment = (showFestiveImage && !!festiveSlug) || (showSenderPhoto && !!senderPhotoUri);
+      if (channelId === 'whatsapp' || hasVisualAttachment) {
+        const ok = await captureAndShare();
+        if (!ok) { setSending(false); return; }
+        // Après l'image WhatsApp → envoyer le lien de réaction en texte séparé
+        if (channelId === 'whatsapp' && effectiveMsgId) {
+          const linkText = `💬 Réagis à ce message : https://confetticake.fr/reaction.html?id=${effectiveMsgId}`;
+          await sendToOne('whatsapp', linkText, contactPhone, contactEmail);
+        }
+      } else {
+        const sent = await sendToOne(channelId, text, contactPhone, contactEmail);
+        if (!sent) { setSending(false); return; }
+      }
 
       // Sauvegarder le style visuel + photo + marquer comme envoyé (best-effort)
       if (savedMessageId) {
@@ -697,10 +1311,10 @@ export default function PreviewScreen() {
             ? `${extraNameParts.slice(1).join(' ')} ${extraNameParts[0]}`
             : extraNameParts[0];
           const extraTitle = `Pour ${extraDisplayName}`;
-          const extraBodyText = `${generatedContent}${closing}`;
+          const extraBodyText = `${generatedContent}${formuleLine}${closing}`;
           const extraFullText = `${emoji} ${extraTitle}\n\n${extraBodyText}`;
           const extraBase = channelId === 'email' ? extraBodyText : extraFullText;
-          const extraText = showSig ? extraBase + buildSignatureText(i18n.language) : extraBase;
+          const extraText = (showSig ? extraBase + buildSignatureText(i18n.language) : extraBase) + (showLatePS ? '\n\n' + activePSText : '');
 
           await sendToOne(channelId, extraText, extra.phone, extra.email);
 
@@ -729,6 +1343,20 @@ export default function PreviewScreen() {
     }
   };
 
+  const handleOpenAccordion = async (section: 'bg' | 'sig') => {
+    const trimmed = localContent.trim();
+    if (trimmed) {
+      setGeneratedContent(trimmed);
+      if (savedMessageId) {
+        try { await updateMessageContent(savedMessageId, trimmed); } catch { /* silent */ }
+      }
+    }
+    Keyboard.dismiss();
+    setIsEditing(false);
+    if (section === 'bg') setBgOpen(true);
+    else if (section === 'sig') setSigOpen(true);
+  };
+
   const handleRegenerate = () => {
     if (isManualMode.current) {
       // Mode manuel : vider le champ et rouvrir l'éditeur
@@ -741,12 +1369,95 @@ export default function PreviewScreen() {
 
   const styles = useMemo(() => makeStyles(C), [C]);
 
+  const SW = Dimensions.get('window').width;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+
+      {/* Vue de capture invisible — plein écran, carré, pour partage WhatsApp (toujours montée) */}
+      <View
+        ref={shareWrapperRef}
+        collapsable={false}
+        pointerEvents="none"
+        style={{ position: 'absolute', top: 0, left: 0, width: SW, backgroundColor: '#f5f0ff', padding: 18, zIndex: -999, opacity: 0.01 }}
+      >
+          <View style={{ backgroundColor: 'white', borderRadius: 18, padding: 14 }}>
+            {showFestiveImage && !!festiveSlug && (() => {
+              const imageUrl = getFestiveImageUrl(occasion, festiveSlug);
+              const captureFirstName = (petDirection === 'to' && petName) ? petName : contactFirstName;
+              return (
+                <View style={{ marginBottom: 8 }}>
+                  <Image source={{ uri: imageUrl }} style={{ width: '100%', height: 110, borderRadius: 10 }} resizeMode="cover" />
+                  <Text style={{ textAlign: 'center', fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 15, color: '#FDD34D', marginTop: 4, textShadowColor: 'rgba(0,0,0,0.15)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}>
+                    ✨ {captureFirstName} ✨
+                  </Text>
+                </View>
+              );
+            })()}
+            {showSenderPhoto && !!senderPhotoUri && !showFestiveImage && (
+              <View style={{ alignItems: 'center', marginBottom: 8 }}>
+                <Image source={{ uri: senderPhotoUri }} style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: '#f5f0ff' }} resizeMode="cover" />
+              </View>
+            )}
+            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 15, textAlign: 'center', color: '#1a1a2e', marginBottom: 5 }}>
+              {emoji} {title}
+            </Text>
+            {openingFormula && (
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#333', marginBottom: 12, lineHeight: 17 }}>
+                {resolveOpening(openingFormula).replace('{prénom}', contactFirstName)}
+              </Text>
+            )}
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#333', lineHeight: 17 }}>
+              {generatedContent}
+            </Text>
+            {closingFormula && (
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#555', marginTop: 4 }}>{closingFormula}</Text>
+            )}
+            {senderFirstName && (
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#555', textAlign: 'right', marginTop: 2, paddingRight: 8 }}>{senderFirstName}</Text>
+            )}
+          </View>
+          <View style={{ alignItems: 'center', marginTop: 10, gap: 2 }}>
+            <Text style={{ fontSize: 10, color: '#9b6bb5', fontFamily: 'BeVietnamPro_700Bold', letterSpacing: 0.8 }}>
+              🎂 CONFETTIS & CAKE
+            </Text>
+            <Text style={{ fontSize: 9, color: '#b08ec0', fontFamily: 'BeVietnamPro_400Regular', letterSpacing: 0.3 }}>
+              Des messages qui font chavirer les cœurs 💌
+            </Text>
+            <Text style={{ fontSize: 8, color: '#c4a8d4', fontFamily: 'BeVietnamPro_600SemiBold', letterSpacing: 0.2 }}>
+              confetticake.fr
+            </Text>
+          </View>
+        </View>
+
       {/* Topbar */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+        <TouchableOpacity
+          onPress={() => {
+            if (petDirection && petId && petName) {
+              router.replace({
+                pathname: '/(app)/animal-message',
+                params: {
+                  petId,
+                  petName,
+                  petType: petType ?? 'autre',
+                  breed: petBreed ?? '',
+                  petGender: petGender ?? '',
+                  ownerName: petOwnerName ?? '',
+                  ownerId: petOwnerId ?? '',
+                  direction: petDirection,
+                  ...(petThirdId   ? { thirdId:   petThirdId   } : {}),
+                  ...(petThirdName ? { thirdName: petThirdName } : {}),
+                  personalityTags: petPersonalityTags ?? '[]',
+                },
+              } as never);
+            } else {
+              router.back();
+            }
+          }}
+          style={styles.backLink}
+        >
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>{isEditing ? 'Modifier' : 'Aperçu'}</Text>
         <View style={styles.topbarActions}>
@@ -762,7 +1473,7 @@ export default function PreviewScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {/* ── Album cover ───────────────────────────────── */}
         <LinearGradient
@@ -778,6 +1489,31 @@ export default function PreviewScreen() {
             {format === 'song' ? 'Chanson' : format === 'poem' ? 'Poème' : format === 'joke' ? 'Humour' : 'Message'}
           </Text>
         </LinearGradient>
+
+        {/* ── Accroche animal ──────────────────────────── */}
+        {!!petDirection && !!petName && (() => {
+          const article   = petGender === 'female' ? 'la' : 'le';
+          const descriptor = petBreed || petType || 'animal';
+          const ownerParts = (petOwnerName ?? '').trim().split(/\s+/);
+          const ownerUpper = ownerParts.filter(p => p.length > 1 && p === p.toUpperCase());
+          const ownerMixed = ownerParts.filter(p => p.length <= 1 || p !== p.toUpperCase());
+          const ownerDisplay = ownerMixed.length && ownerUpper.length ? [...ownerMixed, ...ownerUpper].join(' ') : (petOwnerName ?? '');
+          const identite  = `${petName}, ${article} ${descriptor} de ${ownerDisplay}`;
+          let text = '';
+          if (petDirection === 'to')
+            text = `📬 Ce message est à l'attention de ${identite} 🐾`;
+          else if (petDirection === 'from')
+            text = `📬 Tu as reçu un message de la part de ${petName} 🐾`;
+          else if (petDirection === 'from_to_third')
+            text = `📬 Tu as reçu un message de la part de ${identite} 🐾`;
+          return (
+            <View style={{ backgroundColor: '#FFF7ED', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#FED7AA', marginBottom: 4 }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 13, color: '#92400E', textAlign: 'center', lineHeight: 20 }}>
+                {text}
+              </Text>
+            </View>
+          );
+        })()}
 
         {/* ── Lecteur audio (chanson uniquement) ───────── */}
         {format === 'song' && (
@@ -799,37 +1535,165 @@ export default function PreviewScreen() {
               </View>
         )}
 
+        {/* ── Intro "À ma façon" ───────────────────────── */}
+        {isManualEntry && (
+          <View style={{ backgroundColor: Colors.white, borderRadius: 16, padding: 18, gap: 12, borderWidth: 1, borderColor: Colors.outlineVariant, marginBottom: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: C.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 24 }}>✏️</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface, lineHeight: 24 }}>
+                  Tu écris toi-même
+                </Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, marginTop: 2 }}>
+                  100 % à ta façon, 100 % toi
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ height: 1, backgroundColor: Colors.outlineVariant + '60' }} />
+
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, lineHeight: 21 }}>
+              {'Parfois, les mots les plus touchants sont ceux qu\'on trouve soi-même. Ici, pas d\'IA, pas de modèle — juste toi, ton style, et ce que tu as envie de dire vraiment. 💛'}
+            </Text>
+
+            <View style={{ height: 1, backgroundColor: Colors.outlineVariant + '60' }} />
+
+            <View style={{ gap: 8 }}>
+              {[
+                { emoji: '💬', text: 'Tape ton message dans la zone de texte ci-dessous' },
+                { emoji: '✨', text: 'Le bouton « Améliorer » peut te donner un coup de pouce si besoin' },
+                { emoji: '💡', text: 'Pas d\'inspiration ? Utilise le bouton « Voir les modèles » ci-dessous' },
+              ].map((item) => (
+                <View key={item.emoji} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                  <Text style={{ fontSize: 16, marginTop: 1 }}>{item.emoji}</Text>
+                  <Text style={{ flex: 1, fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, lineHeight: 20 }}>
+                    {item.text}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* ── Aperçu complet du message reçu ───────────── */}
         <View style={styles.previewEnvelope}>
           <Text style={styles.previewEnvelopeLabel}>📩 Ce que ton contact va recevoir</Text>
+          <Text style={styles.previewEnvelopeSub}>{'Cet écran reflète en temps réel le message final — avec ta formule d\'ouverture, ton texte, ta signature et tous les ajouts que tu as activés ci-dessous. Ce que tu vois ici, c\'est exactement ce que ton proche recevra 👇'}</Text>
 
           {/* ── Style d'écriture ────────────────────────── */}
-          {!isEditing && (
+          {!isNoEdit && (
             <View style={styles.writingSection}>
+              {/* Image festive */}
+              {hasFestiveImages(occasion) && !isManualEntry && (
+                <View style={{ marginTop: 10, borderRadius: Radii.xl, backgroundColor: '#FFF7ED', padding: 14, gap: 10, borderWidth: 1, borderColor: '#FED7AA' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.md, color: '#D97706' }}>🎊 Image festive dans le message</Text>
+                      <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, marginTop: 3, lineHeight: 18 }}>
+                        Ajoute une image avec le prénom de {contactName.split(' ').find((p: string) => p !== p.toUpperCase()) ?? contactName.split(' ')[0]}
+                      </Text>
+                    </View>
+                    <Switch
+                      value={showFestiveImage}
+                      onValueChange={(v) => {
+                        setShowFestiveImage(v);
+                        if (v && !festiveSlug) setFestiveSlug(FESTIVE_IMAGES[occasion]?.[0]?.slug ?? null);
+                      }}
+                      trackColor={{ false: Colors.outlineVariant, true: '#D97706' }}
+                      thumbColor="#fff"
+                    />
+                  </View>
+                  {showFestiveImage && FESTIVE_IMAGES[occasion] && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      {FESTIVE_IMAGES[occasion].map((img) => (
+                        <TouchableOpacity
+                          key={img.slug}
+                          onPress={() => setFestiveSlug(img.slug)}
+                          activeOpacity={0.8}
+                          style={{ borderRadius: Radii.lg, borderWidth: 2, borderColor: festiveSlug === img.slug ? '#D97706' : Colors.outlineVariant, overflow: 'hidden', width: 64, height: 64 }}
+                        >
+                          <Image source={{ uri: getFestiveImageUrl(occasion, img.slug) }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+              )}
+
+              {/* Photo expéditeur */}
+              <View style={{ marginTop: 10, borderRadius: Radii.xl, backgroundColor: C.primaryContainer + '60', padding: 14, gap: 10, borderWidth: 1, borderColor: C.primary + '30' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.md, color: C.primary }}>📷 Ma photo dans le message</Text>
+                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: C.onSurface, marginTop: 3, lineHeight: 18 }}>
+                      Ajoute la photo de ton visage (ou une autre photo) en haut du message pour le personnaliser
+                    </Text>
+                  </View>
+                  <Switch
+                    value={showSenderPhoto && !!senderPhotoUri}
+                    onValueChange={(v) => {
+                      if (v && !senderPhotoUri) { handlePickSenderPhoto(() => setShowSenderPhoto(false)); }
+                      else setShowSenderPhoto(v);
+                    }}
+                    trackColor={{ false: Colors.outlineVariant, true: C.primary }}
+                    thumbColor="#fff"
+                  />
+                </View>
+                {showSenderPhoto && !!senderPhotoUri && (
+                  <View style={{ gap: 10 }}>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {(['round', 'square'] as const).map((s) => (
+                        <TouchableOpacity
+                          key={s}
+                          onPress={() => setPhotoShape(s)}
+                          activeOpacity={0.8}
+                          style={{ flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: Radii.lg, borderWidth: 1.5, borderColor: photoShape === s ? C.primary : Colors.outlineVariant, backgroundColor: photoShape === s ? C.primaryContainer : Colors.white }}
+                        >
+                          <Text style={{ fontSize: 16 }}>{s === 'round' ? '⬤' : '■'}</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: photoShape === s ? C.primary : Colors.onSurfaceVariant, marginTop: 2 }}>
+                            {s === 'round' ? 'Rond' : 'Carré'}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Image source={{ uri: senderPhotoUri }} style={{ width: 52, height: 52, borderRadius: photoShape === 'round' ? 26 : 10, borderWidth: 3, borderColor: C.primary }} />
+                      <TouchableOpacity
+                        onPress={handlePickSenderPhoto}
+                        activeOpacity={0.7}
+                        style={{ backgroundColor: C.primary, borderRadius: Radii.full, paddingVertical: 7, paddingHorizontal: 14 }}
+                      >
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#fff' }}>Changer la photo</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {/* Style d'écriture */}
               <View style={styles.writingSectionHeader}>
                 <Text style={styles.writingSectionTitle}>✍️ Style d'écriture</Text>
                 <TouchableOpacity onPress={() => setWritingHelpVisible(true)} style={styles.writingHelpBtn}>
                   <Text style={styles.writingHelpBtnText}>ℹ️</Text>
                 </TouchableOpacity>
               </View>
-              {/* Grille 8 styles */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.fontStyleScroll} contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
-                {FONT_STYLES.map((s) => (
-                  <TouchableOpacity
-                    key={s.value}
-                    style={[styles.fontStyleCard, fontStyle === s.value && styles.fontStyleCardActive]}
-                    onPress={() => setFontStyle(s.value)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={{ fontFamily: s.font, fontSize: 20, color: fontStyle === s.value ? C.primary : Colors.onSurface, marginBottom: 4 }}>
-                      Abc
-                    </Text>
-                    <Text style={[styles.fontStyleCardLabel, fontStyle === s.value && { color: C.primary }]} numberOfLines={2}>
-                      {s.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant, lineHeight: 17, marginBottom: 8 }}>
+                {'Choisis la police qui correspond à ton message — classique, manuscrite ou originale. Le changement s\'applique immédiatement.'}
+              </Text>
+              {/* Bouton ouvrir le picker de police */}
+              <TouchableOpacity
+                onPress={() => setFontPickerVisible(true)}
+                activeOpacity={0.8}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.surfaceContainerLow, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: Colors.outlineVariant }}
+              >
+                <Text style={{ fontFamily: getFontFamily(fontStyle), fontSize: 14, color: Colors.onSurface }}>
+                  {FONT_STYLES.find(s => s.value === fontStyle)?.label ?? 'Standard'}
+                </Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 13, color: C.primary }}>Changer ▸</Text>
+              </TouchableOpacity>
+
               {/* Taille */}
               <View style={styles.fontSizeRow}>
                 <Text style={styles.fontSizeLabel}>Taille :</Text>
@@ -852,29 +1716,80 @@ export default function PreviewScreen() {
                   <Text style={[styles.fontSizeBtnText, { fontStyle: 'italic' }, isItalic && styles.fontSizeBtnTextActive]}>I</Text>
                 </TouchableOpacity>
               </View>
+
             </View>
           )}
 
-          {isEditing ? (
+          {isEditing && !isNoEdit ? (
             <View style={styles.editCard}>
+              {/* ── Bouton micro ─────────────────────── */}
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 20, backgroundColor: Colors.surfaceContainerLow }}
+                  onPress={() => {
+                    editInputRef.current?.focus();
+                    setShowMicHint(true);
+                    setTimeout(() => setShowMicHint(false), 3000);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 14 }}>🎤</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: 11, color: Colors.onSurfaceVariant }}>Dicter</Text>
+                </TouchableOpacity>
+              </View>
+              {showMicHint && (
+                <View style={{ backgroundColor: '#1A1A2E', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 12, marginBottom: 6, alignSelf: 'center' }}>
+                  <Text style={{ color: '#fff', fontSize: 12, fontFamily: 'BeVietnamPro_400Regular' }}>
+                    Appuie sur le 🎤 de ton clavier pour dicter
+                  </Text>
+                </View>
+              )}
+              {/* ── Formule d'ouverture ─────────────────── */}
+              {openingFormula && (
+                <Text style={{ fontFamily: getFontFamily(fontStyle), fontSize: 14, color: Colors.onSurfaceVariant, fontStyle: 'italic', paddingHorizontal: 4, marginBottom: 2 }}>
+                  {resolveOpening(openingFormula).replace('{prénom}', contactFirstName)}
+                </Text>
+              )}
+
               {/* ── Zone de texte ───────────────────── */}
               <TextInput
-                style={styles.editInput}
+                ref={editInputRef}
+                style={[styles.editInput, { fontFamily: getFontFamily(fontStyle) }]}
                 value={localContent}
                 onChangeText={(v) => {
                   setLocalContent(v);
                   assist.dismissImproved();
                 }}
                 multiline
-                autoFocus
                 textAlignVertical="top"
                 placeholder="Écris ton message… ou inspire-toi 💡"
                 placeholderTextColor={Colors.outlineVariant}
               />
 
-              {/* ── Suggestion de complétion ─────────────────── */}
-              {assist.completion && !assist.improved && (
+              {/* ── Formule de clôture + signature ──────── */}
+              {(closingFormula || senderFirstName) && (
+                <View style={{ paddingHorizontal: 4, marginTop: 2, gap: 2 }}>
+                  {closingFormula && (
+                    <Text style={{ fontFamily: getFontFamily(fontStyle), fontSize: 14, color: Colors.onSurfaceVariant, fontStyle: 'italic' }}>
+                      {closingFormula}
+                    </Text>
+                  )}
+                  {senderFirstName && (
+                    <Text style={{ fontFamily: getFontFamily(fontStyle), fontSize: 14, color: Colors.onSurfaceVariant, fontStyle: 'italic', textAlign: 'right' }}>
+                      {senderFirstName}
+                    </Text>
+                  )}
+                </View>
+              )}
+
+
+
+              {/* ── Suggestion de complétion (hors mode modèle) ── */}
+              {!isFromTemplate && !isManualEntry && assist.completion && !assist.improved && (
                 <View style={styles.completionCard}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 11, color: Colors.onSurfaceVariant, marginBottom: 4 }}>
+                    💡 Suggestion — → pour accepter, ✕ pour ignorer
+                  </Text>
                   <Text style={styles.completionText}>
                     <Text style={styles.completionDots}>…</Text>
                     {assist.completion}
@@ -897,23 +1812,136 @@ export default function PreviewScreen() {
                 </View>
               )}
 
+              {/* ── Résultat "Améliorer" ─────────────────────── */}
+              {assist.improved && (
+                <View style={styles.improvedCard}>
+                  <Text style={styles.improvedLabel}>✨ Version améliorée</Text>
+                  <Text style={styles.improvedText}>{assist.improved}</Text>
+                  <View style={styles.completionActions}>
+                    <TouchableOpacity
+                      style={styles.completionAcceptBtn}
+                      onPress={() => {
+                        setLocalContent(assist.improved!);
+                        assist.dismissImproved();
+                      }}
+                    >
+                      <Text style={styles.completionAcceptText}>→ Utiliser cette version</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={assist.dismissImproved} style={styles.completionDismissBtn}>
+                      <Text style={styles.completionDismissText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
 
               {/* ── Barre d'actions IA ───────────────────────── */}
               <View style={styles.assistBar}>
                 <TouchableOpacity
-                  style={[styles.assistBtn, ideasStep !== 'closed' && styles.assistBtnActive]}
-                  onPress={openIdeasOccasion}
+                  style={[styles.assistBtn, assist.activeAction === 'improve' && styles.assistBtnActive]}
+                  onPress={() => {
+                    if (localContent.trim().length < 5) return;
+                    assist.improve({ text: localContent, contact_name: contactName, relation, occasion });
+                  }}
                   activeOpacity={0.8}
+                  disabled={assist.isLoading || localContent.trim().length < 5}
                 >
-                  <Text style={[styles.assistBtnText, ideasStep !== 'closed' && { color: C.primary }]}>
-                    {ideasStep !== 'closed' ? '✕ Fermer' : '💡 Idées'}
+                  <Text style={[styles.assistBtnText, assist.activeAction === 'improve' && { color: C.primary }]}>
+                    {assist.activeAction === 'improve' ? '⏳ …' : '✨ Améliorer'}
                   </Text>
                 </TouchableOpacity>
+                {isFromTemplate ? (
+                  <TouchableOpacity
+                    style={styles.assistBtn}
+                    onPress={async () => {
+                      const { savedMessageId: mid } = useCreateStore.getState();
+                      if (mid) { try { await deleteMessage(mid); } catch { /* silent */ } }
+                      useCreateStore.getState().setJumpToTemplates(true);
+                      router.navigate('/(app)/create' as never);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.assistBtnText}>🔄 Autre modèle</Text>
+                  </TouchableOpacity>
+                ) : !isManualEntry ? (
+                  <TouchableOpacity
+                    style={[styles.assistBtn, ideasStep !== 'closed' && styles.assistBtnActive]}
+                    onPress={openIdeasOccasion}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.assistBtnText, ideasStep !== 'closed' && { color: C.primary }]}>
+                      {ideasStep !== 'closed' ? '✕ Fermer' : '💡 Idées'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
+
+              {/* ── Suggestion modèles (mode manuel uniquement) ── */}
+              {isManualEntry && (
+                <View style={{ marginTop: 10, backgroundColor: C.primaryContainer, borderRadius: 12, padding: 14, alignItems: 'center', gap: 10 }}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurface, lineHeight: 20, textAlign: 'center' }}>
+                    {'📚 Pas d\'inspiration ? Tu peux repartir d\'un modèle.'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      const { savedMessageId: mid } = useCreateStore.getState();
+                      if (mid) { try { await deleteMessage(mid); } catch { /* silent */ } }
+                      useCreateStore.getState().setJumpToTemplates(true);
+                      router.navigate('/(app)/create' as never);
+                    }}
+                    activeOpacity={0.8}
+                    style={{ backgroundColor: C.primary, borderRadius: 99, paddingHorizontal: 20, paddingVertical: 8 }}
+                  >
+                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#fff' }}>Voir les modèles</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* ── Panneau Idées : sélection occasion ──────── */}
               {ideasStep === 'occasion' && (
                 <View style={styles.ideasPanel}>
+                  {/* Intro + accès bibliothèque complète */}
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#6B7280', lineHeight: 17, marginBottom: 6 }}>
+                    {'Besoin d\'inspiration ? Deux options :'}
+                  </Text>
+                  <View style={{ backgroundColor: '#F5F3FF', borderRadius: 12, padding: 10, gap: 6, marginBottom: 2 }}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 12, color: '#5B21B6' }}>
+                      📚 La bibliothèque complète
+                    </Text>
+                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: '#6D28D9', lineHeight: 16 }}>
+                      {'Des milliers de messages écrits par de vraies personnes — classés par style : BFF, Mode Jeune, Langue de bois, Ado qui écrit à ses parents, Sans filtre… Tu copies celui qui te ressemble et tu l\'adaptes.'}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.ideasLibraryBtn}
+                      onPress={() => {
+                        setIdeasStep('closed');
+                        useCreateStore.getState().setJumpToTemplates(true);
+                        router.navigate('/(app)/create' as never);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.ideasLibraryBtnText}>📚 Toute la bibliothèque</Text>
+                        <Text style={styles.ideasLibraryBtnSub}>BFF, Mode Jeune, Sans filtre, Ado→Parent…</Text>
+                      </View>
+                      <Text style={{ fontSize: 18, color: '#7C3AED' }}>›</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.ideasOccasionDivider}>
+                    <View style={styles.ideasDividerLine} />
+                    <Text style={styles.ideasDividerText}>ou</Text>
+                    <View style={styles.ideasDividerLine} />
+                  </View>
+
+                  <View style={{ backgroundColor: '#F0F9FF', borderRadius: 12, padding: 10, gap: 4, marginBottom: 6 }}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 12, color: '#0369A1' }}>
+                      ⚡ Un modèle rapide par occasion
+                    </Text>
+                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: '#0284C7', lineHeight: 16 }}>
+                      {'Choisis une occasion ci-dessous pour voir quelques messages clés-en-main à insérer directement.'}
+                    </Text>
+                  </View>
+
                   <Text style={styles.ideasPanelTitle}>Pour quelle occasion ?</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
                     {IDEAS_OCCASIONS.map((o) => (
@@ -928,6 +1956,31 @@ export default function PreviewScreen() {
                       </TouchableOpacity>
                     ))}
                   </View>
+
+                  {/* Info "Choisir un modèle" */}
+                  <View style={{ marginTop: 12, backgroundColor: '#F0FDF4', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#86EFAC', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 16 }}>💡</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: '#166534', lineHeight: 16 }}>
+                        {'Tu veux repartir d\'un message tout fait ? Utilise '}
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>Choisir un modèle</Text>
+                        {' depuis la page de création pour accéder aux modèles classiques par occasion.'}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={{ marginTop: 6, borderWidth: 1.5, borderColor: '#22C55E', borderRadius: 12, paddingVertical: 9, alignItems: 'center' }}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setIdeasStep('closed');
+                      useCreateStore.getState().setJumpToTemplates(true);
+                      router.navigate('/(app)/create' as never);
+                    }}
+                  >
+                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 13, color: '#16A34A' }}>
+                      📋 Choisir un modèle →
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
@@ -982,38 +2035,115 @@ export default function PreviewScreen() {
                   ) : ideasTemplates.length === 0 ? (
                     <Text style={styles.templateEmpty}>Aucun modèle disponible.</Text>
                   ) : (
-                    ideasTemplates.map((tpl) => (
-                      <TouchableOpacity
-                        key={tpl.id}
-                        style={styles.ideasTemplateRow}
-                        onPress={() => applyIdeasTemplate(tpl.content)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.ideasTemplatePreview} numberOfLines={ideasLongueur === 'court' ? 2 : 6}>
-                          {tpl.content
-                            .replace(/\{prenom\}/gi, contactName.trim().split(' ').slice(1).join(' ') || contactName.trim().split(' ')[0] || 'Prénom')
-                            .replace(/\{annee\}/gi, new Date().getFullYear().toString())}
-                        </Text>
-                        <Text style={styles.ideasTemplateCta}>→ Utiliser</Text>
-                      </TouchableOpacity>
-                    ))
+                    ideasTemplates.map((tpl) => {
+                      const _parts = contactName.trim().split(/\s+/);
+                      const firstName = (() => { const f = _parts.filter((w) => !(w === w.toUpperCase() && /[A-Z]/.test(w))); return f.join(' ') || _parts[0] || '[Prénom]'; })();
+                      const filled = resolveGenderTokens(tpl.content, senderGender, contactGender)
+                        .replace(/\{prenom\}/gi, firstName)
+                        .replace(/\[Prénom\]/gi, firstName)
+                        .replace(/\{annee\}/gi, new Date().getFullYear().toString());
+                      return (
+                        <View key={tpl.id} style={styles.ideasTemplateRow}>
+                          <Text style={styles.ideasTemplatePreview} numberOfLines={ideasLongueur === 'court' ? 2 : 4}>
+                            {filled}
+                          </Text>
+                          <View style={styles.ideasTemplateFooter}>
+                            <TouchableOpacity
+                              onPress={() => setIdeasFullPreview({ display: filled, raw: tpl.content })}
+                              activeOpacity={0.75}
+                            >
+                              <Text style={styles.ideasTemplateSeeMore}>👁️ Voir en entier</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => applyIdeasTemplate(tpl.content)}
+                              activeOpacity={0.8}
+                            >
+                              <Text style={styles.ideasTemplateCta}>✉️ Utiliser ce modèle</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      );
+                    })
                   )}
                 </View>
               )}
 
               {/* ── Teaser aperçu ────────────────────────────── */}
               <View style={styles.previewTeaserRow}>
-                {['🎨 Fond animé', '🎵 Musique', '✍️ Signature'].map((item) => (
-                  <View key={item} style={styles.previewTeaserChip}>
-                    <Text style={styles.previewTeaserText}>{item}</Text>
-                  </View>
-                ))}
+                <TouchableOpacity
+                  style={styles.previewTeaserChip}
+                  onPress={() => handleOpenAccordion('sig')}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.previewTeaserText}>✍️ Signature</Text>
+                </TouchableOpacity>
               </View>
 
-              {/* ── Voir l'aperçu ────────────────────────────── */}
-              <TouchableOpacity style={styles.editValidateBtn} onPress={handleSaveEdit}>
-                <Text style={styles.editValidateBtnText}>👁️ Voir ton message avant envoi</Text>
-              </TouchableOpacity>
+              {/* ── Traduire (fixe, toujours visible) ───────── */}
+              <View style={styles.translateWrap}>
+                {isTranslating ? (
+                  <View style={styles.translateLoadingRow}>
+                    <ActivityIndicator size="small" color="#7C3AED" />
+                    <Text style={styles.translateLoadingText}>Traduction en cours…</Text>
+                  </View>
+                ) : (
+                  <>
+                    <View style={styles.translateBtnRow}>
+                      <TouchableOpacity
+                        style={styles.translateBtn}
+                        onPress={() => setShowTranslatePicker((v) => !v)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.translateBtnText}>🌍 Traduire ce message</Text>
+                      </TouchableOpacity>
+                      {originalContentRef.current && (
+                        <TouchableOpacity
+                          style={styles.translateRestoreBtn}
+                          onPress={handleRestoreOriginal}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.translateRestoreText}>↩ Texte original</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {showTranslatePicker && (
+                      <View style={styles.translatePicker}>
+                        <View style={styles.translateHint}>
+                          <Text style={styles.translateHintEmoji}>🌍</Text>
+                          <Text style={styles.translateHintText}>
+                            {"Envoyer un message dans la langue de ton proche, c'est une petite attention qui fait souvent toute la différence 💛 L'IA le traduit directement dans la langue choisie."}
+                          </Text>
+                        </View>
+                        <View style={styles.translateLangRow}>
+                          {TRANSLATE_LANGS.map((l) => (
+                            <TouchableOpacity
+                              key={l.code}
+                              style={styles.translateLangBtn}
+                              onPress={() => handleTranslate(l.code)}
+                              activeOpacity={0.75}
+                            >
+                              <Text style={styles.translateLangFlag}>{l.flag}</Text>
+                              <Text style={styles.translateLangLabel}>{l.label}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+
+              {/* ── Effacer et réécrire (mode manuel uniquement) ── */}
+              {isManualMode.current && (
+                <TouchableOpacity
+                  style={[styles.regenFullBtn, isPending && { opacity: 0.5 }]}
+                  onPress={handleRegenerate}
+                  disabled={isPending}
+                >
+                  <Text style={styles.regenFullBtnText}>🗑 Effacer et réécrire</Text>
+                </TouchableOpacity>
+              )}
+
             </View>
           ) : format === 'song' || format === 'poem'
             ? <LyricsCard content={generatedContent} fontStyle={fontStyle as FontStyle} fontSize={fontSize} isItalic={isItalic} />
@@ -1021,29 +2151,204 @@ export default function PreviewScreen() {
                 const mFont = getFontFamily(fontStyle);
                 const fSizeObj = FONT_SIZES.find((s) => s.key === fontSize) ?? FONT_SIZES[1];
                 return (
-                  <View style={[styles.messageCard, isManuscript && styles.messageCardManuscript]}>
+                  <View ref={messageCardRef} collapsable={false} style={[styles.messageCard, isManuscript && styles.messageCardManuscript]}>
+                    {!!petImageUrl && (
+                      <Image
+                        source={{ uri: petImageUrl }}
+                        style={{ width: '100%', aspectRatio: 1, borderRadius: Radii.lg, marginBottom: Spacing[3] }}
+                        resizeMode="contain"
+                      />
+                    )}
+                    {showFestiveImage && !!festiveSlug && (() => {
+                      const imageUrl = getFestiveImageUrl(occasion, festiveSlug);
+                      // Quand on écrit À l'animal (direction 'to'), le destinataire c'est l'animal
+                      const firstName = (petDirection === 'to' && petName)
+                        ? petName
+                        : (contactName.split(' ').find((p: string) => p !== p.toUpperCase()) ?? contactName.split(' ')[0] ?? contactName);
+                      return (
+                        <View style={{ width: '100%', marginBottom: Spacing[3], alignItems: 'center', gap: 10 }}>
+                          <Image
+                            source={{ uri: imageUrl }}
+                            style={{ width: '100%', aspectRatio: 4/3, borderRadius: Radii.lg }}
+                            resizeMode="cover"
+                          />
+                          <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 26, color: '#FDD34D', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.15)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}>
+                            ✨ {firstName} ✨
+                          </Text>
+                        </View>
+                      );
+                    })()}
+                    {showSenderPhoto && !!senderPhotoUri && (
+                      <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                        <Image
+                          source={{ uri: senderPhotoUri }}
+                          style={photoShape === 'square'
+                            ? { width: '100%', aspectRatio: 1, borderRadius: 14, borderWidth: 3, borderColor: '#fff' }
+                            : { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: '#fff' }
+                          }
+                          resizeMode="cover"
+                        />
+                      </View>
+                    )}
                     <Text style={[styles.messageHeader, { fontFamily: mFont }]}>{emoji} {title}</Text>
                     <Text style={[styles.messageBrand, { fontFamily: mFont, fontSize: 14, letterSpacing: 0.5 }]}>by ConfettiCake</Text>
-                    <Text style={[styles.messageText, { fontFamily: mFont, fontSize: fSizeObj.size, lineHeight: fSizeObj.lineHeight, fontStyle: isItalic ? 'italic' : 'normal' }]}>{generatedContent}</Text>
+                    {openingFormula && (
+                      <Text style={[styles.messageText, { fontFamily: mFont, fontSize: fSizeObj.size, lineHeight: fSizeObj.lineHeight, fontStyle: isItalic ? 'italic' : 'normal', marginBottom: 16 }]}>
+                        {resolveOpening(openingFormula).replace('{prénom}', contactFirstName)}
+                      </Text>
+                    )}
+                    {generatedContent.split(/\n{2,}/).map((para, i, arr) => (
+                      <Text key={i} style={[styles.messageText, { fontFamily: mFont, fontSize: fSizeObj.size, lineHeight: fSizeObj.lineHeight, fontStyle: isItalic ? 'italic' : 'normal', marginBottom: i < arr.length - 1 ? 8 : 0 }]}>
+                        {para}
+                      </Text>
+                    ))}
+                    {closingFormula && (
+                      <Text style={[styles.messageSender, { fontFamily: mFont, fontSize: fSizeObj.size, lineHeight: fSizeObj.lineHeight, textAlign: 'left', fontStyle: isItalic ? 'italic' : 'normal', marginTop: 8 }]}>{closingFormula}</Text>
+                    )}
                     {senderFirstName && (
-                      <Text style={[styles.messageSender, { fontFamily: mFont, fontSize: fSizeObj.size - 2, textAlign: 'right', fontStyle: isItalic ? 'italic' : 'normal' }]}>{senderFirstName}</Text>
+                      <Text style={[styles.messageSender, { fontFamily: mFont, fontSize: fSizeObj.size, lineHeight: fSizeObj.lineHeight, textAlign: 'right', fontStyle: isItalic ? 'italic' : 'normal' }]}>{senderFirstName}</Text>
+                    )}
+                    {showLatePS && (
+                      <>
+                        <View style={{ height: 1, backgroundColor: '#FCD34D', marginTop: 14, marginBottom: 10 }} />
+                        <Text style={{ fontFamily: mFont, fontSize: fSizeObj.size - 3, color: '#78350F', fontStyle: isItalic ? 'italic' : 'normal', lineHeight: fSizeObj.lineHeight - 4 }}>
+                          {activePSText}
+                        </Text>
+                      </>
                     )}
                   </View>
                 );
               })()
             }
 
-          {/* Signature bannière */}
-          {showSig && sigLabels && (
-            <View style={styles.signatureBanner}>
-              <Text style={styles.sigMain}>{sigLabels.main}</Text>
-              <Text style={styles.sigCta}>
-                {sigLabels.cta}{' '}
-                <Text style={styles.sigUrl}>{sigLabels.url}</Text>
+
+          {/* ── Modifier + Changer de modèle (mode aperçu) ──────────────── */}
+          {!isEditing && !isNoEdit && (
+            isFromTemplate ? (
+              <View style={styles.templateActionRow}>
+                <TouchableOpacity style={[styles.templateActionBtn, styles.templateActionBtnEdit]} onPress={() => setIsEditing(true)} activeOpacity={0.8}>
+                  <Text style={styles.templateActionBtnEditText}>✏️ Modifier ce texte</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.templateActionBtn, styles.templateActionBtnChange]}
+                  onPress={async () => {
+                    const { savedMessageId: mid } = useCreateStore.getState();
+                    if (mid) { try { await deleteMessage(mid); } catch { /* silent */ } }
+                    useCreateStore.getState().setJumpToTemplates(true);
+                    router.back();
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.templateActionBtnChangeText}>🔄 Autre modèle</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.editPromptBtn} onPress={() => setIsEditing(true)}>
+                <Text style={styles.editPromptText}>✏️ Modifier moi-même le texte</Text>
+              </TouchableOpacity>
+            )
+          )}
+
+          {!isManualMode.current && !isEditing && (
+            <TouchableOpacity
+              style={[styles.regenFullBtn, { marginTop: Spacing[3] }, isPending && { opacity: 0.5 }]}
+              onPress={handleRegenerate}
+              disabled={isPending}
+            >
+              <Text style={styles.regenFullBtnText}>
+                {isPending ? '⏳ Génération...' : '↺ Nouvelle version avec l\'IA'}
               </Text>
+            </TouchableOpacity>
+          )}
+
+          {!isEditing && (
+            <TouchableOpacity
+              style={[styles.regenFullBtn, { marginTop: Spacing[3], borderColor: '#F59E0B', paddingHorizontal: Spacing[5] }]}
+              onPress={() => router.push({ pathname: '/(app)/cards', params: { contactId, contactName, occasion } } as never)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.regenFullBtnText, { color: '#F59E0B' }]}>🎴 Accompagner d'une carte animée</Text>
+            </TouchableOpacity>
+          )}
+
+          {generatedContent.trim().length > 0 && !isEditing && (
+            <View style={styles.translateWrap}>
+              {isTranslating ? (
+                <View style={styles.translateLoadingRow}>
+                  <ActivityIndicator size="small" color="#7C3AED" />
+                  <Text style={styles.translateLoadingText}>Traduction en cours…</Text>
+                </View>
+              ) : isRewritingPoem ? (
+                <View style={styles.translateLoadingRow}>
+                  <ActivityIndicator size="small" color="#7C3AED" />
+                  <Text style={styles.translateLoadingText}>Réécriture en poème…</Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.translateBtnRow}>
+                    <TouchableOpacity
+                      style={styles.translateBtn}
+                      onPress={() => setShowTranslatePicker((v) => !v)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.translateBtnText}>🌍 Traduire ce message</Text>
+                    </TouchableOpacity>
+                    {originalContentRef.current && (
+                      <TouchableOpacity
+                        style={styles.translateRestoreBtn}
+                        onPress={handleRestoreOriginal}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.translateRestoreText}>↩ Texte original</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {showTranslatePicker && (
+                    <View style={styles.translatePicker}>
+                      {TRANSLATE_LANGS.map((l) => (
+                        <TouchableOpacity
+                          key={l.code}
+                          style={styles.translateLangBtn}
+                          onPress={() => handleTranslate(l.code)}
+                          activeOpacity={0.75}
+                        >
+                          <Text style={styles.translateLangFlag}>{l.flag}</Text>
+                          <Text style={styles.translateLangLabel}>{l.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                  <View style={styles.poemIntroWrap}>
+                    <Text style={styles.poemIntroText}>
+                      ✨ Envie d'une touche poétique ? L'IA réécrit, tant que possible, ton message en poème rimé.
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.poemBtn}
+                      onPress={handleRewriteAsPoem}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.poemBtnText}>🎭 Transformer en poème</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
             </View>
           )}
+
         </View>
+
+        {/* ── Badge no-fautes ──────────────────────────── */}
+        {!isEditing && generatedContent.trim().length > 0 && (
+          <View style={styles.noFautesBadge}>
+            <Text style={styles.noFautesBadgeText}>
+              {'Fini les '}
+              <Text style={styles.noFautesBadgeStrike}>fôtes</Text>
+              {'  '}
+              <Text style={styles.noFautesBadgeCorrect}>fautes ✓</Text>
+              {'  — l\'IA soigne chaque mot 🪄'}
+            </Text>
+          </View>
+        )}
 
         {/* ── Destinataire ─────────────────────────────── */}
         {!isEditing && (
@@ -1053,11 +2358,14 @@ export default function PreviewScreen() {
               onPress={() => setRecipientOpen((o) => !o)}
               activeOpacity={0.7}
             >
-              <View style={styles.accordionLeft}>
+              <View style={[styles.accordionLeft, { gap: 4 }]}>
                 <Text style={styles.recipientSectionTitle}>🎯 Adresser à</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant, lineHeight: 17 }}>
+                  {'Le prénom qui s\'affichera en tête du message reçu par ton contact.'}
+                </Text>
                 {!recipientOpen && (
                   <Text style={styles.accordionBadge}>
-                    {recipientType === 'aucun' ? 'Non affiché' : recipientLabel ?? '—'}
+                    {recipientType === 'aucun' ? '🚫 Non affiché' : `Adressé à : ${recipientLabel ?? '—'}`}
                   </Text>
                 )}
               </View>
@@ -1070,7 +2378,7 @@ export default function PreviewScreen() {
               <>
                 <View style={[styles.recipientIntroCard, { borderLeftColor: C.primary }]}>
                   <Text style={styles.recipientIntroText}>
-                    {"Choisis comment le prénom du destinataire apparaîtra en haut de ta carte — prénom seul, prénom + nom, ou une appellation affectueuse à toi 💛"}
+                    {"Choisis comment le nom du destinataire apparaîtra en haut de ta carte — prénom seul, prénom + nom, ou une appellation affectueuse à toi 💛"}
                   </Text>
                 </View>
 
@@ -1117,24 +2425,170 @@ export default function PreviewScreen() {
           </View>
         )}
 
+        {/* ── Mots d'ouverture ──────────────────────────── */}
+        {!isNoEdit && (
+          <View style={[styles.sigSection, { borderColor: '#7C3AED' }]}>
+            <TouchableOpacity
+              style={[styles.sigSectionHeader, { alignItems: 'flex-start' }]}
+              onPress={() => setOpeningOpen((o) => !o)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.accordionLeft, { gap: 4 }]}>
+                <Text style={[styles.sigSectionTitle, { color: '#7C3AED' }]}>👋 Le début du message</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant, lineHeight: 17 }}>
+                  {'Les premiers mots donnent le ton avant même que ton proche ait lu la suite. "Bonjour Sophie" c\'est chaleureux. "Chère Sophie" c\'est touchant. "Coucou Sophie" c\'est complice. Choisis les mots qui vous ressemblent.'}
+                </Text>
+                {!openingOpen && openingFormula && (
+                  <Text style={[styles.accordionBadge, { backgroundColor: '#F3EFFF', color: '#7C3AED', marginTop: 2 }]}>
+                    {resolveOpening(openingFormula).replace('{prénom}', contactFirstName)}
+                  </Text>
+                )}
+                {!openingOpen && !openingFormula && (
+                  <Text style={[styles.accordionBadge, { color: Colors.onSurface, marginTop: 2 }]}>▸ Choisir une formule</Text>
+                )}
+              </View>
+              <Text style={[styles.accordionArrow, { color: '#7C3AED', marginTop: 2 }]}>{openingOpen ? '▾' : '▸'}</Text>
+            </TouchableOpacity>
+            {openingOpen && (
+              <>
+                {/* Aucun + 7 formules auto-genrées */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setOpeningFormula(null)}
+                    activeOpacity={0.8}
+                    style={[styles.sigChip, !openingFormula && styles.sigChipActive]}
+                  >
+                    <Text style={[styles.sigChipLabel, !openingFormula && styles.sigChipLabelActive]}>Aucun</Text>
+                  </TouchableOpacity>
+                  {OPENING_FORMULAS.map((f) => {
+                    const displayed = resolveOpening(f.value).replace('{prénom}', contactFirstName);
+                    return (
+                      <TouchableOpacity
+                        key={f.value}
+                        onPress={() => setOpeningFormula(f.value)}
+                        activeOpacity={0.8}
+                        style={[styles.sigChip, openingFormula === f.value && styles.sigChipActive, openingFormula === f.value && { borderColor: '#7C3AED', backgroundColor: '#F3EFFF' }]}
+                      >
+                        <Text style={[styles.sigChipLabel, openingFormula === f.value && { color: '#7C3AED', fontFamily: 'BeVietnamPro_700Bold' }]}>{displayed}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {openingFormula && (
+                  <View style={[styles.sigPreview, { borderColor: '#7C3AED' + '40', marginTop: 12 }]}>
+                    <Text style={styles.sigPreviewLabel}>Aperçu :</Text>
+                    <Text style={[styles.sigPreviewValue, { color: '#7C3AED' }]}>{resolveOpening(openingFormula).replace('{prénom}', contactFirstName)}</Text>
+                  </View>
+                )}
+              </>
+            )}
+          </View>
+        )}
+
+        {/* ── Les mots de la fin ───────────────────────── */}
+        {!isNoEdit && (
+          <View style={[styles.sigSection, { borderColor: '#5C8FA8' }]}>
+            <TouchableOpacity
+              style={[styles.sigSectionHeader, { alignItems: 'flex-start' }]}
+              onPress={() => setClosingOpen((o) => !o)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.accordionLeft, { gap: 4 }]}>
+                <Text style={[styles.sigSectionTitle, { color: '#5C8FA8' }]}>💌 La fin du message</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant, lineHeight: 17 }}>
+                  {'C\'est la petite phrase qui clôt un message avant la signature — "Bien à toi", "Cordialement", "Bisous"… Un détail qui change tout dans la façon dont ton message est reçu.'}
+                </Text>
+                {!closingOpen && closingFormula && (
+                  <Text style={[styles.accordionBadge, { backgroundColor: '#EFF6FF', color: '#5C8FA8', marginTop: 2 }]}>{closingFormula}</Text>
+                )}
+                {!closingOpen && !closingFormula && (
+                  <Text style={[styles.accordionBadge, { color: Colors.onSurface, marginTop: 2 }]}>▸ Choisir une formule</Text>
+                )}
+              </View>
+              <Text style={[styles.accordionArrow, { color: '#5C8FA8', marginTop: 2 }]}>{closingOpen ? '▾' : '▸'}</Text>
+            </TouchableOpacity>
+            {closingOpen && (
+              <>
+                <View style={[styles.sigIntroCard, { borderLeftColor: '#5C8FA8' }]}>
+                  <Text style={styles.sigIntroText}>
+                    {'👫 Amical → pour les proches, les amis, la famille\n🤝 Semi-formel → pour les collègues ou relations mixtes\n📋 Formel → pour un supérieur, une relation professionnelle'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setClosingFormula(null)}
+                  activeOpacity={0.8}
+                  style={[styles.sigChip, !closingFormula && styles.sigChipActive, { marginBottom: 10 }]}
+                >
+                  <Text style={[styles.sigChipLabel, !closingFormula && styles.sigChipLabelActive]}>Aucune</Text>
+                </TouchableOpacity>
+                {CLOSING_GROUPS.map((group) => (
+                  <View key={group} style={{ marginBottom: 10 }}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 11, color: CLOSING_GROUP_COLOR[group], marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>{group}</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                      {CLOSING_FORMULAS.filter((f) => f.group === group).map((f) => (
+                        <TouchableOpacity
+                          key={f.value}
+                          onPress={() => setClosingFormula(f.value)}
+                          activeOpacity={0.8}
+                          style={[
+                            styles.sigChip,
+                            closingFormula === f.value && styles.sigChipActive,
+                            closingFormula === f.value && { borderColor: CLOSING_GROUP_COLOR[group], backgroundColor: CLOSING_GROUP_COLOR[group] + '15' },
+                          ]}
+                        >
+                          <Text style={[
+                            styles.sigChipLabel,
+                            closingFormula === f.value && styles.sigChipLabelActive,
+                            closingFormula === f.value && { color: CLOSING_GROUP_COLOR[group] },
+                          ]}>
+                            {f.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+                {closingFormula && (
+                  <View style={[styles.sigPreview, { borderColor: '#5C8FA8' + '40' }]}>
+                    <Text style={styles.sigPreviewLabel}>Aperçu :</Text>
+                    <Text style={[styles.sigPreviewValue, { color: '#5C8FA8' }]}>{closingFormula}</Text>
+                  </View>
+                )}
+              </>
+            )}
+          </View>
+        )}
+
         {/* ── Signature personnalisée ──────────────────── */}
-        {!isEditing && (
-          <View style={styles.sigSection}>
+        {!isNoEdit && (
+          <View
+            style={styles.sigSection}
+            onLayout={(e) => { sigSectionY.current = e.nativeEvent.layout.y; }}
+          >
             <TouchableOpacity
               style={styles.sigSectionHeader}
               onPress={() => setSigOpen((o) => !o)}
               activeOpacity={0.7}
             >
               <View style={styles.accordionLeft}>
-                <Text style={styles.sigSectionTitle}>✍️ Ta signature</Text>
-                {!sigOpen && computedSig && (
-                  <Text style={styles.accordionBadge}>{computedSig}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.sigSectionTitle}>✍️ Ta signature</Text>
+                  <TouchableOpacity onPress={() => setSigHelpVisible(true)} style={styles.sigHelpBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text style={styles.sigHelpBtnText}>ℹ️</Text>
+                  </TouchableOpacity>
+                </View>
+                {!sigOpen && (
+                  <>
+                    <Text style={styles.accordionBadge}>
+                      {computedSig ? `Par défaut, c'est : ${computedSig}.` : 'Personnalise ta signature'}
+                    </Text>
+                    {!!computedSig && (
+                      <Text style={styles.accordionBadge}>Mais tu as d'autres options.</Text>
+                    )}
+                  </>
                 )}
               </View>
               <View style={styles.accordionRight}>
-                <TouchableOpacity onPress={() => setSigHelpVisible(true)} style={styles.sigHelpBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={styles.sigHelpBtnText}>ℹ️</Text>
-                </TouchableOpacity>
                 <Text style={[styles.accordionArrow, { color: C.primary }]}>{sigOpen ? '▾' : '▸'}</Text>
               </View>
             </TouchableOpacity>
@@ -1147,16 +2601,24 @@ export default function PreviewScreen() {
                 </View>
                 {/* Sélecteur de type */}
                 <View style={styles.sigChipsRow}>
+                  <TouchableOpacity
+                    style={[styles.sigChip, sigType === 'none' && styles.sigChipActive]}
+                    onPress={() => setSigType('none')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.sigChipLabel, sigType === 'none' && styles.sigChipLabelActive]}>Aucune signature</Text>
+                  </TouchableOpacity>
                   {(relation === 'family'
                     ? ([
                         { type: 'prenom' as SigType, label: `Prénom — ${senderFirst || '…'}` },
+                        { type: 'nom_complet' as SigType, label: `Prénom + Nom — ${senderFirst} ${senderLast !== senderFirst ? senderLast : ''}`.trim() },
                         { type: 'lien' as SigType, label: familySubRelation ? possessiveLien(familySubRelation) : 'Lien seul' },
                         { type: 'lien_prenom' as SigType, label: familySubRelation && senderFirst ? `${possessiveLien(familySubRelation)} ${senderFirst}` : 'Lien + prénom' },
                         { type: 'surnom' as SigType, label: '✏️ Surnom libre' },
                       ] as const)
                     : ([
                         { type: 'prenom' as SigType, label: `Prénom — ${senderFirst || '…'}` },
-                        { type: 'nom_complet' as SigType, label: `Complet — ${senderFirst} ${senderLast !== senderFirst ? senderLast : ''}`.trim() },
+                        { type: 'nom_complet' as SigType, label: `Prénom + Nom — ${senderFirst} ${senderLast !== senderFirst ? senderLast : ''}`.trim() },
                         { type: 'surnom' as SigType, label: '✏️ Surnom libre' },
                       ] as const)
                   ).map((opt) => (
@@ -1196,63 +2658,72 @@ export default function PreviewScreen() {
           </View>
         )}
 
-        {/* ── Fond coloré et animé ─────────────────────── */}
-        {!isEditing && (
-          <View style={styles.bgSection}>
+        {/* ── PS d'excuse de retard ───────────────────── */}
+        {!isNoEdit && (
+          <View style={[styles.sigSection, { borderColor: '#FCD34D' }]}>
             <TouchableOpacity
-              style={styles.bgSectionHeader}
-              onPress={() => setBgOpen((o) => !o)}
+              style={styles.sigSectionHeader}
+              onPress={() => setLatePSOpen((o) => !o)}
               activeOpacity={0.7}
             >
-              <View style={styles.accordionLeft}>
-                <Text style={styles.bgSectionTitle}>🎨 Fond animé</Text>
-                {!bgOpen && bgTheme !== 'none' && (
-                  <Text style={styles.accordionBadge}>{activeBgTheme.emoji} {activeBgTheme.label}</Text>
+              <View style={[styles.accordionLeft, { gap: 4 }]}>
+                <Text style={[styles.sigSectionTitle, { color: '#92400E' }]}>😅 En retard ?</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant, lineHeight: 17 }}>
+                  {'Tu envoies ce message un peu en retard ? Choisis le ton de ton excuse et elle s\'ajoutera automatiquement sous ta signature. 💛'}
+                </Text>
+                {showLatePS && !latePSOpen && (
+                  <Text style={[styles.accordionBadge, { backgroundColor: '#FEF3C7', color: '#92400E' }]}>PS activé</Text>
                 )}
               </View>
               <View style={styles.accordionRight}>
-                <TouchableOpacity onPress={() => setBgHelpVisible(true)} style={styles.bgHelpBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={styles.bgHelpBtnText}>ℹ️</Text>
-                </TouchableOpacity>
-                <Text style={[styles.accordionArrow, { color: C.primary }]}>{bgOpen ? '▾' : '▸'}</Text>
+                <Text style={[styles.accordionArrow, { color: '#D97706' }]}>{latePSOpen ? '▾' : '▸'}</Text>
               </View>
             </TouchableOpacity>
-            {bgOpen && (
-              <>
-                <View style={[styles.bgIntroCard, { borderLeftColor: C.primary }]}>
-                  <Text style={styles.bgIntroText}>
-                    {"Et si cette année ton message arrivait habillé de couleurs et d'animations ? 🎨 Confettis, pétales, flocons... choisis le fond qui correspond à l'occasion 💛✨"}
+            {latePSOpen && (
+              <View style={{ backgroundColor: '#FFFBEB', borderRadius: 14, padding: 14, gap: 12, borderWidth: 1, borderColor: '#FCD34D' }}>
+                <View style={{ height: 1, backgroundColor: '#FCD34D80' }} />
+                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 13, color: '#78350F' }}>
+                  Choisis ton excuse :
+                </Text>
+                {LATE_PS_OPTIONS.map((opt, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => { setSelectedPSIdx(idx); setShowLatePS(true); }}
+                    activeOpacity={0.75}
+                    style={{
+                      borderRadius: 12,
+                      borderWidth: selectedPSIdx === idx ? 2 : 1,
+                      borderColor: selectedPSIdx === idx ? '#D97706' : '#FCD34D',
+                      backgroundColor: selectedPSIdx === idx ? '#FEF3C7' : '#FFFBF0',
+                      padding: 12,
+                      gap: 4,
+                    }}
+                  >
+                    <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 12, color: selectedPSIdx === idx ? '#92400E' : '#B45309' }}>
+                      {opt.emoji} {opt.label}
+                    </Text>
+                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#92400E', fontStyle: 'italic', lineHeight: 18 }}>
+                      {opt.text}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <View style={{ height: 1, backgroundColor: '#FCD34D80' }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 }}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 14, color: '#78350F' }}>
+                    Ajouter ce PS à mon message
                   </Text>
+                  <Switch
+                    value={showLatePS}
+                    onValueChange={setShowLatePS}
+                    trackColor={{ false: Colors.outlineVariant, true: '#D97706' }}
+                    thumbColor="#fff"
+                  />
                 </View>
-                {/* Chips thèmes */}
-                <View style={styles.bgChipsRow}>
-                  {BG_THEMES.map((theme) => (
-                    <TouchableOpacity
-                      key={theme.id}
-                      style={[styles.bgChip, bgTheme === theme.id && styles.bgChipActive]}
-                      onPress={() => setBgTheme(theme.id)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.bgChipEmoji}>{theme.emoji}</Text>
-                      <Text style={[styles.bgChipLabel, bgTheme === theme.id && styles.bgChipLabelActive]}>
-                        {theme.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                {/* Preview du fond animé */}
-                {bgTheme !== 'none' && activeBgTheme.particles.length > 0 && (
-                  <View style={[styles.bgPreview, { backgroundColor: activeBgTheme.color }]}>
-                    <Text style={styles.bgPreviewLabel}>Aperçu de l'animation ✨</Text>
-                    {activeBgTheme.particles.map((emoji, i) => (
-                      <FloatingParticle key={i} emoji={emoji} delay={i * 700} x={20 + i * 55} />
-                    ))}
-                  </View>
-                )}
-              </>
+              </View>
             )}
           </View>
         )}
+
 
         {/* ── Multi-destinataires ──────────────────────── */}
         {!isEditing && (
@@ -1263,7 +2734,8 @@ export default function PreviewScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.accordionLeft}>
-                <Text style={styles.multiSectionTitle}>👥 Envoyer à plusieurs</Text>
+                <Text style={styles.multiSectionTitle}>👥 Envoyer à plusieurs contacts</Text>
+                <Text style={styles.accordionSub}>Envoie le même message à plusieurs personnes en un clic</Text>
                 {!multiOpen && extraContacts.length > 0 && (
                   <Text style={styles.accordionBadge}>+{extraContacts.length} contact{extraContacts.length > 1 ? 's' : ''}</Text>
                 )}
@@ -1321,12 +2793,26 @@ export default function PreviewScreen() {
                 </View>
 
                 {/* Liste contacts */}
-                <View style={styles.multiContactList}>
-                  {filteredContacts.slice(0, 20).map((c) => {
-                    const selected = extraContacts.some((e) => e.id === c.id);
-                    const dispName = c.name.trim().split(' ').length > 1
-                      ? `${c.name.trim().split(' ').slice(1).join(' ')} ${c.name.trim().split(' ')[0]}`
+                {(() => {
+                  const PET_EMOJI: Record<string, string> = {
+                    chien: '🐶', chat: '🐱', lapin: '🐰', perroquet: '🦜',
+                    hamster: '🐹', poisson: '🐟', cheval: '🐴', oiseau: '🐦',
+                    cochon_d_inde: '🐹', souris: '🐭', tortue: '🐢', autre: '🐾',
+                  };
+                  const humanList = filteredContacts.filter((c) => c.relation !== 'pet');
+                  const petList   = filteredContacts.filter((c) => c.relation === 'pet');
+
+                  const renderRow = (c: Contact) => {
+                    const selected  = extraContacts.some((e) => e.id === c.id);
+                    const parts     = c.name.trim().split(' ');
+                    const dispName  = parts.length > 1
+                      ? `${parts.slice(1).join(' ')} ${parts[0]}`
                       : c.name;
+                    const isPet     = c.relation === 'pet';
+                    const petEmoji  = isPet ? (PET_EMOJI[c.pet_type ?? ''] ?? '🐾') : null;
+                    const petSub    = isPet
+                      ? [c.pet_type ? c.pet_type.charAt(0).toUpperCase() + c.pet_type.slice(1).replace('_', ' ') : null, c.pet_owner_name ? `de ${c.pet_owner_name}` : null].filter(Boolean).join(' · ')
+                      : null;
                     return (
                       <TouchableOpacity
                         key={c.id}
@@ -1335,30 +2821,50 @@ export default function PreviewScreen() {
                         activeOpacity={0.75}
                       >
                         <View style={[styles.multiContactAvatar, { backgroundColor: selected ? C.primary : Colors.surfaceContainerHighest }]}>
-                          <Text style={[styles.multiContactAvatarText, { color: selected ? Colors.white : Colors.onSurfaceVariant }]}>
-                            {dispName.charAt(0).toUpperCase()}
-                          </Text>
+                          {isPet ? (
+                            <Text style={{ fontSize: 18 }}>{petEmoji}</Text>
+                          ) : (
+                            <Text style={[styles.multiContactAvatarText, { color: selected ? Colors.white : Colors.onSurfaceVariant }]}>
+                              {dispName.charAt(0).toUpperCase()}
+                            </Text>
+                          )}
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.multiContactName, selected && { color: C.primary }]} numberOfLines={1}>
                             {dispName}
                           </Text>
-                          {(c.phone || c.email) && (
-                            <Text style={styles.multiContactSub} numberOfLines={1}>
-                              {c.phone ?? c.email}
-                            </Text>
-                          )}
+                          {isPet && petSub ? (
+                            <Text style={styles.multiContactSub} numberOfLines={1}>{petSub}</Text>
+                          ) : (c.phone || c.email) ? (
+                            <Text style={styles.multiContactSub} numberOfLines={1}>{c.phone ?? c.email}</Text>
+                          ) : null}
                         </View>
                         <View style={[styles.multiContactCheck, selected && { backgroundColor: C.primary, borderColor: C.primary }]}>
                           {selected && <Text style={styles.multiContactCheckMark}>✓</Text>}
                         </View>
                       </TouchableOpacity>
                     );
-                  })}
-                  {filteredContacts.length === 0 && (
-                    <Text style={styles.multiNoResult}>Aucun contact trouvé</Text>
-                  )}
-                </View>
+                  };
+
+                  return (
+                    <View style={styles.multiContactList}>
+                      {humanList.length === 0 && petList.length === 0 && (
+                        <Text style={styles.multiNoResult}>Aucun contact trouvé</Text>
+                      )}
+                      {humanList.map(renderRow)}
+                      {petList.length > 0 && (
+                        <>
+                          <View style={styles.multiPetSeparator}>
+                            <View style={styles.multiPetSeparatorLine} />
+                            <Text style={styles.multiPetSeparatorText}>🐾 Animaux</Text>
+                            <View style={styles.multiPetSeparatorLine} />
+                          </View>
+                          {petList.map(renderRow)}
+                        </>
+                      )}
+                    </View>
+                  );
+                })()}
               </>
             )}
 
@@ -1384,6 +2890,7 @@ export default function PreviewScreen() {
             >
               <View style={styles.accordionLeft}>
                 <Text style={styles.photoSectionTitle}>📷 Ajouter une photo</Text>
+                <Text style={styles.accordionSub}>Ta photo, ou une photo de ton choix, apparaît en signature — une touche personnelle qui fait la différence</Text>
                 {!photoOpen && photoUri && (
                   <Text style={styles.accordionBadge}>📸 Photo ajoutée</Text>
                 )}
@@ -1419,8 +2926,8 @@ export default function PreviewScreen() {
                   <View style={styles.photoPreviewWrapper}>
                     {photoMode === 'overlay' ? (
                       <View style={styles.photoOverlayContainer}>
-                        <Image source={{ uri: photoUri }} style={styles.photoOverlayImg} resizeMode="cover" />
-                        <View style={styles.photoOverlayTextBox}>
+                        <Image source={{ uri: photoUri }} style={{ width: '100%', height: 200, borderRadius: Radii.lg }} resizeMode="cover" />
+                        <View style={[styles.photoOverlayTextBox, { borderBottomLeftRadius: Radii.lg, borderBottomRightRadius: Radii.lg }]}>
                           <Text style={styles.photoOverlayText} numberOfLines={4}>{generatedContent}</Text>
                         </View>
                       </View>
@@ -1451,147 +2958,297 @@ export default function PreviewScreen() {
           </View>
         )}
 
-        {/* ── Message musical ──────────────────────────── */}
-        {!isEditing && format !== 'song' && (
-          <View style={styles.musicSection}>
+        {/* ── Valider les modifications ────────────────── */}
+        {isEditing && (
+          <View style={{ alignItems: 'center', marginTop: Spacing[5], marginBottom: Spacing[4] }}>
             <TouchableOpacity
-              style={styles.musicSectionHeader}
-              onPress={() => setMusicOpen((o) => !o)}
-              activeOpacity={0.7}
+              style={[styles.editValidateBtn, { paddingHorizontal: Spacing[6] }]}
+              onPress={handleSaveEdit}
             >
-              <View style={styles.accordionLeft}>
-                <Text style={styles.musicSectionTitle}>🎵 Ajouter une musique</Text>
-                {!musicOpen && musicAmbiance !== 'auto' && (
-                  <Text style={styles.accordionBadge}>
-                    {MUSIC_AMBIANCES.find((a) => a.id === musicAmbiance)?.emoji}{' '}
-                    {MUSIC_AMBIANCES.find((a) => a.id === musicAmbiance)?.label}
-                  </Text>
-                )}
-              </View>
-              <View style={styles.accordionRight}>
-                <TouchableOpacity onPress={() => setMusicHelpVisible(true)} style={styles.musicHelpBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={styles.musicHelpBtnText}>ℹ️</Text>
-                </TouchableOpacity>
-                <Text style={[styles.accordionArrow, { color: C.primary }]}>{musicOpen ? '▾' : '▸'}</Text>
-              </View>
+              <Text style={styles.editValidateBtnText}>✅ Je valide mon message</Text>
             </TouchableOpacity>
-            {musicOpen && (
-              <>
-                <View style={[styles.musicIntroCard, { borderLeftColor: C.primary }]}>
-                  <Text style={styles.musicIntroText}>
-                    {"La musique a ce pouvoir unique de décupler les émotions 🎵 Et si tes mots avaient leur propre bande son ? Choisis une ambiance et transforme ton message en une véritable expérience sensorielle — parce qu'un message accompagné d'une belle mélodie touche encore plus fort 💛✨"}
-                  </Text>
-                </View>
-                {/* Chips ambiance */}
-                <View style={styles.musicChipsRow}>
-                  {MUSIC_AMBIANCES.map((am) => (
-                    <TouchableOpacity
-                      key={am.id}
-                      style={[styles.musicChip, musicAmbiance === am.id && styles.musicChipActive]}
-                      onPress={() => setMusicAmbiance(am.id)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.musicChipEmoji}>{am.emoji}</Text>
-                      <Text style={[styles.musicChipLabel, musicAmbiance === am.id && styles.musicChipLabelActive]}>
-                        {am.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                {/* Note bientôt */}
-                <Text style={styles.musicComingSoon}>
-                  🔔 Bientôt — ton proche entendra la mélodie dès l'ouverture du message !
-                </Text>
-              </>
-            )}
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: Colors.onSurfaceVariant, marginTop: 6, textAlign: 'center' }}>
+              {'⚠️ Valide d\'abord ton message si tu veux générer le message vocal avec tes modifications'}
+            </Text>
           </View>
         )}
 
         {/* ── Message vocal (TTS ElevenLabs) ───────────── */}
-        {!isEditing && (
+        {!isNoEdit && (
           <View style={styles.ttsSection}>
-            <TouchableOpacity
-              style={styles.ttsSectionHeader}
-              onPress={() => setTtsOpen((o) => !o)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.accordionLeft}>
-                <Text style={styles.ttsSectionTitle}>🎙️ Message vocal</Text>
-                {!ttsOpen && (
-                  <Text style={styles.accordionBadge}>
-                    {tts.isReady
-                      ? '🎙️ Vocal prêt'
-                      : `${TTS_VOICES.find((v) => v.key === ttsVoiceKey)?.emoji ?? ''} ${TTS_VOICES.find((v) => v.key === ttsVoiceKey)?.label ?? ''}`}
-                  </Text>
-                )}
-              </View>
-              <View style={styles.accordionRight}>
-                <TouchableOpacity onPress={() => setTtsHelpVisible(true)} style={styles.ttsHelpBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={styles.ttsHelpBtnText}>ℹ️</Text>
-                </TouchableOpacity>
-                <Text style={[styles.accordionArrow, { color: C.primary }]}>{ttsOpen ? '▾' : '▸'}</Text>
-              </View>
-            </TouchableOpacity>
-            {ttsOpen && (
-              <>
-                <FeatureIntroCard
-                  introText={"Les mots écrits touchent le cœur... mais les mots entendus touchent l'âme 🎙️ Et si cette année tu allais plus loin qu'un simple message texte ? Transforme tes mots en voix et offre à tes proches une attention vocale unique — parce que certains messages méritent d'être entendus et jamais oubliés 💛✨"}
-                  modeEmploiLines={[
-                    "🎙️ Génère ou saisis ton message texte comme d'habitude",
-                    "✨ Choisis ta voix parmi les 4 disponibles",
-                    "💫 Ton message est transformé en audio en quelques secondes",
-                    "🎧 Écoute le résultat et réajuste si besoin avant d'envoyer",
-                    "📲 Partage l'audio via WhatsApp, SMS, email ou toute autre appli 💛✨",
-                  ]}
-                />
-                {/* Sélecteur de voix */}
-                <View style={styles.ttsVoicesRow}>
-                  {TTS_VOICES.map((v) => (
-                    <TouchableOpacity
-                      key={v.key}
-                      style={[styles.ttsVoiceChip, ttsVoiceKey === v.key && styles.ttsVoiceChipActive]}
-                      onPress={() => { setTtsVoiceKey(v.key); tts.reset(); }}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.ttsVoiceEmoji}>{v.emoji}</Text>
-                      <Text style={[styles.ttsVoiceLabel, ttsVoiceKey === v.key && styles.ttsVoiceLabelActive]}>
-                        {v.label}
-                      </Text>
-                      <Text style={[styles.ttsVoiceSub, ttsVoiceKey === v.key && styles.ttsVoiceSubActive]}>
-                        {v.sub}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+
+            {/* ── Intro TTS — toujours visible ─────────── */}
+            {!tts.isReady && (
+              <View style={styles.ttsPreIntro}>
+                <View style={{ alignSelf: 'flex-start', backgroundColor: '#9333EA', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 5, marginBottom: 8 }}>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 13, color: '#fff', letterSpacing: 0.8 }}>✨ NOUVEAU</Text>
                 </View>
-                {/* Bouton générer */}
+                <Text style={[styles.ttsPreIntroTitle, { marginBottom: 2 }]}>🎙️ Ton message… en version vocale</Text>
+                <Text style={styles.ttsPreIntroText}>
+                  {'L\'IA lit ton message à voix haute et génère un lien audio. Ton proche reçoit le lien et l\'écoute depuis son téléphone — comme si tu lui avais laissé un message vocal, en mieux 💛'}
+                </Text>
+              </View>
+            )}
+
+            {/* ── Bannière hero — toujours visible ──────── */}
+            <TouchableOpacity
+              onPress={() => setTtsOpen((o) => !o)}
+              activeOpacity={0.88}
+              style={styles.ttsBannerTouchable}
+            >
+              <LinearGradient
+                colors={tts.isReady ? ['#059669', '#0D9488'] : ['#6D28D9', '#9333EA', '#C026D3']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ttsBannerGradient}
+              >
+                <View style={styles.ttsBannerIconWrap}>
+                  <Text style={styles.ttsBannerIconBig}>{tts.isReady ? '✅' : '🎙️'}</Text>
+                </View>
+                <View style={styles.ttsBannerTextBlock}>
+                  <Text style={styles.ttsBannerTitle}>
+                    {tts.isReady
+                      ? 'Vocal prêt à partager !'
+                      : 'Transforme ton message en voix et partage le grâce à un lien'}
+                  </Text>
+                  <Text style={styles.ttsBannerSub}>
+                    {tts.isReady
+                      ? 'Tes proches peuvent l\'écouter depuis n\'importe où 🎧'
+                      : 'Une attention unique — fais entendre ce que tu ressens 💛'}
+                  </Text>
+                  <View style={styles.ttsBannerPill}>
+                    <Text style={styles.ttsBannerPillText}>
+                      {ttsOpen
+                        ? '▾ Réduire'
+                        : tts.isReady
+                          ? '▸ Voir le vocal'
+                          : '▸ Créer le vocal'}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setTtsHelpVisible(true)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.ttsBannerHelp}
+                >
+                  <Text style={styles.ttsBannerHelpText}>ℹ️</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Annuler le vocal — visible même si section fermée */}
+            {tts.isReady && (
+              <TouchableOpacity
+                style={styles.ttsCancelBtn}
+                onPress={() =>
+                  Alert.alert(
+                    'Annuler le message vocal ?',
+                    'Le fichier audio sera supprimé. Tu pourras en créer un nouveau si tu le souhaites.',
+                    [
+                      { text: 'Non, garder', style: 'cancel' },
+                      {
+                        text: 'Oui, annuler',
+                        style: 'destructive',
+                        onPress: () => {
+                          tts.reset();
+                          setTtsOpen(false);
+                        },
+                      },
+                    ],
+                  )
+                }
+                activeOpacity={0.7}
+              >
+                <Text style={styles.ttsCancelBtnText}>✕ Annuler ce message vocal</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* ── Contenu expandable ────────────────────── */}
+            {ttsOpen && (
+              <View style={styles.ttsExpandedCard}>
+
+                {/* Intro explicative */}
+                {!tts.isReady && (
+                  <View style={styles.ttsIntroBox}>
+                    <Text style={styles.ttsIntroText}>
+                      🎙️ Tu vas pouvoir <Text style={styles.ttsIntroBold}>écouter ton message</Text> qui va être lu par une IA.
+                    </Text>
+                    <Text style={styles.ttsIntroText}>
+                      📲 Tu pourras ensuite le <Text style={styles.ttsIntroBold}>partager grâce à un lien</Text> — ton destinataire n'aura qu'à cliquer pour l'écouter, depuis n'importe où.
+                    </Text>
+                  </View>
+                )}
+
+                {/* Sélecteur de voix */}
+                <View style={{ gap: 8 }}>
+                  <Text style={styles.ttsPickerLabel}>🎤 Choisis ta voix :</Text>
+                  <View style={styles.ttsVoicesRow}>
+                    {TTS_VOICES.map((v) => (
+                      <TouchableOpacity
+                        key={v.key}
+                        style={[styles.ttsVoiceChip, ttsVoiceKey === v.key && styles.ttsVoiceChipActive]}
+                        onPress={() => { setTtsVoiceKey(v.key); tts.reset(); }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.ttsVoiceEmoji}>{v.emoji}</Text>
+                        <Text style={[styles.ttsVoiceLabel, ttsVoiceKey === v.key && styles.ttsVoiceLabelActive]}>
+                          {v.label}
+                        </Text>
+                        <Text style={[styles.ttsVoiceSub, ttsVoiceKey === v.key && styles.ttsVoiceSubActive]}>
+                          {v.sub}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Sélecteur fond sonore */}
+                <View style={{ gap: 8 }}>
+                  <Text style={styles.ttsPickerLabel}>🎵 Choisis ton fond sonore :</Text>
+                  <View style={styles.ttsVoicesRow}>
+                    {TTS_BG_MUSIC.map((m) => (
+                      <TouchableOpacity
+                        key={m.key}
+                        style={[styles.ttsVoiceChip, ttsBgMusic === m.key && styles.ttsVoiceChipActive]}
+                        onPress={() => {
+                          setTtsBgMusic(m.key);
+                          if (savedMessageId) {
+                            saveTTSBgMusic(savedMessageId, m.key).catch(() => {});
+                          }
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.ttsVoiceEmoji}>{m.emoji}</Text>
+                        <Text style={[styles.ttsVoiceLabel, ttsBgMusic === m.key && styles.ttsVoiceLabelActive]}>
+                          {m.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Bouton générer — hero gradient */}
                 {!tts.isReady && (
                   <TouchableOpacity
-                    style={[styles.ttsGenerateBtn, { backgroundColor: C.primary }, tts.isLoading && { opacity: 0.6 }]}
-                    onPress={() => {
-                      if (!savedMessageId || !generatedContent.trim()) return;
-                      tts.generate(savedMessageId, generatedContent.trim(), ttsVoiceKey);
+                    style={[(tts.isLoading || !generatedContent.trim()) && { opacity: 0.5 }]}
+                    onPress={async () => {
+                      const content = isEditing ? localContent.trim() : generatedContent.trim();
+                      if (!content || tts.isLoading) return;
+                      // Assembler le texte complet : ouverture + corps + formule + signature + PS
+                      const resolvedOpening = openingFormula
+                        ? resolveOpening(openingFormula).replace('{prénom}', contactFirstName)
+                        : null;
+                      const openingLine = resolvedOpening ? `${resolvedOpening}.\n\n` : '';
+                      const ttsFullName = senderFirst
+                        ? (senderLast && senderLast !== senderFirst ? `${senderFirst} ${senderLast}` : senderFirst)
+                        : null;
+                      const ttsAttribution = ttsFullName || senderFirstName || null;
+                      // Formule + nom fusionnés ("Bisous, Jean.") ou formule seule
+                      const formuleLine = closingFormula && ttsAttribution
+                        ? `\n\n${closingFormula}, ${ttsAttribution}.`
+                        : closingFormula ? `\n\n${closingFormula}.` : '';
+                      // Pas de closingLine séparé — intégré dans formuleLine ou attributionLine
+                      const psLine = showLatePS ? `\n\n${activePSText}` : '';
+                      // Attribution uniquement si pas de formule (sinon le nom est déjà dans formuleLine)
+                      const isPetFrom = (petDirection === 'from' || petDirection === 'from_to_third') && !!petName;
+                      const attributionLine = (!closingFormula && ttsAttribution)
+                        ? isPetFrom
+                          ? `\n\n…\n\nCe message t'est envoyé par ${petName}, mais ${ttsFullName || senderFirst} l'a un peu aidé !`
+                          : `\n\n…\n\nCe message est envoyé de la part de ${ttsAttribution}.`
+                        : '';
+                      const rawTts = `${openingLine}${content}${formuleLine}${psLine}${attributionLine}`.trim();
+                      const ttsText = resolveGender(rawTts, senderGender);
+                      let msgId = savedMessageId;
+                      if (!msgId && profile?.id) {
+                        try {
+                          const saved = await saveMessage(profile.id, {
+                            contact_id: contactId ?? null,
+                            contact_name: contactName,
+                            format, tone, content,
+                            relation: relation ?? 'friend',
+                          });
+                          msgId = saved.id;
+                          setSavedMessageId(saved.id);
+                        } catch { return; }
+                      }
+                      if (!msgId) return;
+                      await saveTTSBgMusic(msgId, ttsBgMusic);
+                      tts.generate(msgId, ttsText, ttsVoiceKey);
                     }}
-                    disabled={tts.isLoading || !savedMessageId}
+                    disabled={tts.isLoading || !generatedContent.trim()}
                     activeOpacity={0.85}
                   >
-                    {tts.isLoading
-                      ? <ActivityIndicator size="small" color={Colors.white} />
-                      : <Text style={styles.ttsGenerateBtnText}>🎙️ Transformer en vocal</Text>}
+                    <LinearGradient
+                      colors={['#6D28D9', '#9333EA', '#C026D3']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.ttsGenerateHeroGradient}
+                    >
+                      {tts.isLoading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <>
+                          <Text style={{ fontSize: 22 }}>🎙️</Text>
+                          <Text style={styles.ttsGenerateHeroText}>Transformer en vocal</Text>
+                          <Text style={{ fontSize: 20 }}>🎧</Text>
+                        </>
+                      )}
+                    </LinearGradient>
                   </TouchableOpacity>
                 )}
+
                 {/* Erreur */}
                 {tts.isFailed && (
                   <View style={styles.ttsErrorCard}>
-                    <Text style={styles.ttsErrorText}>⚠️ La génération a échoué. Vérifiez votre connexion et réessayez.</Text>
+                    <Text style={styles.ttsErrorText}>⚠️ {tts.error ?? 'La génération a échoué.'}</Text>
                     <TouchableOpacity onPress={() => tts.reset()}>
                       <Text style={[styles.ttsErrorRetry, { color: C.primary }]}>↺ Réessayer</Text>
                     </TouchableOpacity>
                   </View>
                 )}
-                {/* Lecteur audio TTS */}
+
+                {/* Lecteur + partage */}
                 {tts.isReady && tts.ttsUrl && (
                   <>
                     <TTSPlayer ttsUrl={tts.ttsUrl} />
+                    {tts.ttsUrl && (
+                      <TouchableOpacity
+                        style={styles.ttsPreviewFullBtn}
+                        onPress={() => {
+                          const playerUrl = new URL('https://jeandescourvieres.github.io/CONFETTIS-CAKE/player.html');
+                          playerUrl.searchParams.set('tts_url', tts.ttsUrl!);
+                          if (ttsBgMusic && ttsBgMusic !== 'aucune') {
+                            playerUrl.searchParams.set('bg_url', `${Config.supabaseUrl}/storage/v1/object/public/generated-audio/bg-music/${ttsBgMusic}.mp3`);
+                          }
+                          Linking.openURL(playerUrl.toString());
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.ttsPreviewFullBtnText}>🎵 Écouter avec le fond sonore →</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      onPress={async () => {
+                        if (!savedMessageId) return;
+                        const url = `https://confetticake.fr/vocal.html?id=${savedMessageId}&bg=${ttsBgMusic}`;
+                        const shareRecipient = (petDirection === 'to' && petName) ? petName : contactFirstName;
+                        const shareHeader = shareRecipient
+                          ? `🎙️ Un message vocal pour toi, ${shareRecipient} !`
+                          : `🎙️ Un message vocal pour toi !`;
+                        await Share.share({ message: `${shareHeader}\n\nPour l'écouter, clique sur ce lien :\n${url}` });
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <LinearGradient
+                        colors={['#059669', '#0D9488']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.ttsShareHeroGradient}
+                      >
+                        <Text style={{ fontSize: 20 }}>📲</Text>
+                        <Text style={styles.ttsShareHeroText}>Partager le message vocal</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.ttsRegenBtn}
                       onPress={() => tts.reset()}
@@ -1601,9 +3258,36 @@ export default function PreviewScreen() {
                     </TouchableOpacity>
                   </>
                 )}
-              </>
+
+              </View>
             )}
           </View>
+        )}
+
+        {/* ── Mode Morse (décalé) ──────────────────────── */}
+        {!isEditing && !!generatedContent && (
+          <TouchableOpacity
+            style={[
+              { flexDirection: 'row', alignItems: 'center', gap: 12, padding: Spacing[4], borderRadius: Radii.xl, borderWidth: 1.5 },
+              morseMode
+                ? { backgroundColor: '#0d0d1a', borderColor: '#00ff88' }
+                : { backgroundColor: Colors.surfaceContainerLow, borderColor: Colors.outlineVariant },
+            ]}
+            onPress={() => setMorseMode(!morseMode)}
+            activeOpacity={0.85}
+          >
+            <Text style={{ fontSize: 22 }}>📡</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: morseMode ? '#00ff88' : Colors.onSurface }}>
+                Mode Morse{morseMode ? ' — ACTIVÉ 😄' : ''}
+              </Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: morseMode ? '#00cc66' : Colors.onSurfaceVariant, lineHeight: 16, marginTop: 2 }}>
+                {morseMode
+                  ? '· − · · ·  Un lien animé est ajouté à ton message — le destinataire écoute les bips et peut révéler le texte caché 🤫'
+                  : 'Mode décalé 😄 — ton message est converti en code Morse. Un lien animé est glissé dans le message avec bips audio et bouton "Révéler le message"'}
+              </Text>
+            </View>
+          </TouchableOpacity>
         )}
 
         {/* ── Prêt + Boutons action ────────────────────── */}
@@ -1625,34 +3309,57 @@ export default function PreviewScreen() {
               </TouchableOpacity>
             )}
 
-            {/* Éditer manuellement */}
-            <TouchableOpacity style={styles.editPromptBtn} onPress={() => setIsEditing(true)}>
-              <Text style={styles.editPromptText}>✏️ Modifier moi-même le texte</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.readySub}>
-              Ou choisis simplement un mode d'envoi ci-dessous pour l'expédier tel quel. 🚀
-            </Text>
           </>
         )}
 
+        {/* ── Bandeau "comment envoyer" ─────────────────── */}
+        {!isEditing && (
+          <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[6] }}>
+            <View style={{ borderRadius: 18, backgroundColor: '#E53935', paddingVertical: 16, paddingHorizontal: 20, alignItems: 'center', gap: 5 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={{ fontSize: 22 }}>📲</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.lg, color: '#fff' }}>
+                  {petDirection === 'from' && petOwnerName
+                    ? `Pour le transmettre à ${(() => { const p = (petOwnerName ?? '').trim().split(/\s+/); return p.find(w => w !== w.toUpperCase()) ?? p[0] ?? petOwnerName; })()} →`
+                    : `Pour l'envoyer à ${(contactName.trim().split(/\s+/).find(w => w !== w.toUpperCase()) ?? contactName.trim().split(/\s+/)[0] ?? 'ton contact')} →`}
+                </Text>
+              </View>
+              <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.88)', textAlign: 'center' }}>
+                {'Choisis ton canal ci-dessous — WhatsApp, SMS, e-mail…'}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* ── Envoi ────────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Envoyer par</Text>
-        <View style={styles.shareGrid}>
+        <View style={[styles.shareGrid, { marginTop: Spacing[6] }]}>
           {SHARE_CHANNELS.map((ch) => (
             <TouchableOpacity
               key={ch.id}
               style={[styles.shareBtn, sending && { opacity: 0.5 }]}
-              onPress={() => handleShare(ch.id)}
+              onPress={() => (ch as any).info && ch.id === 'copy' ? setCopyHelpVisible(true) : handleShare(ch.id)}
               disabled={sending}
               activeOpacity={0.8}
             >
-              <View style={[styles.shareIcon, { backgroundColor: ch.color + '20' }]}>
+              <View style={[styles.shareIcon, { backgroundColor: ch.color + '18', borderColor: ch.color + '60' }]}>
                 <Text style={styles.shareEmoji}>{ch.emoji}</Text>
               </View>
-              <Text style={styles.shareLabel}>{ch.label}</Text>
+              <Text style={[styles.shareLabel, { color: ch.color }]}>{ch.label}</Text>
+              {(ch as any).sub && <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 9, color: Colors.onSurfaceVariant, textAlign: 'center' }}>{(ch as any).sub}</Text>}
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={[styles.shareBtn, sending && { opacity: 0.5 }]}
+            onPress={() => setImageHelpVisible(true)}
+            disabled={sending}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.shareIcon, { backgroundColor: '#6366F118', borderColor: '#6366F160' }]}>
+              <Text style={styles.shareEmoji}>🖼️</Text>
+            </View>
+            <Text style={[styles.shareLabel, { color: '#6366F1' }]}>Image</Text>
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 9, color: Colors.onSurfaceVariant, textAlign: 'center' }}>{'Insta, Snap,\ngalerie…'}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Co-signature de groupe ───────────────────── */}
@@ -1676,29 +3383,7 @@ export default function PreviewScreen() {
           </TouchableOpacity>
         )}
 
-        {/* ── Envoyer comme carte postale ───────────────── */}
-        {generatedContent.trim().length >= 10 && (
-          <TouchableOpacity
-            style={styles.postcardBtn}
-            onPress={() =>
-              router.push({
-                pathname: '/(app)/postcard/index',
-                params: {
-                  contactId: contactId ?? undefined,
-                  message: generatedContent.trim(),
-                },
-              } as never)
-            }
-            activeOpacity={0.85}
-          >
-            <Text style={styles.postcardBtnEmoji}>💌</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.postcardBtnTitle}>Envoyer comme carte postale</Text>
-              <Text style={styles.postcardBtnSub}>Imprimée et expédiée en 5–7 jours — 3,49 €</Text>
-            </View>
-            <Text style={[styles.postcardBtnArrow, { color: '#9C27B0' }]}>›</Text>
-          </TouchableOpacity>
-        )}
+        {/* ── Envoyer comme carte postale — désactivé pour l'instant ── */}
 
         {/* ── Voir les réactions reçues ─────────────────── */}
         {savedMessageId && (
@@ -1716,19 +3401,122 @@ export default function PreviewScreen() {
           </TouchableOpacity>
         )}
 
-        {/* ── Regénérer ─────────────────────────────────── */}
-        <TouchableOpacity
-          style={[styles.regenFullBtn, isPending && { opacity: 0.5 }]}
-          onPress={handleRegenerate}
-          disabled={isPending}
-        >
-          <Text style={styles.regenFullBtnText}>
-            {isPending ? '⏳ Génération...' : isManualMode.current ? '🗑 Effacer et réécrire' : '↺ Générer une nouvelle version'}
-          </Text>
-        </TouchableOpacity>
-
         <View style={{ height: 40 }} />
       </ScrollView>
+
+
+      {/* Modal — Voir en entier (suggestions "À ma façon") */}
+      <Modal visible={!!ideasFullPreview} transparent animationType="slide" onRequestClose={() => setIdeasFullPreview(null)}>
+        <TouchableOpacity style={styles.ideasFullOverlay} activeOpacity={1} onPress={() => setIdeasFullPreview(null)}>
+          <TouchableOpacity activeOpacity={1} style={styles.ideasFullCard}>
+            <Text style={styles.ideasFullTitle}>📄 Aperçu du modèle</Text>
+            <ScrollView style={styles.ideasFullScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.ideasFullText}>{ideasFullPreview?.display ?? ''}</Text>
+            </ScrollView>
+            <View style={styles.ideasFullActions}>
+              <TouchableOpacity style={styles.ideasFullCancelBtn} onPress={() => setIdeasFullPreview(null)}>
+                <Text style={styles.ideasFullCancelText}>Fermer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.ideasFullUseBtn, { backgroundColor: C.primary }]}
+                onPress={() => {
+                  if (!ideasFullPreview) return;
+                  setIdeasFullPreview(null);
+                  applyIdeasTemplate(ideasFullPreview.raw);
+                }}
+              >
+                <Text style={styles.ideasFullUseBtnText}>✉️ Utiliser ce modèle</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal — Picker de police */}
+      <Modal visible={fontPickerVisible} transparent animationType="slide" onRequestClose={() => setFontPickerVisible(false)}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} activeOpacity={1} onPress={() => setFontPickerVisible(false)} />
+        <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 32, maxHeight: '80%', position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.outlineVariant }}>
+            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 17, color: Colors.onSurface }}>✍️ Choisir une police</Text>
+            <TouchableOpacity onPress={() => setFontPickerVisible(false)}>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 14, color: Colors.onSurfaceVariant }}>Fermer ✕</Text>
+            </TouchableOpacity>
+          </View>
+          {(() => {
+            const previewText = (isEditing ? localContent : generatedContent).trim().split(/\n{2,}/)[0]?.slice(0, 80) || 'Voici un aperçu de ta police…';
+            const groups = Array.from(new Set(FONT_STYLES.map(s => s.group)));
+            return (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, gap: 20 }}>
+                {groups.map(group => (
+                  <View key={group}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: Colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>{group}</Text>
+                    {FONT_STYLES.filter(s => s.group === group).map(s => (
+                      <TouchableOpacity
+                        key={s.value}
+                        onPress={() => { setFontStyle(s.value); setFontPickerVisible(false); SecureStore.setItemAsync('preferred_font_style', s.value).catch(() => {}); }}
+                        activeOpacity={0.75}
+                        style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, marginBottom: 6, borderWidth: fontStyle === s.value ? 2 : 1, borderColor: fontStyle === s.value ? C.primary : Colors.outlineVariant, backgroundColor: fontStyle === s.value ? C.primaryContainer + '50' : '#FAFAFA' }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontFamily: s.font, fontSize: 18, color: Colors.onSurface, marginBottom: 2 }}>{previewText}</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: Colors.onSurfaceVariant }}>{s.label}</Text>
+                        </View>
+                        {fontStyle === s.value && <Text style={{ fontSize: 18 }}>✓</Text>}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ))}
+              </ScrollView>
+            );
+          })()}
+        </View>
+      </Modal>
+
+      {/* Modal — Copier */}
+      <Modal visible={copyHelpVisible} transparent animationType="fade" onRequestClose={() => setCopyHelpVisible(false)}>
+        <TouchableOpacity style={styles.helpModalOverlay} activeOpacity={1} onPress={() => setCopyHelpVisible(false)}>
+          <View style={styles.helpModalCard}>
+            <View style={styles.helpModalHeader}>
+              <Text style={styles.helpModalTitle}>📋 Copier le message</Text>
+              <TouchableOpacity onPress={() => setCopyHelpVisible(false)}>
+                <Text style={styles.helpModalClose}>Fermer ✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 13, color: Colors.onSurface, lineHeight: 20, marginBottom: 20 }}>
+              {'Le texte de ton message est copié dans le presse-papier de ton téléphone. Tu peux ensuite le coller dans n\'importe quelle appli :\n\n💬 Messenger · 📸 Instagram · 🎵 TikTok · 👻 Snapchat · 🐦 Twitter · 💼 LinkedIn · 📝 Notes…\n\nParfait pour toutes les applis qui n\'ont pas de bouton dédié ici !'}
+            </Text>
+            <TouchableOpacity
+              style={[styles.editValidateBtn, { paddingHorizontal: Spacing[6] }]}
+              onPress={() => { setCopyHelpVisible(false); handleShare('copy'); }}
+            >
+              <Text style={styles.editValidateBtnText}>📋 Copier maintenant</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal — Image */}
+      <Modal visible={imageHelpVisible} transparent animationType="fade" onRequestClose={() => setImageHelpVisible(false)}>
+        <TouchableOpacity style={styles.helpModalOverlay} activeOpacity={1} onPress={() => setImageHelpVisible(false)}>
+          <View style={styles.helpModalCard}>
+            <View style={styles.helpModalHeader}>
+              <Text style={styles.helpModalTitle}>🖼️ Envoyer en image</Text>
+              <TouchableOpacity onPress={() => setImageHelpVisible(false)}>
+                <Text style={styles.helpModalClose}>Fermer ✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 13, color: Colors.onSurface, lineHeight: 20, marginBottom: 20 }}>
+              {'Ton message est transformé en belle image (comme une carte) avec ta police et ton fond choisis. Tu peux ensuite l\'envoyer ou la partager :\n\n📸 Instagram Stories · 👻 Snapchat · 🖼️ Galerie photo · 📲 N\'importe quelle appli qui accepte des images\n\n💡 C\'est aussi le format utilisé automatiquement pour WhatsApp — il s\'affiche plein écran dans la conversation !'}
+            </Text>
+            <TouchableOpacity
+              style={[styles.editValidateBtn, { paddingHorizontal: Spacing[6] }]}
+              onPress={async () => { setImageHelpVisible(false); setSending(true); const ok = await captureAndShare(); setSending(false); if (!ok) Alert.alert('Erreur', 'Impossible de capturer l\'image.'); }}
+            >
+              <Text style={styles.editValidateBtnText}>🖼️ Créer et partager l'image</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Modal aide — Style d'écriture */}
       <Modal visible={writingHelpVisible} transparent animationType="fade" onRequestClose={() => setWritingHelpVisible(false)}>
@@ -1741,69 +3529,11 @@ export default function PreviewScreen() {
               </TouchableOpacity>
             </View>
             {[
-              { title: 'Choisir un style', body: "Fais défiler les 8 styles disponibles et clique sur celui qui te plaît. L'aperçu du message se met à jour instantanément ✨" },
+              { title: 'Choisir une police', body: "Appuie sur le bouton de police pour ouvrir le sélecteur — 18 polices disponibles, regroupées en Classique, Manuscrit, Déco et Système. L'aperçu se met à jour instantanément ✨" },
               { title: 'Régler la taille', body: "S = petit, M = normal, L = grand. La taille s'adapte aussi bien au message texte qu'aux chansons et poèmes." },
               { title: 'Activer l\'italique', body: "Le bouton I met ton message en italique — idéal pour les messages élégants ou poétiques 💛" },
               { title: 'Ce que reçoit ton proche', body: "Le style d'écriture choisi est appliqué automatiquement sur la page web que ton proche reçoit via le lien partagé." },
-              { title: 'Bon à savoir 💡', body: "Certains styles (Comic, Vintage) sont très marqués — réserve-les pour les messages légers ou humoristiques. Pour l'émotion, préfère Manuscrit élégant ou Romantique 💛" },
-            ].map((s) => (
-              <View key={s.title} style={styles.helpModalSection}>
-                <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
-                <Text style={styles.helpModalSectionBody}>{s.body}</Text>
-              </View>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Modal aide — Fond animé */}
-      <Modal visible={bgHelpVisible} transparent animationType="fade" onRequestClose={() => setBgHelpVisible(false)}>
-        <TouchableOpacity
-          style={styles.helpModalOverlay}
-          activeOpacity={1}
-          onPress={() => setBgHelpVisible(false)}
-        >
-          <View style={styles.helpModalCard}>
-            <View style={styles.helpModalHeader}>
-              <Text style={styles.helpModalTitle}>Comment fonctionne le fond animé ? 🎨</Text>
-              <TouchableOpacity onPress={() => setBgHelpVisible(false)}>
-                <Text style={styles.helpModalClose}>Fermer ✕</Text>
-              </TouchableOpacity>
-            </View>
-            {[
-              { title: 'Choisir un thème', body: "Sélectionne le thème qui correspond à ton occasion : 🎂 Anniversaire=confettis | 🌸 Pétales=romantique | ❄️ Flocons=hiver/Noël | 💝 Cœurs=amour | ⭐ Étoiles=célébration. Auto IA sélectionne automatiquement !" },
-              { title: 'Aperçu en temps réel', body: "L'aperçu apparaît directement dans l'écran de composition — tu vois exactement l'ambiance créée avant d'envoyer ✨" },
-              { title: 'Ce que reçoit ton proche', body: "Le fond animé s'affiche automatiquement lorsque ton proche ouvre le lien du message — confettis, pétales ou flocons selon l'occasion 💛" },
-              { title: 'Bon à savoir 💡', body: "Si musique ajoutée, démarre en même temps que le fond. Bouton Couper le son 🔇 disponible pour ton proche." },
-            ].map((s) => (
-              <View key={s.title} style={styles.helpModalSection}>
-                <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
-                <Text style={styles.helpModalSectionBody}>{s.body}</Text>
-              </View>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Modal aide — Message musical */}
-      <Modal visible={musicHelpVisible} transparent animationType="fade" onRequestClose={() => setMusicHelpVisible(false)}>
-        <TouchableOpacity
-          style={styles.helpModalOverlay}
-          activeOpacity={1}
-          onPress={() => setMusicHelpVisible(false)}
-        >
-          <View style={styles.helpModalCard}>
-            <View style={styles.helpModalHeader}>
-              <Text style={styles.helpModalTitle}>Comment fonctionne le message musical ? 🎵</Text>
-              <TouchableOpacity onPress={() => setMusicHelpVisible(false)}>
-                <Text style={styles.helpModalClose}>Fermer ✕</Text>
-              </TouchableOpacity>
-            </View>
-            {[
-              { title: 'Ajouter une musique', body: "Appuie sur Ajouter une musique — c'est optionnel, tu peux très bien envoyer sans !" },
-              { title: 'Choisir ton ambiance', body: "Explore les ambiances disponibles et sélectionne celle qui correspond à ton message et à l'occasion. Ou laisse Claude AI choisir automatiquement avec Auto IA 🤖" },
-              { title: 'Ce que reçoit ton proche', body: "Lorsque ton proche ouvre le lien du message, la mélodie démarre automatiquement en fond sonore pour une véritable expérience émotionnelle. Un bouton Couper le son 🔇 est disponible 💛" },
-              { title: 'Bon à savoir 💡', body: "Toutes les mélodies sont libres de droits. Un bouton discret permettra à ton proche de couper le son 🔇 si besoin !" },
+              { title: 'Bon à savoir 💡', body: "Certains styles (Comic, Vintage, Comic Sans) sont très marqués — réserve-les pour les messages légers ou humoristiques. Pour l'émotion, préfère Satisfy ou Dancing Script 💛" },
             ].map((s) => (
               <View key={s.title} style={styles.helpModalSection}>
                 <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
@@ -1890,8 +3620,35 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
+  templateActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  templateActionBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+  },
+  templateActionBtnEdit: {
+    backgroundColor: C.primaryContainer,
+  },
+  templateActionBtnEditText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: C.primary,
+  },
+  templateActionBtnChange: {
+    backgroundColor: Colors.surfaceContainer,
+  },
+  templateActionBtnChangeText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
+  },
   topbarTitle: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
     fontSize: Typography['2xl'],
@@ -2074,8 +3831,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginRight: 2,
   },
   fontSizeBtn: {
-    width: 36,
-    height: 36,
+    width: 28,
+    height: 28,
     borderRadius: Radii.full,
     borderWidth: 1.5,
     borderColor: Colors.surfaceContainerHighest,
@@ -2086,7 +3843,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   fontSizeBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
   fontSizeBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.sm,
+    fontSize: Typography.xs,
     color: Colors.onSurfaceVariant,
   },
   fontSizeBtnTextActive: { color: Colors.white },
@@ -2121,6 +3878,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderRadius: Radii.xl,
     padding: Spacing[5],
     gap: 14,
+    borderWidth: 2.5,
+    borderColor: '#EF4444',
     ...Shadows.sm,
   },
   editInput: {
@@ -2145,10 +3904,25 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontSize: Typography.lg,
     color: Colors.white,
   },
+  editMiniPreview: {
+    backgroundColor: '#F5F0FF',
+    borderRadius: Radii.md,
+    padding: Spacing[3],
+    gap: 4,
+    marginTop: Spacing[2],
+  },
+  editMiniPreviewLine: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 20,
+  },
+
   editValidateBtn: {
     backgroundColor: C.primary,
     borderRadius: Radii.full,
-    paddingVertical: 14,
+    paddingVertical: 12,
+    alignSelf: 'center',
     alignItems: 'center',
     ...Shadows.sm,
   },
@@ -2160,6 +3934,27 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
 
   // ── Inline completion ──────────────────────────────────────────────────────
+  improvedCard: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: Radii.lg,
+    padding: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  improvedLabel: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.xs,
+    color: '#16A34A',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  improvedText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.md,
+    color: Colors.onSurface,
+    lineHeight: 22,
+  },
   completionCard: {
     backgroundColor: C.primaryContainer,
     borderRadius: Radii.lg,
@@ -2388,6 +4183,45 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontSize: Typography.sm,
     color: Colors.onSurfaceVariant,
   },
+  ideasLibraryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: Radii.lg,
+    backgroundColor: C.primaryContainer,
+    borderWidth: 1.5,
+    borderColor: C.primary + '50',
+    gap: 8,
+  },
+  ideasLibraryBtnText: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.sm,
+    color: C.primary,
+  },
+  ideasLibraryBtnSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xs,
+    color: C.primary,
+    opacity: 0.75,
+    marginTop: 1,
+  },
+  ideasOccasionDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginVertical: 4,
+  },
+  ideasDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.surfaceContainerHighest,
+  },
+  ideasDividerText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
+  },
   ideasTemplateRow: {
     borderTopWidth: 0.5,
     borderTopColor: C.primaryContainer,
@@ -2407,11 +4241,75 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     lineHeight: 19,
     fontStyle: 'italic',
   },
+  ideasTemplateFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  ideasTemplateSeeMore: {
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
+  },
   ideasTemplateCta: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.sm,
     color: C.primary,
-    marginTop: 2,
+  },
+  ideasFullOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  ideasFullCard: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+    gap: 14,
+  },
+  ideasFullTitle: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.base,
+    color: Colors.onSurface,
+  },
+  ideasFullScroll: { maxHeight: 320 },
+  ideasFullText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: Colors.onSurface,
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+  ideasFullActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  ideasFullCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    alignItems: 'center',
+  },
+  ideasFullCancelText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
+  },
+  ideasFullUseBtn: {
+    flex: 2,
+    paddingVertical: 12,
+    borderRadius: Radii.full,
+    alignItems: 'center',
+  },
+  ideasFullUseBtnText: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.sm,
+    color: Colors.white,
   },
   ideasFilterBtn: {
     flex: 1,
@@ -2453,8 +4351,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginHorizontal: Spacing[4],
   },
   readySub: {
-    fontFamily: 'BeVietnamPro_500Medium',
-    fontSize: Typography.lg,
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.base,
     color: Colors.onSurface,
     textAlign: 'center',
     lineHeight: 26,
@@ -2464,15 +4362,16 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   regenBtn: {
     marginHorizontal: Spacing[4],
     marginTop: Spacing[4],
-    paddingVertical: 15,
+    paddingVertical: 14,
     borderRadius: Radii.full,
-    backgroundColor: C.primary,
+    borderWidth: 1.5,
+    borderColor: C.primary,
     alignItems: 'center',
   },
   regenBtnText: {
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.lg,
-    color: Colors.white,
+    fontSize: Typography.md,
+    color: C.primary,
   },
   editPromptBtn: {
     alignSelf: 'center',
@@ -2507,6 +4406,13 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
+  previewEnvelopeSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 20,
+    marginTop: -4,
+  },
   messageCard: {
     backgroundColor: Colors.white,
     borderRadius: Radii.xl,
@@ -2539,17 +4445,21 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: Colors.onSurface,
     marginTop: 12,
     textAlign: 'right',
+    paddingRight: 8,
   },
 
   sectionLabel: {
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+    paddingLeft: 10,
+    paddingVertical: 6,
+    backgroundColor: Colors.surfaceContainerLow,
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.lg,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    fontSize: Typography.md,
     color: Colors.onSurface,
     marginTop: Spacing[6],
     marginBottom: Spacing[3],
-    paddingHorizontal: Spacing[4],
+    marginHorizontal: Spacing[4],
   },
 
   shareGrid: {
@@ -2559,17 +4469,145 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   shareBtn: { alignItems: 'center', gap: 8 },
   shareIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
   },
-  shareEmoji: { fontSize: 28 },
+  shareEmoji: { fontSize: 32 },
   shareLabel: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: 13,
+    color: Colors.onSurface,
+  },
+
+  translateWrap: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    gap: 8,
+  },
+  translateBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  translateBtn: {
+    alignSelf: 'center',
+    backgroundColor: '#EDE9FE',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: '#C4B5FD',
+  },
+  translateBtnText: {
     fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: 13,
+    color: '#7C3AED',
+  },
+  poemIntroWrap: {
+    marginTop: 10,
+    backgroundColor: '#FFF7ED',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+    padding: 14,
+    gap: 10,
+    alignItems: 'center',
+  },
+  poemIntroText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: 13,
+    color: '#92400E',
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  poemBtn: {
+    alignSelf: 'center',
+    backgroundColor: '#FED7AA',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+  },
+  poemBtnText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: 13,
+    color: '#C2410C',
+  },
+  translatePicker: {
+    gap: 10,
+  },
+  translateHint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  translateHintEmoji: { fontSize: 18, marginTop: 1 },
+  translateHintText: {
+    flex: 1,
+    fontFamily: 'BeVietnamPro_400Regular',
     fontSize: Typography.xs,
-    color: Colors.onSurfaceVariant,
+    color: '#1E3A5F',
+    lineHeight: 18,
+  },
+  translateLangRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  translateLangBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  translateLangFlag: { fontSize: 16 },
+  translateLangLabel: {
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: 12,
+    color: '#5B21B6',
+  },
+  translateLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  translateLoadingText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: 13,
+    color: '#7C3AED',
+  },
+  translateRestoreBtn: {
+    alignSelf: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  translateRestoreText: {
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: 13,
+    color: '#475569',
   },
 
   signatureBanner: {
@@ -2604,8 +4642,10 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginHorizontal: Spacing[4],
     marginTop: Spacing[4],
     padding: Spacing[3],
-    backgroundColor: Colors.surfaceContainer,
+    backgroundColor: '#ECFDF5',
     borderRadius: Radii.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: '#10B981',
   },
   groupSignEmoji: { fontSize: 26 },
   groupSignTitle: {
@@ -2654,8 +4694,10 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginHorizontal: Spacing[4],
     marginTop: Spacing[4],
     padding: Spacing[3],
-    backgroundColor: Colors.surfaceContainer,
+    backgroundColor: '#FFF7ED',
     borderRadius: Radii.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F97316',
   },
   reactionsBtnEmoji: { fontSize: 26 },
   reactionsBtnTitle: {
@@ -2675,6 +4717,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginHorizontal: Spacing[4],
     marginTop: Spacing[6],
     paddingVertical: 14,
+    paddingHorizontal: Spacing[5],
     borderRadius: Radii.full,
     borderWidth: 1.5,
     borderColor: C.primary,
@@ -2691,6 +4734,16 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginHorizontal: Spacing[4],
     marginBottom: Spacing[4],
     gap: 10,
+    backgroundColor: Colors.white,
+    borderRadius: Radii.xl,
+    borderWidth: 2,
+    borderColor: C.primary + '40',
+    padding: Spacing[4],
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   recipientSectionHeader: {
     flexDirection: 'row',
@@ -2699,8 +4752,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   recipientSectionTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',
-    fontSize: Typography.md,
-    color: Colors.onSurface,
+    fontSize: Typography.lg,
+    color: C.primary,
   },
   recipientIntroCard: {
     borderLeftWidth: 3,
@@ -2771,12 +4824,17 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   sigSection: {
     marginHorizontal: Spacing[4],
     marginTop: Spacing[4],
+    backgroundColor: Colors.white,
+    borderRadius: Radii.xl,
+    padding: Spacing[4],
     gap: 10,
+    ...Shadows.sm,
   },
   sigSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: 2,
   },
   sigSectionTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',
@@ -2915,6 +4973,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   // ── Fond coloré et animé ───────────────────────────────────────────────────
   bgSection: {
     marginHorizontal: Spacing[4],
+    marginTop: Spacing[4],
     marginBottom: Spacing[4],
     gap: 10,
   },
@@ -2922,6 +4981,11 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: C.primaryContainer,
+    borderRadius: Radii.lg,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: C.primary,
   },
   bgSectionTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',
@@ -2992,6 +5056,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   // ── Multi-destinataires ────────────────────────────────────────────────────
   multiSection: {
     marginHorizontal: Spacing[4],
+    marginTop: Spacing[4],
     marginBottom: Spacing[4],
     gap: 10,
   },
@@ -2999,6 +5064,11 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: '#EFF6FF',
+    borderRadius: Radii.lg,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
   },
   multiSectionTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',
@@ -3113,6 +5183,23 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     padding: 16,
     fontStyle: 'italic',
   },
+  multiPetSeparator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginVertical: 6,
+    paddingHorizontal: 4,
+  },
+  multiPetSeparatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.outlineVariant,
+  },
+  multiPetSeparatorText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: 12,
+    color: Colors.onSurfaceVariant,
+  },
   multiProgressBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3136,6 +5223,11 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: '#FFFBEB',
+    borderRadius: Radii.lg,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
   },
   photoSectionTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',
@@ -3214,14 +5306,12 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     lineHeight: 20,
   },
   photoOverlayContainer: {
-    borderRadius: Radii.lg,
-    overflow: 'hidden',
+    width: '100%',
     height: 200,
   },
   photoOverlayImg: {
-    position: 'absolute',
     width: '100%',
-    height: '100%',
+    height: 200,
   },
   photoOverlayTextBox: {
     position: 'absolute',
@@ -3265,7 +5355,11 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   musicSection: {
     marginHorizontal: Spacing[4],
     marginBottom: Spacing[4],
+    backgroundColor: Colors.white,
+    borderRadius: Radii.xl,
+    padding: Spacing[4],
     gap: 10,
+    ...Shadows.sm,
   },
   musicSectionHeader: {
     flexDirection: 'row',
@@ -3324,23 +5418,190 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   musicChipLabelActive: {
     color: C.primary,
   },
-  musicComingSoon: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.xs,
-    color: Colors.onSurfaceVariant,
-    fontStyle: 'italic',
+  musicGenerateBtn: {
+    backgroundColor: C.primary,
+    borderRadius: Radii.full,
+    paddingVertical: 12,
+    alignItems: 'center' as const,
+    marginTop: 4,
+  },
+  musicGenerateBtnText: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.base,
+    color: Colors.white,
+  },
+
+  bgMusicBanner: {
+    marginHorizontal: Spacing[4],
+    marginBottom: Spacing[3],
+    backgroundColor: '#F5F3FF',
+    borderRadius: Radii.lg,
+    borderWidth: 1.5,
+    borderColor: '#7C3AED30',
+    padding: Spacing[4],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+  },
+  bgMusicBannerEmoji: { fontSize: 24 },
+  bgMusicBannerTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#5B21B6', marginBottom: 2 },
+  bgMusicBannerSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#6D28D9', lineHeight: 17 },
+  bgMusicBannerArrow: { fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#7C3AED' },
+  bgMusicPicker: {
+    marginHorizontal: Spacing[4],
+    marginBottom: Spacing[3],
+    backgroundColor: '#F5F3FF',
+    borderRadius: Radii.lg,
+    padding: Spacing[4],
   },
 
   // ── Message vocal (TTS) ────────────────────────────────────────────────────
   ttsSection: {
     marginHorizontal: Spacing[4],
     marginBottom: 16,
+    gap: 10,
+  },
+  ttsPreIntro: {
+    backgroundColor: '#F3E8FF',
+    borderRadius: Radii.xl,
+    padding: Spacing[4],
+    borderLeftWidth: 4,
+    borderLeftColor: '#9333EA',
+    gap: 6,
+  },
+  ttsPreIntroTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.lg,
+    color: '#6D28D9',
+  },
+  ttsPreIntroText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.md,
+    color: Colors.onSurface,
+    lineHeight: 22,
+  },
+  ttsBannerTouchable: {
+    borderRadius: Radii.xl,
+    overflow: 'hidden',
+    ...Shadows.md,
+  },
+  ttsBannerGradient: {
+    padding: 20,
+    paddingRight: 44,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    borderRadius: Radii.xl,
+  },
+  ttsBannerIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  ttsBannerIconBig: { fontSize: 28 },
+  ttsBannerTextBlock: { flex: 1, gap: 5 },
+  ttsBannerTitle: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 16,
+    color: '#fff',
+    lineHeight: 22,
+  },
+  ttsBannerSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.88)',
+    lineHeight: 18,
+  },
+  ttsBannerPill: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  ttsBannerPillText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 12,
+    color: '#fff',
+  },
+  ttsBannerHelp: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 4,
+  },
+  ttsBannerHelpText: { fontSize: 16, opacity: 0.75 },
+  ttsExpandedCard: {
     backgroundColor: Colors.surfaceContainer,
     borderRadius: Radii.xl,
     padding: Spacing[4],
-    gap: 12,
+    gap: 14,
     ...Shadows.sm,
   },
+  ttsTagline: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: 13,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 19,
+  },
+  ttsIntroBox: {
+    backgroundColor: '#F5F0FF',
+    borderRadius: Radii.lg,
+    padding: 12,
+    gap: 8,
+  },
+  ttsIntroText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: 13,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 20,
+  },
+  ttsIntroBold: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    color: '#7C3AED',
+  },
+  ttsPickerLabel: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: 13,
+    color: Colors.onSurface,
+  },
+  ttsGenerateHeroGradient: {
+    borderRadius: Radii.xl,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  ttsGenerateHeroText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 16,
+    color: '#fff',
+    letterSpacing: 0.2,
+  },
+  ttsShareHeroGradient: {
+    borderRadius: Radii.xl,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  ttsShareHeroText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 15,
+    color: '#fff',
+  },
+  // ── Rétrocompat (accordion shared styles) ─────────────────────────────────
   ttsSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3359,27 +5620,33 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   accordionRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   accordionArrow: { fontSize: 18, fontWeight: 'bold' },
   accordionBadge: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.xs,
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: 12,
     color: Colors.onSurfaceVariant,
-    fontStyle: 'italic',
+  },
+  accordionSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: 12,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 17,
+    marginTop: 2,
   },
 
   ttsVoicesRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    flexWrap: 'nowrap',
+    gap: 6,
   },
   ttsVoiceChip: {
+    flex: 1,
     flexDirection: 'column',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
     borderColor: Colors.outlineVariant,
     backgroundColor: Colors.white,
-    minWidth: 76,
     gap: 2,
   },
   ttsVoiceChipActive: {
@@ -3400,16 +5667,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   ttsVoiceSubActive: { color: C.primary },
 
-  ttsGenerateBtn: {
-    borderRadius: Radii.full,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  ttsGenerateBtnText: {
-    fontFamily: 'PlusJakartaSans_700Bold',
-    fontSize: Typography.md,
-    color: Colors.white,
-  },
 
   ttsErrorCard: {
     backgroundColor: '#FFF3F0',
@@ -3429,6 +5686,22 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontSize: Typography.sm,
   },
 
+
+  ttsPreviewFullBtn: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: Radii.full,
+    borderWidth: 1.5,
+    borderColor: '#9b6bb5',
+    backgroundColor: '#f5f0ff',
+  },
+  ttsPreviewFullBtnText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: '#7c3aed',
+  },
+
   ttsRegenBtn: {
     alignSelf: 'center',
     paddingVertical: 6,
@@ -3441,6 +5714,18 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   ttsRegenBtnText: {
     fontFamily: 'BeVietnamPro_600SemiBold',
     fontSize: Typography.sm,
+  },
+  ttsCancelBtn: {
+    alignSelf: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    marginTop: 4,
+  },
+  ttsCancelBtnText: {
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: 12,
+    color: Colors.onSurfaceVariant,
+    textDecorationLine: 'underline',
   },
 
   // ── Style manuscrit ────────────────────────────────────────────────────────
@@ -3485,6 +5770,34 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     lineHeight: 34,
     color: '#2C1A0E',
     letterSpacing: 0.2,
+  },
+
+  noFautesBadge: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderRadius: 20,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    marginTop: 12,
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  noFautesBadgeText: {
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: Typography.sm,
+    color: '#333',
+  },
+  noFautesBadgeStrike: {
+    textDecorationLine: 'line-through',
+    color: '#e53935',
+    fontFamily: 'BeVietnamPro_700Bold',
+  },
+  noFautesBadgeCorrect: {
+    color: '#2E7D32',
+    fontFamily: 'BeVietnamPro_700Bold',
   },
   });
 }
