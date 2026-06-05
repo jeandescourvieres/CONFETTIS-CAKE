@@ -926,6 +926,9 @@ export default function ContactDetailScreen() {
         <LinearGradient colors={[...Gradients.primary]} style={styles.hero}>
           <View style={styles.heroPattern} />
           <View style={styles.heroContent}>
+            <TouchableOpacity onPress={() => { setAiAvatarError(null); setAiAvatarVisible(true); }} activeOpacity={0.8} style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radii.full, paddingVertical: 4, paddingHorizontal: 12, marginBottom: 8 }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 11, color: '#fff' }}>🎨 Générer un portrait IA unique</Text>
+            </TouchableOpacity>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               <View style={{ alignItems: 'center', gap: 4 }}>
                 <TouchableOpacity style={styles.aiAvatarBtn} onPress={() => { setAiAvatarError(null); setAiAvatarVisible(true); }}>
