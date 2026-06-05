@@ -739,7 +739,7 @@ export default function HomeScreen() {
                   <Text style={{ fontSize: 20 }}>💬</Text>
                   <Text style={{ fontSize: 20 }}>✨</Text>
                 </View>
-                <Text style={styles.featuredSub}>{'Avec ConfettiCake, tu as plusieurs façons de créer un message pour tes proches.\nChoisis celle qui te convient le mieux !\nTu peux même envoyer un message à un animal… ou un message de la part d\'un animal 🐾 (lol)'}</Text>
+                <Text style={styles.featuredSub}>{'Avec ConfettiCake, tu as plusieurs façons de créer un message pour tes proches. Avec ou sans l\'aide de l\'IA.\nChoisis celle qui te convient le mieux !\nTu peux même envoyer un message à un animal… ou un message de la part d\'un animal 🐾. Et même un message en morse ! 📡 (lol)'}</Text>
                 <TouchableOpacity style={[styles.featuredBtn, styles.messageBtnColor]} onPress={() => router.push({ pathname: '/(app)/create', params: { fromGuide: '1' } } as never)} activeOpacity={0.85}>
                   <Text style={styles.featuredBtnText}>Créer un message 🎉</Text>
                   <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
