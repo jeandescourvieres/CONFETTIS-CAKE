@@ -2953,7 +2953,7 @@ export default function CreateScreen() {
 
         {/* ── Carte animal de Sophie ── */}
         {effectiveContactId && relation !== 'pet' && contactPets.length > 0 && (
-          <View style={{ borderRadius: Radii.xl, overflow: 'hidden', marginBottom: Spacing[3], backgroundColor: '#3B0764' }}>
+          <View style={{ borderRadius: Radii.xl, overflow: 'hidden', marginTop: Spacing[3], marginBottom: Spacing[3], backgroundColor: '#3B0764' }}>
             {/* Hero */}
             <View style={{ padding: 20, alignItems: 'center' as const, gap: 8 }}>
               <Text style={{ fontSize: 52 }}>
