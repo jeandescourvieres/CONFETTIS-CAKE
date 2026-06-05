@@ -2127,7 +2127,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   introAccItem: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: Radii.lg, padding: 12, gap: 6 },
   introAccEmoji: { fontSize: 20 },
   introAccTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#fff' },
-  introAccBodyText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(255,255,255,0.8)', lineHeight: 18, marginTop: 4 },
+  introAccBodyText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.9)', lineHeight: 22, marginTop: 6 },
   onboardingNote: { marginHorizontal: Spacing[4], marginTop: Spacing[4], backgroundColor: '#F3EFFF', borderRadius: Radii.lg, padding: Spacing[3], gap: 4 },
   onboardingNoteText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#4C1D95', lineHeight: 20 },
   onboardingNoteBold: { fontFamily: 'BeVietnamPro_700Bold' },
