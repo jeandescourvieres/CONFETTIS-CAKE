@@ -509,53 +509,85 @@ export default function HomeScreen() {
               </View>
             </LinearGradient>
 
-            {/* Brèves du jour */}
+            {/* ── Météo standalone (toujours visible) ── */}
+            {weather && (() => {
+              const { grad, txt, sub } = getWeatherTheme(weather.emoji);
+              const comment = weather.emoji.includes('☀') ? '😎 Parfait pour sortir !' : weather.emoji.includes('🌧') ? '☂️ Prévois un parapluie !' : weather.emoji.includes('⛈') ? '⚡ Reste à l\'abri !' : weather.emoji.includes('❄') || weather.emoji.includes('🌨') ? '🧤 Couvre-toi bien !' : weather.emoji.includes('🌦') ? '🌈 Variable — garde un œil !' : weather.emoji.includes('🌫') ? '👀 Visibilité réduite.' : weather.emoji.includes('🌤') ? '🙂 Agréable, profites-en !' : '🌡️ Temps variable.';
+              return (
+                <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, overflow: 'hidden' }}>
+                  <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                    <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ padding: 16 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 44, color: txt, lineHeight: 48 }}>{weather.temp}°</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txt }}>{weather.description}</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: sub, marginTop: 2 }}>Ressenti {weather.apparentTemp}°{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: txt, marginTop: 6 }}>{comment}</Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                          <Text style={{ fontSize: 52, opacity: 0.9 }}>{weather.emoji}</Text>
+                          <Text style={{ color: txt, fontSize: 18, fontWeight: '700' }}>{weatherOpen ? '▲' : '▼'}</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                    {weatherOpen && (
+                      <View style={{ paddingHorizontal: 16, paddingBottom: 12, gap: 10 }}>
+                        {weather.hourly.length > 0 && (
+                          <View style={{ gap: 6 }}>
+                            <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: sub }}>Aujourd'hui · 48h</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                              <View style={{ flexDirection: 'row', gap: 6 }}>
+                                {weather.hourly.map((h, i) => (
+                                  <View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 44, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.md, padding: 6 }}>
+                                    <Text style={{ fontSize: 16 }}>{h.emoji}</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txt }}>{h.temp}°</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{h.label}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </ScrollView>
+                          </View>
+                        )}
+                        {weather.daily.length > 0 && (
+                          <View style={{ gap: 6 }}>
+                            <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: sub }}>Cette semaine et la suivante</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                              <View style={{ flexDirection: 'row', gap: 6 }}>
+                                {weather.daily.map((d, i) => (
+                                  <View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 48, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.md, padding: 6 }}>
+                                    <Text style={{ fontSize: 16 }}>{d.emoji}</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txt }}>{d.max}°</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{d.min}°</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{d.label}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </ScrollView>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </LinearGradient>
+                </View>
+              );
+            })()}
+
+            {/* Brèves du jour — fête, dicton, zodiac */}
             <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}>
               <TouchableOpacity
                 onPress={() => { const next = !briefsOpen; setBriefsOpen(next); SecureStore.setItemAsync('cc_briefs_open', next ? 'open' : 'closed'); }}
                 activeOpacity={0.8}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>☀️ Les brèves du jour</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>🌸 Les brèves du jour</Text>
                   <Text style={{ color: '#7C3AED', fontSize: 18, fontWeight: '700' }}>{briefsOpen ? '▲' : '▼'}</Text>
                 </View>
                 {!briefsOpen && (
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Météo · fête & dicton · zodiaque…</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Fête du jour · dicton · zodiaque…</Text>
                 )}
               </TouchableOpacity>
               {briefsOpen && (
                 <View style={{ marginTop: 12, gap: 10 }}>
-                  {/* Météo widget */}
-                  {weather && (() => {
-                    const { grad, txt, sub } = getWeatherTheme(weather.emoji);
-                    const comment = weather.emoji.includes('☀') ? '😎 Parfait pour sortir !' : weather.emoji.includes('🌧') ? '☂️ Prévois un parapluie !' : weather.emoji.includes('⛈') ? '⚡ Reste à l\'abri !' : weather.emoji.includes('❄') || weather.emoji.includes('🌨') ? '🧤 Couvre-toi bien !' : weather.emoji.includes('🌦') ? '🌈 Variable — garde un œil !' : weather.emoji.includes('🌫') ? '👀 Visibilité réduite.' : weather.emoji.includes('🌤') ? '🙂 Agréable, profites-en !' : '🌡️ Temps variable.';
-                    return (
-                      <View style={{ borderRadius: Radii.lg, overflow: 'hidden' }}>
-                        <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                          <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ padding: 14 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                              <View style={{ flex: 1 }}>
-                                <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 44, color: txt, lineHeight: 48 }}>{weather.temp}°</Text>
-                                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txt }}>{weather.description}</Text>
-                                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: sub, marginTop: 2 }}>Ressenti {weather.apparentTemp}°{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
-                                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: txt, marginTop: 6 }}>{comment}</Text>
-                              </View>
-                              <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                                <Text style={{ fontSize: 52, opacity: 0.9 }}>{weather.emoji}</Text>
-                                <Text style={{ color: txt, fontSize: 18, fontWeight: '700' }}>{weatherOpen ? '▲' : '▼'}</Text>
-                              </View>
-                            </View>
-                          </TouchableOpacity>
-                          {weatherOpen && (
-                            <View style={{ paddingHorizontal: 14, paddingBottom: 10, gap: 8 }}>
-                              {weather.hourly.length > 0 && (<><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: sub }}>Aujourd'hui · 48h</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled><View style={{ flexDirection: 'row', gap: 6 }}>{weather.hourly.map((h, i) => (<View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 44, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.md, padding: 6 }}><Text style={{ fontSize: 16 }}>{h.emoji}</Text><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txt }}>{h.temp}°</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{h.label}</Text></View>))}</View></ScrollView></>)}
-                              {weather.daily.length > 0 && (<><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: sub }}>Cette semaine et la suivante</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled><View style={{ flexDirection: 'row', gap: 6 }}>{weather.daily.map((d, i) => (<View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 48, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.md, padding: 6 }}><Text style={{ fontSize: 16 }}>{d.emoji}</Text><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txt }}>{d.max}°</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{d.min}°</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{d.label}</Text></View>))}</View></ScrollView></>)}
-                            </View>
-                          )}
-                        </LinearGradient>
-                      </View>
-                    );
-                  })()}
                   {/* Fête du jour */}
                   {todayNames.length > 0 && (
                     <View style={{ backgroundColor: '#FDF4FF', borderRadius: Radii.lg, padding: 10, gap: 8 }}>
@@ -789,52 +821,85 @@ export default function HomeScreen() {
               </View>
             </LinearGradient>
 
-            {/* ── Brèves du jour (mode complet) ── */}
+            {/* ── Météo standalone (toujours visible) ── */}
+            {weather && (() => {
+              const { grad, txt, sub } = getWeatherTheme(weather.emoji);
+              const comment = weather.emoji.includes('☀') ? '😎 Parfait pour sortir !' : weather.emoji.includes('🌧') ? '☂️ Prévois un parapluie !' : weather.emoji.includes('⛈') ? '⚡ Reste à l\'abri !' : weather.emoji.includes('❄') || weather.emoji.includes('🌨') ? '🧤 Couvre-toi bien !' : weather.emoji.includes('🌦') ? '🌈 Variable — garde un œil !' : weather.emoji.includes('🌫') ? '👀 Visibilité réduite.' : weather.emoji.includes('🌤') ? '🙂 Agréable, profites-en !' : '🌡️ Temps variable.';
+              return (
+                <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, overflow: 'hidden' }}>
+                  <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                    <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ padding: 16 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 44, color: txt, lineHeight: 48 }}>{weather.temp}°</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txt }}>{weather.description}</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: sub, marginTop: 2 }}>Ressenti {weather.apparentTemp}°{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: txt, marginTop: 6 }}>{comment}</Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                          <Text style={{ fontSize: 52, opacity: 0.9 }}>{weather.emoji}</Text>
+                          <Text style={{ color: txt, fontSize: 18, fontWeight: '700' }}>{weatherOpen ? '▲' : '▼'}</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                    {weatherOpen && (
+                      <View style={{ paddingHorizontal: 16, paddingBottom: 12, gap: 10 }}>
+                        {weather.hourly.length > 0 && (
+                          <View style={{ gap: 6 }}>
+                            <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: sub }}>Aujourd'hui · 48h</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                              <View style={{ flexDirection: 'row', gap: 6 }}>
+                                {weather.hourly.map((h, i) => (
+                                  <View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 44, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.md, padding: 6 }}>
+                                    <Text style={{ fontSize: 16 }}>{h.emoji}</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txt }}>{h.temp}°</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{h.label}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </ScrollView>
+                          </View>
+                        )}
+                        {weather.daily.length > 0 && (
+                          <View style={{ gap: 6 }}>
+                            <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: sub }}>Cette semaine et la suivante</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                              <View style={{ flexDirection: 'row', gap: 6 }}>
+                                {weather.daily.map((d, i) => (
+                                  <View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 48, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.md, padding: 6 }}>
+                                    <Text style={{ fontSize: 16 }}>{d.emoji}</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txt }}>{d.max}°</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{d.min}°</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{d.label}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </ScrollView>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </LinearGradient>
+                </View>
+              );
+            })()}
+
+            {/* ── Brèves du jour (mode complet) — fête, dicton, zodiac ── */}
             <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}>
               <TouchableOpacity
                 onPress={() => { const next = !briefsOpen; setBriefsOpen(next); SecureStore.setItemAsync('cc_briefs_open', next ? 'open' : 'closed'); }}
                 activeOpacity={0.8}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>☀️ Les brèves du jour</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>🌸 Les brèves du jour</Text>
                   <Text style={{ color: '#7C3AED', fontSize: 18, fontWeight: '700' }}>{briefsOpen ? '▲' : '▼'}</Text>
                 </View>
                 {!briefsOpen && (
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Météo · fête & dicton · zodiaque…</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Fête du jour · dicton · zodiaque…</Text>
                 )}
               </TouchableOpacity>
               {briefsOpen && (
                 <View style={{ marginTop: 12, gap: 10 }}>
-                  {weather && (() => {
-                    const { grad, txt, sub } = getWeatherTheme(weather.emoji);
-                    const comment = weather.emoji.includes('☀') ? '😎 Parfait pour sortir !' : weather.emoji.includes('🌧') ? '☂️ Prévois un parapluie !' : weather.emoji.includes('⛈') ? '⚡ Reste à l\'abri !' : weather.emoji.includes('❄') || weather.emoji.includes('🌨') ? '🧤 Couvre-toi bien !' : weather.emoji.includes('🌦') ? '🌈 Variable — garde un œil !' : weather.emoji.includes('🌫') ? '👀 Visibilité réduite.' : weather.emoji.includes('🌤') ? '🙂 Agréable, profites-en !' : '🌡️ Temps variable.';
-                    return (
-                      <View style={{ borderRadius: Radii.lg, overflow: 'hidden' }}>
-                        <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                          <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ padding: 14 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                              <View style={{ flex: 1 }}>
-                                <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 44, color: txt, lineHeight: 48 }}>{weather.temp}°</Text>
-                                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txt }}>{weather.description}</Text>
-                                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: sub, marginTop: 2 }}>Ressenti {weather.apparentTemp}°{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
-                                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: txt, marginTop: 6 }}>{comment}</Text>
-                              </View>
-                              <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                                <Text style={{ fontSize: 52, opacity: 0.9 }}>{weather.emoji}</Text>
-                                <Text style={{ color: txt, fontSize: 18, fontWeight: '700' }}>{weatherOpen ? '▲' : '▼'}</Text>
-                              </View>
-                            </View>
-                          </TouchableOpacity>
-                          {weatherOpen && (
-                            <View style={{ paddingHorizontal: 14, paddingBottom: 10, gap: 8 }}>
-                              {weather.hourly.length > 0 && (<><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: sub }}>Aujourd'hui · 48h</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled><View style={{ flexDirection: 'row', gap: 6 }}>{weather.hourly.map((h, i) => (<View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 44, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.md, padding: 6 }}><Text style={{ fontSize: 16 }}>{h.emoji}</Text><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txt }}>{h.temp}°</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{h.label}</Text></View>))}</View></ScrollView></>)}
-                              {weather.daily.length > 0 && (<><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: sub }}>Cette semaine et la suivante</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled><View style={{ flexDirection: 'row', gap: 6 }}>{weather.daily.map((d, i) => (<View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 48, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.md, padding: 6 }}><Text style={{ fontSize: 16 }}>{d.emoji}</Text><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txt }}>{d.max}°</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{d.min}°</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: sub }}>{d.label}</Text></View>))}</View></ScrollView></>)}
-                            </View>
-                          )}
-                        </LinearGradient>
-                      </View>
-                    );
-                  })()}
                   {todayNames.length > 0 && (<View style={{ backgroundColor: '#FDF4FF', borderRadius: Radii.lg, padding: 10, gap: 8 }}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><Text style={{ fontSize: 24 }}>🌸</Text><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#7C3AED', flex: 1 }}>{`Aujourd'hui on fête ${todayNames.join(' et ')}`}</Text></View><TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }} onPress={() => router.push({ pathname: '/(app)/explore/prenoms', params: { initialPrenom: todayNames[0] } } as never)} activeOpacity={0.8}><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#9333EA' }}>{`✨ En savoir plus sur le prénom ${todayNames[0]}`}</Text><Text style={{ color: '#C084FC' }}>›</Text></TouchableOpacity></View>)}
                   <View style={{ backgroundColor: '#FFFBEB', borderRadius: Radii.lg, padding: 10, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#92400E', marginBottom: 3 }}>📜 Dicton du jour</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#78350F', lineHeight: 20, fontStyle: 'italic' }}>"{getDictonDuJour()}"</Text></View>
                   <View style={{ backgroundColor: Colors.surface, borderRadius: Radii.lg, padding: 10, gap: 8 }}>
