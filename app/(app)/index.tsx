@@ -351,7 +351,16 @@ export default function HomeScreen() {
   const { reset, setContact, setOccasion } = useCreateStore();
   const scrollRef = useRef<ScrollView>(null);
   useTabScrollToTop('index', () => scrollRef.current?.scrollTo({ y: 0, animated: false }));
-  useFocusEffect(useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []));
+  useFocusEffect(useCallback(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    // Réinitialise tous les accordéons à chaque retour sur la home
+    setBriefsOpen(false);
+    setWeatherOpen(false);
+    setAnimalCardOpen(false);
+    setMorseCardOpen(false);
+    setFeatAccordionOpen(null);
+    setDictonOpen(false);
+  }, []));
 
   const [introVisible, setIntroVisible] = useState(true);
   const [homeMode, setHomeMode] = useState<'simple' | 'advanced'>('simple');
@@ -388,9 +397,7 @@ export default function HomeScreen() {
     });
   }, []);
   useEffect(() => {
-    SecureStore.getItemAsync('cc_briefs_open').then((val) => {
-      if (val === 'open') setBriefsOpen(true);
-    });
+    // Brèves toujours fermées au démarrage (pas de restauration SecureStore)
   }, []);
 
   // Fête du jour
