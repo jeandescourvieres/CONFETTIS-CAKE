@@ -722,7 +722,7 @@ export default function HomeScreen() {
                   <Text style={{ fontSize: 20 }}>👥</Text>
                   <Text style={{ fontSize: 20 }}>🎂</Text>
                 </View>
-                <Text style={styles.featuredSub}>{'Commence par exemple par tes proches.'}</Text>
+                <Text style={styles.featuredSub}>{'Ajoute tes proches, ta famille, tes amis, tes collègues… L\'appli surveille leurs anniversaires et fêtes et t\'alerte avant pour ne jamais oublier.'}</Text>
                 <TouchableOpacity style={styles.featuredBtn} onPress={() => router.push('/(app)/contacts' as never)} activeOpacity={0.85}>
                   <Text style={styles.featuredBtnText}>Ajouter 🎉</Text>
                   <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
