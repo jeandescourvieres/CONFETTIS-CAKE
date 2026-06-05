@@ -6,10 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Image,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -32,6 +34,17 @@ import type { UpcomingEvent } from '../../src/types/models';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const INTRO_DISMISSED_KEY = 'cc_home_intro_dismissed';
+const HOME_MODE_KEY       = 'cc_home_mode';
+const WELCOME_SIMPLE_KEY  = 'cc_welcome_simple';
+
+const INTRO_ACCORDION: { emoji: string; title: string; body: string }[] = [
+  { emoji: '💌', title: 'Des messages pour toutes les occasions', body: 'Anniversaires, fêtes de prénoms, naissances, mariages, diplômes, retraites, Noël, Saint-Valentin… Des centaines de modèles prêts à l\'emploi, classés par style et par ambiance.' },
+  { emoji: '✨', title: 'L\'IA qui écrit pour toi', body: 'Message unique, poème rimé, chanson, humour… en quelques secondes. Choisis le ton — touchant, décalé, poétique — et la langue (français, anglais, espagnol, et plus). Tu régénères autant de fois que tu veux.' },
+  { emoji: '📅', title: 'Agenda & rappels automatiques', body: 'L\'appli surveille toutes les dates de tes contacts et t\'alerte, à ta convenance, avant chaque anniversaire et fête. Tu peux aussi créer tes propres rappels : ponctuel, hebdo, mensuel ou annuel.' },
+  { emoji: '🐾', title: 'Messages du monde animal', body: 'Ton contact a un animal ? L\'IA rédige un message de sa part — avec sa jalousie, sa tendresse et ses réclamations de croquettes. Et si c\'est toi qui as un animal, laisse-le signer tes messages : rien de tel qu\'un "Bisous, Moustache 🐱" pour faire fondre quelqu\'un.' },
+  { emoji: '🎁', title: 'Cagnottes & messages festifs', body: 'Organise une cagnotte collective pour un cadeau commun. Et pour aller plus loin, envoie un message festif animé — ton proche reçoit un lien qui s\'ouvre sur une animation avec son prénom, ton message et une musique de fond 🎉' },
+  { emoji: '⚙️', title: 'Et encore bien d\'autres fonctions…', body: 'Lecture vocale du message avec musique de fond, mode couple pour partager l\'agenda, messages "de la part de l\'enfant", livre d\'or partageable, envois automatiques… Tu découvriras tout ça au fil du temps.' },
+];
 
 const INTRO_FEATURES: { emoji: string; text?: string; rich?: 'no-fautes' }[] = [
   { emoji: '🎁', text: 'Alertes 7 jours avant chaque anniversaire & fête' },
@@ -277,14 +290,31 @@ export default function HomeScreen() {
   const upcomingHolidaysCount = useMemo(() => getUpcomingHolidays(365).length, []);
   const { reset, setContact, setOccasion } = useCreateStore();
   const scrollRef = useRef<ScrollView>(null);
+  useTabScrollToTop('index', () => scrollRef.current?.scrollTo({ y: 0, animated: false }));
   useFocusEffect(useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []));
 
   const [introVisible, setIntroVisible] = useState(true);
+  const [homeMode, setHomeMode] = useState<'simple' | 'advanced'>('simple');
+  const [showSimpleWelcome, setShowSimpleWelcome] = useState(true);
+  const [featAccordionOpen, setFeatAccordionOpen] = useState<number | null>(null);
+
   useEffect(() => {
     SecureStore.getItemAsync(INTRO_DISMISSED_KEY).then((val) => {
       if (val === 'true') setIntroVisible(false);
     });
+    SecureStore.getItemAsync(HOME_MODE_KEY).then((val) => {
+      if (val === 'advanced') setHomeMode('advanced');
+    });
+    SecureStore.getItemAsync(WELCOME_SIMPLE_KEY).then((val) => {
+      if (val === 'closed') setShowSimpleWelcome(false);
+    });
   }, []);
+
+  const toggleHomeMode = useCallback(async () => {
+    const next = homeMode === 'simple' ? 'advanced' : 'simple';
+    setHomeMode(next);
+    await SecureStore.setItemAsync(HOME_MODE_KEY, next);
+  }, [homeMode]);
   const handleDismissIntro = useCallback(async () => {
     setIntroVisible(false);
     await SecureStore.setItemAsync(INTRO_DISMISSED_KEY, 'true');
@@ -378,7 +408,214 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* ── Hero ──────────────────────────────────────── */}
+        {/* ══════════════════════ MODE SIMPLE ═════════════════════════ */}
+        {homeMode === 'simple' && (
+          <>
+            {/* Carte Bienvenue */}
+            <LinearGradient colors={['#7C3AED', '#9b6bb5', '#c084fc']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.welcomeCard}>
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: showSimpleWelcome ? 10 : 0 }} onPress={() => { const next = !showSimpleWelcome; setShowSimpleWelcome(next); SecureStore.setItemAsync(WELCOME_SIMPLE_KEY, next ? 'open' : 'closed'); }} activeOpacity={0.75}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 11, color: 'rgba(255,255,255,0.75)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>🎂 Confettis & Cake</Text>
+                  <Text style={styles.welcomeCardTitle}>Bienvenue ! 🎉</Text>
+                </View>
+                <Text style={{ fontSize: 20, color: 'rgba(255,255,255,0.9)' }}>{showSimpleWelcome ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+              {!showSimpleWelcome && (
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 18 }}>L'appli qui t'aide à ne jamais oublier une occasion 💌 — appuie pour en savoir plus</Text>
+              )}
+              {showSimpleWelcome && (
+                <>
+                  <Text style={styles.welcomeTagline}>L'appli qui t'aide à ne jamais oublier une occasion — et à envoyer des messages qui touchent vraiment. 💌</Text>
+                  {INTRO_ACCORDION.map((item, i) => (
+                    <TouchableOpacity key={i} style={styles.introAccItem} onPress={() => setFeatAccordionOpen(featAccordionOpen === i ? null : i)} activeOpacity={0.85}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <Text style={styles.introAccEmoji}>{item.emoji}</Text>
+                        <Text style={[styles.introAccTitle, { flex: 1 }]}>{item.title}</Text>
+                        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>{featAccordionOpen === i ? '▲' : '▼'}</Text>
+                      </View>
+                      {featAccordionOpen === i && <Text style={styles.introAccBodyText}>{item.body}</Text>}
+                    </TouchableOpacity>
+                  ))}
+                </>
+              )}
+            </LinearGradient>
+
+            {/* Note onboarding */}
+            <View style={styles.onboardingNote}>
+              <Text style={styles.onboardingNoteText}>{'Pour démarrer en douceur, tu es en '}<Text style={styles.onboardingNoteBold}>mode apprentissage</Text>{" — l'essentiel à portée de main. Passe en "}<Text style={styles.onboardingNoteBold}>mode complet</Text>{' à tout moment pour tout débloquer.'}</Text>
+              <Text style={styles.onboardingNoteFooter}>Bonne découverte… et régale-toi 🍰</Text>
+            </View>
+            <TouchableOpacity style={styles.modeSmallBtn} onPress={toggleHomeMode} activeOpacity={0.85}>
+              <Text style={styles.modeSmallBtnText}>🍭 Passer en mode complet</Text>
+            </TouchableOpacity>
+
+            {/* Étapes */}
+            <Text style={[styles.pageTitle, { textAlign: 'center' }]}>Par où commencer ? 👋</Text>
+            <Text style={styles.pageSubtitle}>{'Commence par créer ton profil. Puis ajoute tes contacts. Tu pourras ensuite leur envoyer des messages.'}</Text>
+
+            {/* Étape 1 — Profil */}
+            <TouchableOpacity style={styles.profileIntroCard} onPress={() => router.push('/(app)/profile' as never)} activeOpacity={0.85}>
+              <View style={styles.profileIntroBadge}><Text style={styles.profileIntroBadgeText}>👆 Étape 1</Text></View>
+              <View style={styles.profileIntroBody}>
+                <Text style={styles.profileIntroEmoji}>📋</Text>
+                <View style={styles.profileIntroCenter}>
+                  <Text style={styles.profileIntroTitle}>Crée ton profil</Text>
+                  <Text style={styles.profileIntroDesc}>{"Renseigne ta civilité, ton prénom, ton nom et ta date de naissance -- l'IA s'en sert pour personnaliser chaque message et signature. Et n'oublie pas de personnaliser l'application avec l'une des 9 couleurs disponibles pour créer ton ambiance préférée."}</Text>
+                  <TouchableOpacity style={styles.profileIntroBtn} onPress={() => router.push('/(app)/profile' as never)} activeOpacity={0.85}>
+                    <Text style={styles.profileIntroBtnText}>Créer mon profil 🎉</Text>
+                    <View style={styles.profileIntroBtnArrow}><Text style={styles.profileIntroBtnArrowText}>›</Text></View>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.profileIntroRightEmoji}>✨</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Étape 2 — Contacts */}
+            <View style={styles.featuredCard}>
+              <View style={styles.contactBadge}><Text style={styles.contactBadgeText}>👆 Étape 2</Text></View>
+              <View style={styles.featuredBody}>
+                <Text style={styles.featuredLeftEmoji}>👥</Text>
+                <View style={styles.featuredCenter}>
+                  <Text style={styles.featuredTitle}>Ajoute tes contacts</Text>
+                  <Text style={styles.featuredSub}>{'Commence par exemple par tes proches.'}</Text>
+                  <TouchableOpacity style={styles.featuredBtn} onPress={() => router.push('/(app)/contacts' as never)} activeOpacity={0.85}>
+                    <Text style={styles.featuredBtnText}>Ajouter 🎉</Text>
+                    <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.featuredRightEmoji}>🎂</Text>
+              </View>
+            </View>
+
+            {/* Étape 3 — Message */}
+            <View style={[styles.featuredCard, styles.messageCard]}>
+              <View style={styles.messageBadge}><Text style={styles.messageBadgeText}>👆 Étape 3</Text></View>
+              <View style={styles.featuredBody}>
+                <Text style={styles.featuredLeftEmoji}>💬</Text>
+                <View style={styles.featuredCenter}>
+                  <Text style={styles.featuredTitle}>Crée un message</Text>
+                  <Text style={styles.featuredSub}>{'Avec ConfettiCake, tu as plusieurs façons de créer un message pour tes proches.\nChoisis celle qui te convient le mieux !\n\nTu peux même envoyer un message à un animal… ou un message de la part d\'un animal 🐾 (lol)'}</Text>
+                  <TouchableOpacity style={[styles.featuredBtn, styles.messageBtnColor]} onPress={() => router.push({ pathname: '/(app)/create', params: { fromGuide: '1' } } as never)} activeOpacity={0.85}>
+                    <Text style={styles.featuredBtnText}>Créer 🎉</Text>
+                    <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.featuredRightEmoji}>✨</Text>
+              </View>
+            </View>
+
+            {/* Carte animaux */}
+            <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 12, marginTop: 32, marginHorizontal: 16 }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 17, color: '#6EE7B7', lineHeight: 24 }}>{'🐾 C\'est la grande nouveauté de ConfettiCake : vos animaux de compagnie peuvent désormais… écrire des messages !'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22 }}>{'Bon, c\'est l\'IA qui tient la plume — mais le résultat est bluffant 😄\nTon chien qui écrit à ta mère pour lui souhaiter sa fête. Le chat de ta sœur qui lui souhaite sa fête — avec toute l\'indifférence dont il est capable.\nEt ça marche dans les deux sens : tu peux aussi écrire directement à l\'animal d\'un contact pour son anniversaire ou sa fête.'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#6EE7B7' }}>{'👉 Explore cette fonction depuis la fiche d\'un contact — ou depuis le générateur de messages (bouton "Créer un message" ci-dessus et dans le menu de bas de page).'}</Text>
+            </View>
+
+            {/* Carte morse */}
+            <View style={{ borderRadius: Radii.xl, backgroundColor: '#1E1B4B', padding: Spacing[4], gap: 10, marginTop: 16, marginHorizontal: 16 }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 15, color: '#A5B4FC', lineHeight: 22 }}>🤫 Psst… tes messages festifs cachent un secret</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20 }}>{'Chaque message festif animé que tu envoies contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\n\nC\'est accessible dans le lien de la carte — cherche le panneau 📡'}</Text>
+            </View>
+
+            {/* Grille accès rapide */}
+            <Text style={styles.quickSectionLabel}>🗺️ Accès rapide — toutes les fonctions</Text>
+            <Text style={styles.quickSectionSub}>{"Ces boutons te donnent accès en un clic à toutes les fonctions de l'appli : agenda, contacts, cartes, cagnotte, numérologie et bien plus."}</Text>
+            <View style={styles.quickGrid}>
+              <QuickAction emoji="😎"  label="Mode Jeune"          onPress={() => router.push('/(app)/mode-jeune' as never)} />
+              <QuickAction emoji="📅"  label="Ton agenda"          onPress={() => router.push('/(app)/calendar' as never)} />
+              <QuickAction emoji="🗓️" label="Créer un événement"  onPress={() => router.push('/(app)/calendar/new-event' as never)} />
+              <QuickAction emoji="🎊"  label="Festif animé"        onPress={() => router.push('/(app)/cards/' as never)} />
+              <QuickAction emoji="👥"  label="Mes contacts"        onPress={() => router.push('/(app)/contacts' as never)} />
+              <QuickAction emoji="🐷"  label="Cagnotte"            onPress={() => router.push('/(app)/cagnotte-guide' as never)} />
+              <QuickAction emoji="📊"  label="Tableau de bord"     onPress={() => router.push('/(app)/dashboard' as never)} />
+              <QuickAction emoji="🔢"  label="Numérologie"         onPress={() => router.push('/(app)/numerologie' as never)} />
+              <QuickAction emoji="⭐"  label="Zodiaque"             onPress={() => router.push('/(app)/zodiac-season' as never)} />
+              <QuickAction emoji="💫"  label="Compatibilité"       onPress={() => router.push('/(app)/compat' as never)} />
+            </View>
+
+            {/* Info strip */}
+            <View style={styles.infoStrip}>
+              <TouchableOpacity style={[styles.infoChip, { flex: 1 }]} onPress={() => router.push('/(app)/help' as never)} activeOpacity={0.75}>
+                <Text style={styles.infoChipEmoji}>❓</Text>
+                <Text style={styles.infoChipText}>Aide & mode d'emploi</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Bannière bas */}
+            <TouchableOpacity style={styles.bottomBanner} onPress={toggleHomeMode} activeOpacity={0.9}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.bottomBannerTitle}>Envie de tout découvrir ? 🪄</Text>
+                <View style={styles.bottomBannerBtn}><Text style={styles.bottomBannerBtnText}>Passer en mode complet 🍭</Text><Text style={styles.bottomBannerArrow}> ›</Text></View>
+                <Text style={styles.bottomBannerSub}>Accède à toutes les fonctionnalités</Text>
+              </View>
+              <Text style={styles.bottomBannerEmoji}>🎉</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* ══════════════════════ MODE COMPLET ════════════════════════ */}
+        {homeMode === 'advanced' && (
+          <>
+            {/* Grille navigation rapide */}
+            <Text style={styles.quickSectionLabel}>Navigation rapide · l'essentiel</Text>
+            <View style={styles.quickGrid}>
+              <QuickAction emoji="💬✨" label="Créer un message"    onPress={() => router.push('/(app)/create' as never)} accent />
+              <QuickAction emoji="😎"   label="Mode Jeune"           onPress={() => router.push('/(app)/mode-jeune' as never)} />
+              <QuickAction emoji="👥"   label="Mes contacts"         onPress={() => router.push('/(app)/contacts' as never)} />
+              <QuickAction emoji="🎊"   label="Festif animé"         onPress={() => router.push('/(app)/cards/' as never)} />
+              <QuickAction emoji="🎁"   label="Créer une cagnotte"   onPress={() => router.push('/(app)/pot/new' as never)} />
+              <QuickAction emoji="📋"   label="Mes cagnottes"        onPress={() => router.push('/(app)/pot' as never)} />
+              <QuickAction emoji="🌟"   label="Parrainage"           onPress={() => router.push('/(app)/referral/' as never)} />
+              <QuickAction emoji="🤖"   label="Envois automatiques"  onPress={() => router.push('/(app)/auto-sends/' as never)} />
+              <QuickAction emoji="⏰"   label="Rappels personnalisés" onPress={() => router.push('/(app)/reminders/' as never)} />
+              <QuickAction emoji="🔢"   label="Numérologie"          onPress={() => router.push('/(app)/numerologie' as never)} />
+              <QuickAction emoji="⭐"   label="Zodiaque"              onPress={() => router.push('/(app)/zodiac-season' as never)} />
+              <QuickAction emoji="💞"   label="Compatibilité"        onPress={() => router.push('/(app)/compat' as never)} />
+              <QuickAction emoji="🗓️"  label="Créer un événement"   onPress={() => router.push('/(app)/calendar/new-event' as never)} />
+            </View>
+
+            {/* Derniers messages */}
+            {recentSent.length > 0 && (
+              <>
+                <Text style={[styles.quickSectionLabel, { marginTop: Spacing[4] }]}>Derniers messages envoyés</Text>
+                <View style={styles.recentList}>
+                  {recentSent.map((msg) => (
+                    <RecentMessageCard key={msg.id} contactName={msg.contact_name} format={msg.format} status={msg.status} date={msg.created_at} onPress={() => router.push(`/(app)/message/${msg.id}` as never)} />
+                  ))}
+                  <TouchableOpacity onPress={() => router.push({ pathname: '/(app)/creations', params: { filter: 'sent' } } as never)} style={{ alignSelf: 'center', marginTop: 4 }}>
+                    <Text style={styles.collapseSeeAll}>Voir tout →</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            {/* Carte morse */}
+            <View style={{ borderRadius: Radii.xl, backgroundColor: '#1E1B4B', padding: Spacing[4], gap: 10, marginTop: 16, marginHorizontal: 16 }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 15, color: '#A5B4FC', lineHeight: 22 }}>🤫 Psst… tes messages festifs cachent un secret</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20 }}>{'Chaque message festif animé que tu envoies contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\n\nC\'est accessible dans le lien de la carte — cherche le panneau 📡'}</Text>
+            </View>
+
+            {/* Info strip */}
+            <View style={styles.infoStrip}>
+              <TouchableOpacity style={[styles.infoChip, { flex: 1 }]} onPress={() => router.push('/(app)/help' as never)} activeOpacity={0.75}>
+                <Text style={styles.infoChipEmoji}>❓</Text>
+                <Text style={styles.infoChipText}>Aide & mode d'emploi</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Retour en mode simple */}
+            <TouchableOpacity style={{ alignSelf: 'center', padding: 12, marginBottom: 8 }} onPress={toggleHomeMode} activeOpacity={0.75}>
+              <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.sm, color: Colors.onSurfaceVariant }}>← Revenir en mode apprentissage</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* ══ Ancien contenu v1 (masqué) ══ */}
+        {false && (<>
         <LinearGradient
           colors={appTheme.gradient}
           start={{ x: 0, y: 0 }}
@@ -666,6 +903,8 @@ export default function HomeScreen() {
         )}
 
         <View style={{ height: 32 }} />
+        </>)} {/* fin {false && ( */}
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -1284,5 +1523,69 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginTop: 2,
   },
   zodiacSignChevron: { fontSize: 22, color: Colors.outlineVariant },
+
+  // ── Mode simple — nouveaux styles ───────────────────────────────────────
+  welcomeCard: { marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, padding: Spacing[4], gap: 8 },
+  welcomeCardTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 26, color: '#fff', lineHeight: 32 },
+  welcomeTagline: { fontFamily: 'BeVietnamPro_400Regular', fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 21 },
+  introAccItem: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: Radii.lg, padding: 12, gap: 6 },
+  introAccEmoji: { fontSize: 20 },
+  introAccTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#fff' },
+  introAccBodyText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(255,255,255,0.8)', lineHeight: 18, marginTop: 4 },
+  onboardingNote: { marginHorizontal: Spacing[4], marginTop: Spacing[4], backgroundColor: '#F3EFFF', borderRadius: Radii.lg, padding: Spacing[3], gap: 4 },
+  onboardingNoteText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#4C1D95', lineHeight: 20 },
+  onboardingNoteBold: { fontFamily: 'BeVietnamPro_700Bold' },
+  onboardingNoteFooter: { fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.xs, color: '#7C3AED' },
+  modeSmallBtn: { alignSelf: 'center', marginTop: Spacing[3], backgroundColor: '#7C3AED', borderRadius: Radii.full, paddingVertical: 10, paddingHorizontal: 24 },
+  modeSmallBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#fff' },
+  pageTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface, marginHorizontal: Spacing[4], marginTop: Spacing[5] },
+  pageSubtitle: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, marginHorizontal: Spacing[4], marginTop: 4, lineHeight: 20 },
+
+  profileIntroCard: { marginHorizontal: Spacing[4], marginTop: Spacing[4], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, padding: Spacing[4], borderWidth: 1.5, borderColor: '#C4B5FD' },
+  profileIntroBadge: { alignSelf: 'flex-start', backgroundColor: '#7C3AED', borderRadius: Radii.full, paddingVertical: 4, paddingHorizontal: 12, marginBottom: 10 },
+  profileIntroBadgeText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#fff' },
+  profileIntroBody: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  profileIntroEmoji: { fontSize: 32 },
+  profileIntroCenter: { flex: 1, gap: 8 },
+  profileIntroTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.onSurface },
+  profileIntroDesc: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, lineHeight: 20 },
+  profileIntroBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#7C3AED', borderRadius: Radii.full, paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', gap: 6 },
+  profileIntroBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#fff' },
+  profileIntroBtnArrow: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  profileIntroBtnArrowText: { fontSize: 14, color: '#fff' },
+  profileIntroRightEmoji: { fontSize: 32 },
+
+  featuredCard: { marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#FFF5F7', borderRadius: Radii.xl, padding: Spacing[4], borderWidth: 1.5, borderColor: '#FBCFE8' },
+  contactBadge: { alignSelf: 'flex-start', backgroundColor: C.primary, borderRadius: Radii.full, paddingVertical: 4, paddingHorizontal: 12, marginBottom: 10 },
+  contactBadgeText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#fff' },
+  messageBadge: { alignSelf: 'flex-start', backgroundColor: '#9333EA', borderRadius: Radii.full, paddingVertical: 4, paddingHorizontal: 12, marginBottom: 10 },
+  messageBadgeText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#fff' },
+  messageCard: { backgroundColor: '#F5F3FF', borderColor: '#C4B5FD' },
+  messageBtnColor: { backgroundColor: '#9333EA' },
+  featuredBody: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  featuredLeftEmoji: { fontSize: 36 },
+  featuredCenter: { flex: 1, gap: 8 },
+  featuredTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.onSurface },
+  featuredSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, lineHeight: 20 },
+  featuredBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.primary, borderRadius: Radii.full, paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', gap: 6 },
+  featuredBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#fff' },
+  featuredBtnArrow: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  featuredBtnArrowText: { fontSize: 14, color: '#fff' },
+  featuredRightEmoji: { fontSize: 36 },
+
+  quickSectionLabel: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface, marginHorizontal: Spacing[4], marginTop: Spacing[5], marginBottom: Spacing[2] },
+  quickSectionSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, marginHorizontal: Spacing[4], marginBottom: Spacing[2], lineHeight: 18 },
+  infoStrip: { flexDirection: 'row', marginHorizontal: Spacing[4], marginTop: Spacing[4], gap: 8 },
+  infoChip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.surfaceContainerHighest, borderRadius: Radii.lg, paddingVertical: 12, paddingHorizontal: 14 },
+  infoChipEmoji: { fontSize: 18 },
+  infoChipText: { fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.sm, color: Colors.onSurface },
+  bottomBanner: { marginHorizontal: Spacing[4], marginTop: Spacing[4], backgroundColor: '#1E1B4B', borderRadius: Radii.xl, padding: Spacing[4], flexDirection: 'row', alignItems: 'center', gap: 12 },
+  bottomBannerTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: '#fff', marginBottom: 4 },
+  bottomBannerBtn: { flexDirection: 'row', alignItems: 'center' },
+  bottomBannerBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#A5B4FC' },
+  bottomBannerArrow: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#A5B4FC' },
+  bottomBannerSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  bottomBannerEmoji: { fontSize: 36 },
+  collapseSeeAll: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: C.primary },
   });
 }
