@@ -1114,9 +1114,7 @@ export default function HomeScreen() {
             </View>
 
             {/* Grille navigation rapide */}
-            <TouchableOpacity
-              style={{ alignSelf: 'center', marginTop: Spacing[5], marginBottom: Spacing[2] }}
-            >
+            <View style={{ alignSelf: 'center', marginTop: Spacing[5], marginBottom: Spacing[2] }}>
               <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FBBF24" shadowColor="#D97706" textColor="#7C2D12" />
             </View>
             <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface, marginHorizontal: Spacing[4], marginBottom: Spacing[2] }}>Navigation rapide · l'essentiel</Text>
@@ -1198,9 +1196,7 @@ export default function HomeScreen() {
             </View>
 
             {/* Retour en mode simple */}
-            <TouchableOpacity
-              style={{ alignSelf: 'center', marginTop: Spacing[3], marginBottom: Spacing[3] }}
-            >
+            <View style={{ alignSelf: 'center', marginTop: Spacing[3], marginBottom: Spacing[3] }}>
               <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FBBF24" shadowColor="#D97706" textColor="#7C2D12" />
             </View>
           </>
