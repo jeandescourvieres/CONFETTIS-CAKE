@@ -23,6 +23,7 @@ import { useCreateStore } from '../../src/hooks/../stores/createStore';
 import { humanDaysUntil, isUrgent, formatDate } from '../../src/utils/dateHelpers';
 import { getUpcomingHolidays } from '../../src/utils/generalHolidays';
 import { getCurrentZodiacSign, getContactsInZodiacSeason } from '../../src/utils/zodiac';
+import { getNamesForDate } from '../../src/utils/namedays';
 import { updateWidget } from '../../src/utils/widget';
 import { useContacts } from '../../src/hooks/useContacts';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
@@ -315,6 +316,22 @@ export default function HomeScreen() {
     setHomeMode(next);
     await SecureStore.setItemAsync(HOME_MODE_KEY, next);
   }, [homeMode]);
+
+  const [briefsOpen, setBriefsOpen] = useState(false);
+  useEffect(() => {
+    SecureStore.getItemAsync('cc_briefs_open').then((val) => {
+      if (val === 'open') setBriefsOpen(true);
+    });
+  }, []);
+
+  // Fête du jour
+  const todayMmdd = useMemo(() => {
+    const d = new Date();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${mm}-${dd}`;
+  }, []);
+  const todayNames = useMemo(() => getNamesForDate(todayMmdd), [todayMmdd]);
   const handleDismissIntro = useCallback(async () => {
     setIntroVisible(false);
     await SecureStore.setItemAsync(INTRO_DISMISSED_KEY, 'true');
@@ -411,6 +428,61 @@ export default function HomeScreen() {
         {/* ══════════════════════ MODE SIMPLE ═════════════════════════ */}
         {homeMode === 'simple' && (
           <>
+            {/* Bienvenue Jean */}
+            <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], gap: 2 }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant }}>{greetingEmojis}</Text>
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 26, color: Colors.onSurface, lineHeight: 32 }}>{greeting} 👋</Text>
+            </View>
+
+            {/* Brèves du jour */}
+            <TouchableOpacity
+              style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}
+              onPress={() => { const next = !briefsOpen; setBriefsOpen(next); SecureStore.setItemAsync('cc_briefs_open', next ? 'open' : 'closed'); }}
+              activeOpacity={0.8}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>
+                  ☀️ Les brèves du jour
+                </Text>
+                <Text style={{ color: '#7C3AED', fontSize: 14 }}>{briefsOpen ? '▲' : '▼'}</Text>
+              </View>
+              {!briefsOpen && (
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Météo · fête & dicton · zodiaque…</Text>
+              )}
+              {briefsOpen && (
+                <View style={{ marginTop: 12, gap: 10 }}>
+                  {/* Météo */}
+                  {weather && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <Text style={{ fontSize: 24 }}>{weather.emoji}</Text>
+                      <View>
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{weather.temp}°C · {weather.description}</Text>
+                        {weather.city && <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant }}>📍 {weather.city}</Text>}
+                      </View>
+                    </View>
+                  )}
+                  {/* Fête du jour */}
+                  {todayNames.length > 0 && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <Text style={{ fontSize: 24 }}>🌸</Text>
+                      <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.sm, color: Colors.onSurface }}>
+                        Fête aujourd'hui : <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{todayNames.join(', ')}</Text>
+                      </Text>
+                    </View>
+                  )}
+                  {/* Zodiaque */}
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={() => router.push('/(app)/zodiac-season' as never)} activeOpacity={0.8}>
+                    <Text style={{ fontSize: 24 }}>{currentZodiacSign.emoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{currentZodiacSign.name}</Text>
+                      <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, fontStyle: 'italic' }}>{currentZodiacSign.trait}</Text>
+                    </View>
+                    <Text style={{ color: Colors.outlineVariant }}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </TouchableOpacity>
+
             {/* Carte Bienvenue */}
             <LinearGradient colors={['#7C3AED', '#9b6bb5', '#c084fc']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.welcomeCard}>
               <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: showSimpleWelcome ? 10 : 0 }} onPress={() => { const next = !showSimpleWelcome; setShowSimpleWelcome(next); SecureStore.setItemAsync(WELCOME_SIMPLE_KEY, next ? 'open' : 'closed'); }} activeOpacity={0.75}>
@@ -559,7 +631,12 @@ export default function HomeScreen() {
         {homeMode === 'advanced' && (
           <>
             {/* Grille navigation rapide */}
-            <Text style={styles.quickSectionLabel}>Navigation rapide · l'essentiel</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: Spacing[4], marginTop: Spacing[5], marginBottom: Spacing[2] }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface }}>Navigation rapide · l'essentiel</Text>
+              <TouchableOpacity onPress={toggleHomeMode} activeOpacity={0.75} style={{ backgroundColor: '#F3EFFF', borderRadius: Radii.full, paddingVertical: 6, paddingHorizontal: 12 }}>
+                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#7C3AED' }}>← Mode apprentissage</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.quickGrid}>
               <QuickAction emoji="💬✨" label="Créer un message"    onPress={() => router.push('/(app)/create' as never)} accent />
               <QuickAction emoji="😎"   label="Mode Jeune"           onPress={() => router.push('/(app)/mode-jeune' as never)} />
