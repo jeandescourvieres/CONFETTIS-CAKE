@@ -376,12 +376,12 @@ export default function HomeScreen() {
     await SecureStore.setItemAsync(HOME_MODE_KEY, next);
   }, [homeMode]);
 
-  const [briefsOpen, setBriefsOpen] = useState(false);
+  const [briefsOpen, setBriefsOpen] = useState(true);
   const [weatherOpen, setWeatherOpen] = useState(false);
   const [dictonOpen, setDictonOpen] = useState(false);
   useEffect(() => {
     SecureStore.getItemAsync('cc_briefs_open').then((val) => {
-      if (val === 'open') setBriefsOpen(true);
+      if (val === 'closed') setBriefsOpen(false);
     });
   }, []);
 
