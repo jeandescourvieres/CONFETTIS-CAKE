@@ -1082,12 +1082,14 @@ export default function HomeScreen() {
             </View>
 
             {/* Grille navigation rapide */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: Spacing[4], marginTop: Spacing[5], marginBottom: Spacing[2] }}>
-              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface }}>Navigation rapide · l'essentiel</Text>
-              <TouchableOpacity onPress={toggleHomeMode} activeOpacity={0.75} style={{ backgroundColor: '#F3EFFF', borderRadius: Radii.full, paddingVertical: 6, paddingHorizontal: 12 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#7C3AED' }}>← Mode apprentissage</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={{ alignSelf: 'center', marginTop: Spacing[5], marginBottom: Spacing[2], backgroundColor: '#F3EFFF', borderRadius: Radii.full, paddingVertical: 8, paddingHorizontal: 20, borderWidth: 1.5, borderColor: '#C4B5FD' }}
+              onPress={toggleHomeMode}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#7C3AED' }}>← Revenir en mode apprentissage</Text>
+            </TouchableOpacity>
+            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface, marginHorizontal: Spacing[4], marginBottom: Spacing[2] }}>Navigation rapide · l'essentiel</Text>
             <View style={styles.quickGrid}>
               <QuickAction emoji="💬✨" label="Créer un message"    onPress={() => router.push('/(app)/create' as never)} accent />
               <QuickAction emoji="😎"   label="Mode Jeune"           onPress={() => router.push('/(app)/mode-jeune' as never)} />
