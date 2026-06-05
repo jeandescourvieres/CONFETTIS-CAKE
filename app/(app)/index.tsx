@@ -1530,7 +1530,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_700Bold',
     color: '#FF6B9D',
   },
-  heroContent: { marginTop: Spacing[3], alignItems: 'center' },
+  heroContent: { marginTop: Spacing[8], alignItems: 'center' },
   heroEmojis: {
     fontSize: 20,
     letterSpacing: 6,
