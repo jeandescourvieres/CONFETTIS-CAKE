@@ -3591,7 +3591,7 @@ export default function ContactDetailScreen() {
                 <Text style={styles.modalCloseText}>✕</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView style={{ paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+            <ScrollView style={{ paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 80 }}>
               <FeatureIntroCard
                 introText={`Génère un avatar illustré unique pour ${contact.name.split(' ').slice(1).join(' ') || contact.name.split(' ')[0]} grâce à DALL-E 3 ✨ L'IA s'inspire de son signe astrologique, son animal chinois, sa couleur préférée et sa personnalité pour créer une illustration artistique unique — jamais la même deux fois !`}
                 modeEmploiLines={[
@@ -4572,7 +4572,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomRightRadius: Radii['2xl'],
     paddingTop: 8,
     paddingBottom: 24,
-    maxHeight: '85%',
+    maxHeight: '93%',
   },
   modalHandle: {
     width: 36,

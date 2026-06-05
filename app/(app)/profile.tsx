@@ -232,6 +232,9 @@ export default function ProfileScreen() {
           <TouchableOpacity onPress={() => router.back()} style={{ position: 'absolute', top: 14, left: 16 }} activeOpacity={0.75}>
             <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 15, color: 'rgba(255,255,255,0.9)' }}>‹ Retour</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} style={{ position: 'absolute', top: 10, right: 16, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.75}>
+            <Text style={{ fontSize: 18, color: '#fff', fontWeight: '700' }}>✕</Text>
+          </TouchableOpacity>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
@@ -674,7 +677,7 @@ export default function ProfileScreen() {
 function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingBottom: 16, paddingTop: 12 },
+  scroll: { paddingBottom: 80, paddingTop: 12 },
 
   hero: {
     padding: Spacing[6],
