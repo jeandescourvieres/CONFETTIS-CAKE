@@ -517,7 +517,7 @@ export default function HomeScreen() {
               return (
                 <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, overflow: 'hidden' }}>
                   <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                    <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ padding: 16 }}>
+                    <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                         <View style={{ flex: 1, gap: 4 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
@@ -576,7 +576,7 @@ export default function HomeScreen() {
             })()}
 
             {/* Brèves du jour — fête, dicton, zodiac */}
-            <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}>
+            <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12 }}>
               <TouchableOpacity
                 onPress={() => { const next = !briefsOpen; setBriefsOpen(next); SecureStore.setItemAsync('cc_briefs_open', next ? 'open' : 'closed'); }}
                 activeOpacity={0.8}
@@ -843,7 +843,7 @@ export default function HomeScreen() {
               return (
                 <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, overflow: 'hidden' }}>
                   <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                    <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ padding: 16 }}>
+                    <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                         <View style={{ flex: 1, gap: 4 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
@@ -902,7 +902,7 @@ export default function HomeScreen() {
             })()}
 
             {/* ── Brèves du jour (mode complet) — fête, dicton, zodiac ── */}
-            <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}>
+            <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12 }}>
               <TouchableOpacity
                 onPress={() => { const next = !briefsOpen; setBriefsOpen(next); SecureStore.setItemAsync('cc_briefs_open', next ? 'open' : 'closed'); }}
                 activeOpacity={0.8}
