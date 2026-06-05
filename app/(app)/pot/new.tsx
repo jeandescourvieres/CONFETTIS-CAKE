@@ -17,6 +17,7 @@ import { useCreatePot } from '../../../src/hooks/usePot';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 import { HelpModal } from '../../../src/components/ui/HelpModal';
+import { Button3D } from '../../../src/components/ui/Button3D';
 
 export default function PotNewScreen() {
   const C = useColors();
@@ -218,16 +219,13 @@ export default function PotNewScreen() {
         </View>
 
         {/* ── CTA ───────────────────────────────────── */}
-        <TouchableOpacity
-          style={[styles.ctaBtn, (!isValid || isPending) && { opacity: 0.45 }]}
+        <Button3D
+          label={isPending ? 'Création...' : 'Créer la cagnotte'}
           onPress={handleCreate}
+          fullWidth
+          size="lg"
           disabled={!isValid || isPending}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.ctaBtnText}>
-            {isPending ? 'Création...' : '🎁 Créer la cagnotte'}
-          </Text>
-        </TouchableOpacity>
+        />
 
         <View style={{ height: 40 }} />
       </ScrollView>

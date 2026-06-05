@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
+import { Button3D } from '../../../src/components/ui/Button3D';
 import { useTemplates, useCreateScheduledSend, useCreateCustomTemplate } from '../../../src/hooks/useAutoSends';
 import { useContacts } from '../../../src/hooks/useContacts';
 import type { CardTemplate } from '../../../src/services/autoSends.service';
@@ -345,30 +346,25 @@ export default function NewAutoSendScreen() {
       {/* Bottom CTA */}
       <View style={styles.bottomBar}>
         {step < 3 ? (
-          <TouchableOpacity
-            style={[styles.nextBtn, !canProceed1 && step === 1 && styles.nextBtnDisabled, !canProceed2 && step === 2 && styles.nextBtnDisabled]}
+          <Button3D
+            label="Continuer"
             onPress={() => {
               if (step === 1 && !canProceed1) return;
               if (step === 2 && !canProceed2) return;
               setStep((s) => (s + 1) as Step);
             }}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.nextBtnText}>Continuer →</Text>
-          </TouchableOpacity>
+            fullWidth
+            size="lg"
+            disabled={(step === 1 && !canProceed1) || (step === 2 && !canProceed2)}
+          />
         ) : (
-          <TouchableOpacity
-            style={[styles.nextBtn, (saving || savingTpl) && styles.nextBtnDisabled]}
+          <Button3D
+            label={saving || savingTpl ? 'Enregistrement...' : "Programmer l'envoi"}
             onPress={handleConfirm}
+            fullWidth
+            size="lg"
             disabled={saving || savingTpl}
-            activeOpacity={0.85}
-          >
-            {(saving || savingTpl) ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <Text style={styles.nextBtnText}>✅ Programmer l'envoi</Text>
-            )}
-          </TouchableOpacity>
+          />
         )}
       </View>
     </SafeAreaView>

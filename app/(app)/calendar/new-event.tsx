@@ -13,6 +13,7 @@ import { scheduleCustomEventReminders } from '../../../src/services/notification
 import Constants from 'expo-constants';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
+import { Button3D } from '../../../src/components/ui/Button3D';
 
 const REMIND_OPTIONS = [
   { value: 0, label: 'Le jour même' },
@@ -211,19 +212,13 @@ export default function NewEventScreen() {
         </View>
 
         {/* Bouton */}
-        <TouchableOpacity
-          style={[styles.submitBtn, (!title.trim() || isPending) && { opacity: 0.4 }]}
+        <Button3D
+          label={isPending ? 'Enregistrement...' : isEditing ? 'Enregistrer les modifications' : "Ajouter l'événement"}
           onPress={handleSave}
+          fullWidth
+          size="lg"
           disabled={isPending || !title.trim()}
-        >
-          <Text style={styles.submitBtnText}>
-            {isPending
-              ? 'Enregistrement...'
-              : isEditing
-              ? '✓ Enregistrer les modifications'
-              : '✓ Ajouter l\'événement'}
-          </Text>
-        </TouchableOpacity>
+        />
       </ScrollView>
     </SafeAreaView>
   );

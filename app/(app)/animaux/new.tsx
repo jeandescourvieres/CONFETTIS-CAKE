@@ -1,7 +1,7 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, Alert, ActivityIndicator, Platform, Keyboard,
+  StyleSheet, Alert, Platform, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -15,6 +15,7 @@ import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/consta
 import { useColors } from '../../../src/hooks/useColors';
 import { Avatar } from '../../../src/components/ui/Avatar';
 import type { Contact } from '../../../src/types/models';
+import { Button3D } from '../../../src/components/ui/Button3D';
 
 // ── Types d'animaux ───────────────────────────────────────────────────────────
 const PET_TYPES: { value: string; emoji: string; label: string }[] = [
@@ -426,24 +427,13 @@ export default function NewPetScreen() {
         )}
 
         {/* ── Bouton Enregistrer ────────────────────────── */}
-        {(() => {
-          const isReady = !!name.trim() && !!species && !!gender && (isMyPet || !!ownerContact);
-          return (
-            <TouchableOpacity
-              style={[styles.saveBtn, { backgroundColor: isReady ? C.primary : Colors.surfaceContainerHighest }, saving && { opacity: 0.6 }]}
-              onPress={handleSave}
-              disabled={!isReady || saving}
-              activeOpacity={0.85}
-            >
-              {saving
-                ? <ActivityIndicator color={Colors.white} />
-                : <Text style={[styles.saveBtnText, !isReady && { color: Colors.onSurfaceVariant }]}>
-                    Enregistrer {petEmoji}
-                  </Text>
-              }
-            </TouchableOpacity>
-          );
-        })()}
+        <Button3D
+          label={saving ? 'Enregistrement...' : `Enregistrer ${petEmoji}`}
+          onPress={handleSave}
+          fullWidth
+          size="lg"
+          disabled={!(!!name.trim() && !!species && !!gender && (isMyPet || !!ownerContact)) || saving}
+        />
         <View style={{ height: 200 }} />
       </ScrollView>
     </SafeAreaView>

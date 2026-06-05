@@ -15,6 +15,7 @@ import { useContacts } from '../../../src/hooks/useContacts';
 import { BackHeader } from '../../../src/components/ui/BackHeader';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
+import { Button3D } from '../../../src/components/ui/Button3D';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -283,19 +284,13 @@ export default function NewReminderScreen() {
         )}
 
         {/* ── Bouton sauvegarder ──────────────────────────── */}
-        <TouchableOpacity
-          style={[
-            styles.saveBtn,
-            { backgroundColor: canSave ? C.primary : Colors.outlineVariant },
-          ]}
+        <Button3D
+          label={isPending ? 'Enregistrement...' : isEditing ? 'Enregistrer les modifications' : 'Créer le rappel'}
           onPress={handleSave}
+          fullWidth
+          size="lg"
           disabled={!canSave || isPending}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.saveBtnText}>
-            {isPending ? 'Enregistrement...' : isEditing ? '✅ Enregistrer les modifications' : '⏰ Créer le rappel'}
-          </Text>
-        </TouchableOpacity>
+        />
 
         <View style={{ height: 40 }} />
       </ScrollView>
