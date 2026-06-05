@@ -1013,7 +1013,7 @@ export default function HomeScreen() {
 
             {/* ── Bouton retour mode apprentissage ── */}
             <View style={{ alignSelf: 'center', marginTop: Spacing[3] }}>
-              <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FBBF24" shadowColor="#D97706" textColor="#7C2D12" />
+              <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FFD600" shadowColor="#F57F17" textColor="#4A2000" />
             </View>
 
             {/* ── Carte bienvenue mode complet (masquable) ── */}
@@ -1115,7 +1115,7 @@ export default function HomeScreen() {
 
             {/* Grille navigation rapide */}
             <View style={{ alignSelf: 'center', marginTop: Spacing[5], marginBottom: Spacing[2] }}>
-              <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FBBF24" shadowColor="#D97706" textColor="#7C2D12" />
+              <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FFD600" shadowColor="#F57F17" textColor="#4A2000" />
             </View>
             <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface, marginHorizontal: Spacing[4], marginBottom: Spacing[2] }}>Navigation rapide · l'essentiel</Text>
             <View style={styles.quickGrid}>
@@ -1197,7 +1197,7 @@ export default function HomeScreen() {
 
             {/* Retour en mode simple */}
             <View style={{ alignSelf: 'center', marginTop: Spacing[3], marginBottom: Spacing[3] }}>
-              <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FBBF24" shadowColor="#D97706" textColor="#7C2D12" />
+              <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FFD600" shadowColor="#F57F17" textColor="#4A2000" />
             </View>
           </>
         )}
