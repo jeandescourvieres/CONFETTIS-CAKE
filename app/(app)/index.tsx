@@ -1009,6 +1009,16 @@ export default function HomeScreen() {
               </View>
             )}
 
+            {/* ── Bouton "Tout ce que tu peux faire ici" ── */}
+            <TouchableOpacity
+              style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: Colors.surfaceContainerHighest, borderRadius: Radii.lg, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, borderLeftColor: Colors.primary }}
+              onPress={() => router.push('/(app)/help' as never)}
+              activeOpacity={0.75}
+            >
+              <Text style={{ flex: 1, fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.primary }}>✨ Tout ce que tu peux faire ici :</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: Colors.primary }}>›</Text>
+            </TouchableOpacity>
+
             {/* ── Agenda : Aujourd'hui & Demain ── */}
             <View style={styles.imminentSection}>
               <Text style={styles.imminentTitle}>Aujourd'hui et demain dans ton agenda :</Text>
