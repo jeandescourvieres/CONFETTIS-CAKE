@@ -559,22 +559,24 @@ export default function HomeScreen() {
                   })()}
                   {/* Fête du jour */}
                   {todayNames.length > 0 && (
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FDF4FF', borderRadius: Radii.lg, padding: 10 }}
-                      onPress={() => router.push('/(app)/calendar' as never)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={{ fontSize: 24 }}>🌸</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#7C3AED' }}>
-                          {todayNames.join(' · ')}
-                        </Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA' }}>
-                          Fête du jour · appuie pour voir l'agenda
+                    <View style={{ backgroundColor: '#FDF4FF', borderRadius: Radii.lg, padding: 10, gap: 8 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <Text style={{ fontSize: 24 }}>🌸</Text>
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#7C3AED', flex: 1 }}>
+                          {`Aujourd'hui on fête ${todayNames.join(' et ')}`}
                         </Text>
                       </View>
-                      <Text style={{ color: '#C084FC' }}>›</Text>
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }}
+                        onPress={() => router.push({ pathname: '/(app)/explore/prenoms', params: { initialPrenom: todayNames[0] } } as never)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#9333EA' }}>
+                          {`✨ En savoir plus sur le prénom ${todayNames[0]}`}
+                        </Text>
+                        <Text style={{ color: '#C084FC' }}>›</Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
 
                   {/* Dicton du jour */}
