@@ -1155,6 +1155,44 @@ export default function HomeScreen() {
               </>
             )}
 
+            {/* Carte animaux */}
+            <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 8, marginTop: Spacing[4], marginHorizontal: 16, borderWidth: 3, borderColor: '#FDE047' }}>
+              <View style={{ alignSelf: 'flex-start', backgroundColor: '#6EE7B7', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10, marginBottom: 2 }}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#064E3B' }}>✨ Nouveauté 🐾</Text>
+              </View>
+              <TouchableOpacity onPress={() => setAnimalCardOpen(v => !v)} activeOpacity={0.85}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Vos animaux peuvent écrire !</Text>
+                  <Text style={{ color: '#6EE7B7', fontSize: 18, fontWeight: '700' }}>{animalCardOpen ? '▲' : '▼'}</Text>
+                </View>
+              </TouchableOpacity>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 20 }}>{"C'est l'IA qui tient la plume — mais le résultat est bluffant 😄"}</Text>
+              {animalCardOpen && (
+                <View style={{ gap: 8, marginTop: 4 }}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22 }}>{'Ton chien qui prend le clavier pour écrire à ta mère pour lui souhaiter sa fête. Le chat de ta sœur qui lui souhaite son anniversaire — avec toute l\'indifférence dont il est capable.\nEt ça marche dans les deux sens : tu peux aussi écrire directement à l\'animal d\'un contact.'}</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#6EE7B7' }}>{'👉 Depuis la fiche d\'un contact ou le générateur de messages.'}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Carte morse */}
+            <View style={{ borderRadius: Radii.xl, backgroundColor: '#1E1B4B', padding: Spacing[4], gap: 4, marginTop: 16, marginHorizontal: 16, borderWidth: 3, borderColor: '#F472B6' }}>
+              <View style={{ alignSelf: 'flex-start', backgroundColor: '#A5B4FC', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10, marginBottom: 2 }}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#1E1B4B' }}>🤫 Psst… secret !</Text>
+              </View>
+              <TouchableOpacity onPress={() => setMorseCardOpen(v => !v)} activeOpacity={0.85}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Cache un secret dans ton message !</Text>
+                  <Text style={{ color: '#A5B4FC', fontSize: 18, fontWeight: '700' }}>{morseCardOpen ? '▲' : '▼'}</Text>
+                </View>
+              </TouchableOpacity>
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
+              {morseCardOpen && (
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20, marginTop: 4 }}>{'Chaque message festif animé contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nPour y accéder : ouvre le lien du message festif animé et cherche l\'icône 📡 en bas de l\'écran.'}</Text>
+              )}
+            </View>
+
             {/* Info strip */}
             <View style={styles.infoStrip}>
               <TouchableOpacity style={[styles.infoChip, { flex: 1 }]} onPress={() => router.push('/(app)/help' as never)} activeOpacity={0.75}>
