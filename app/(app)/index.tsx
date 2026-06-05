@@ -523,7 +523,7 @@ export default function HomeScreen() {
               return (
                 <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, overflow: 'hidden' }}>
                   <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                    <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 }}>
+                    <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                         <View style={{ flex: 1, gap: 4 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
@@ -851,7 +851,7 @@ export default function HomeScreen() {
               return (
                 <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, overflow: 'hidden' }}>
                   <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                    <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 }}>
+                    <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                         <View style={{ flex: 1, gap: 4 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
