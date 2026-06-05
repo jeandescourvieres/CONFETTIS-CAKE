@@ -733,17 +733,17 @@ export default function HomeScreen() {
             {/* Étape 3 — Message */}
             <View style={[styles.featuredCard, styles.messageCard]}>
               <View style={styles.messageBadge}><Text style={styles.messageBadgeText}>👆 Étape 3</Text></View>
-              <View style={styles.featuredBody}>
-                <Text style={styles.featuredLeftEmoji}>💬</Text>
-                <View style={styles.featuredCenter}>
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={styles.featuredTitle}>Crée un message</Text>
-                  <Text style={styles.featuredSub}>{'Avec ConfettiCake, tu as plusieurs façons de créer un message pour tes proches.\nChoisis celle qui te convient le mieux !\n\nTu peux même envoyer un message à un animal… ou un message de la part d\'un animal 🐾 (lol)'}</Text>
-                  <TouchableOpacity style={[styles.featuredBtn, styles.messageBtnColor]} onPress={() => router.push({ pathname: '/(app)/create', params: { fromGuide: '1' } } as never)} activeOpacity={0.85}>
-                    <Text style={styles.featuredBtnText}>Créer 🎉</Text>
-                    <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
-                  </TouchableOpacity>
+                  <Text style={{ fontSize: 20 }}>💬</Text>
+                  <Text style={{ fontSize: 20 }}>✨</Text>
                 </View>
-                <Text style={styles.featuredRightEmoji}>✨</Text>
+                <Text style={styles.featuredSub}>{'Avec ConfettiCake, tu as plusieurs façons de créer un message pour tes proches.\nChoisis celle qui te convient le mieux !\n\nTu peux même envoyer un message à un animal… ou un message de la part d\'un animal 🐾 (lol)'}</Text>
+                <TouchableOpacity style={[styles.featuredBtn, styles.messageBtnColor]} onPress={() => router.push({ pathname: '/(app)/create', params: { fromGuide: '1' } } as never)} activeOpacity={0.85}>
+                  <Text style={styles.featuredBtnText}>Créer 🎉</Text>
+                  <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
+                </TouchableOpacity>
               </View>
             </View>
 
