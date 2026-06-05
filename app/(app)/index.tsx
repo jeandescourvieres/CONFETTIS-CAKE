@@ -699,19 +699,17 @@ export default function HomeScreen() {
             {/* Étape 1 — Profil */}
             <TouchableOpacity style={styles.profileIntroCard} onPress={() => router.push('/(app)/profile' as never)} activeOpacity={0.85}>
               <View style={styles.profileIntroBadge}><Text style={styles.profileIntroBadgeText}>👆 Étape 1</Text></View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={{ fontSize: 28 }}>📋</Text>
-                <View style={{ flex: 1, gap: 6 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={styles.profileIntroTitle}>Crée ton profil</Text>
-                    <Text style={{ fontSize: 18 }}>✨</Text>
-                  </View>
-                  <Text style={styles.profileIntroDesc}>{"Renseigne ta civilité, ton prénom, ton nom et ta date de naissance — l'IA s'en sert pour personnaliser chaque message et signature."}</Text>
-                  <TouchableOpacity style={styles.profileIntroBtn} onPress={() => router.push('/(app)/profile' as never)} activeOpacity={0.85}>
-                    <Text style={styles.profileIntroBtnText}>Créer mon profil 🎉</Text>
-                    <View style={styles.profileIntroBtnArrow}><Text style={styles.profileIntroBtnArrowText}>›</Text></View>
-                  </TouchableOpacity>
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.profileIntroTitle}>Crée ton profil</Text>
+                  <Text style={{ fontSize: 20 }}>📋</Text>
+                  <Text style={{ fontSize: 18 }}>✨</Text>
                 </View>
+                <Text style={styles.profileIntroDesc}>{"Renseigne ta civilité, ton prénom, ton nom et ta date de naissance — l'IA s'en sert pour personnaliser chaque message et signature."}</Text>
+                <TouchableOpacity style={styles.profileIntroBtn} onPress={() => router.push('/(app)/profile' as never)} activeOpacity={0.85}>
+                  <Text style={styles.profileIntroBtnText}>Créer mon profil 🎉</Text>
+                  <View style={styles.profileIntroBtnArrow}><Text style={styles.profileIntroBtnArrowText}>›</Text></View>
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
 
