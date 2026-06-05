@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
   // ── Charger le contact ────────────────────────────────────────
   const { data: contact, error: contactErr } = await supabase
     .from('contacts')
-    .select('name, birthday, relation, personality_tags, favourite_color')
+    .select('name, birthday, relation, personality_tags, favourite_color, civilite')
     .eq('id', contact_id)
     .eq('user_id', user_id)
     .single();
@@ -120,7 +120,12 @@ Deno.serve(async (req: Request) => {
 
   const details: string[] = [];
 
-  if (contact.birthday && !contact.birthday.startsWith('0000-')) {
+  // Genre
+  if (contact.civilite === 'Mme') details.push('female');
+  else if (contact.civilite === 'M.') details.push('male');
+
+  // Âge (date de naissance obligatoire)
+  if (contact.birthday) {
     const birthYear = parseInt(contact.birthday.split('-')[0]);
     const age = new Date().getFullYear() - birthYear;
     if (age > 0 && age < 120) details.push(`approximately ${age} years old`);

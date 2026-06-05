@@ -3593,7 +3593,7 @@ export default function ContactDetailScreen() {
             </View>
             <ScrollView style={{ paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 80 }}>
               <FeatureIntroCard
-                introText={`Génère un avatar illustré unique pour ${contact.name.split(' ').slice(1).join(' ') || contact.name.split(' ')[0]} grâce à DALL-E 3 ✨ L'IA s'inspire de son signe astrologique, son animal chinois, sa couleur préférée et sa personnalité pour créer une illustration artistique unique — jamais la même deux fois !`}
+                introText={`Génère un avatar illustré unique pour ${contact.name.split(' ').slice(1).join(' ') || contact.name.split(' ')[0]} ✨ L'IA s'inspire de son âge, son sexe, son signe astrologique, son animal chinois, sa couleur préférée et sa personnalité pour créer une illustration artistique unique — jamais la même deux fois !`}
                 modeEmploiLines={[
                   '🎨 Choisis un style artistique parmi 6 propositions',
                   '✨ DALL-E 3 génère un portrait unique en ~20 secondes',
