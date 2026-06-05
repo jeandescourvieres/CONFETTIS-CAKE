@@ -509,7 +509,6 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </View>
               <View style={styles.heroContent}>
-                <Text style={styles.heroEmojis}>{greetingEmojis}</Text>
                 <Text style={styles.heroGreeting}>{greeting}</Text>
                 <TouchableOpacity onPress={() => router.push('/(app)/upcoming-events' as never)} activeOpacity={0.75}>
                   <Text style={styles.heroTagline} numberOfLines={2} adjustsFontSizeToFit>{tagline}</Text>
@@ -848,7 +847,6 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </View>
               <View style={styles.heroContent}>
-                <Text style={styles.heroEmojis}>{greetingEmojis}</Text>
                 <Text style={styles.heroGreeting}>{greeting}</Text>
                 <TouchableOpacity onPress={() => router.push('/(app)/upcoming-events' as never)} activeOpacity={0.75}>
                   <Text style={styles.heroTagline} numberOfLines={2} adjustsFontSizeToFit>{tagline}</Text>
@@ -1490,11 +1488,11 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginHorizontal: Spacing[4],
     marginTop: Spacing[3],
     paddingHorizontal: Spacing[5],
-    paddingTop: Spacing[6],
-    paddingBottom: Spacing[8],
+    paddingTop: Spacing[3],
+    paddingBottom: Spacing[4],
     overflow: 'hidden',
     borderRadius: 24,
-    minHeight: 180,
+    minHeight: 100,
   },
   confettiBar: { position: 'absolute', top: 0, left: 20, right: 20, height: 50 },
   confettiItem: { position: 'absolute', fontSize: 16, opacity: 0.5 },
@@ -1532,7 +1530,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_700Bold',
     color: '#FF6B9D',
   },
-  heroContent: { marginTop: Spacing[6], alignItems: 'center' },
+  heroContent: { marginTop: Spacing[3], alignItems: 'center' },
   heroEmojis: {
     fontSize: 20,
     letterSpacing: 6,
