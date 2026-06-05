@@ -959,6 +959,70 @@ export default function HomeScreen() {
               )}
             </View>
 
+            {/* ── Agenda : Aujourd'hui & Demain ── */}
+            <View style={styles.imminentSection}>
+              <Text style={styles.imminentTitle}>Aujourd'hui et demain dans ton agenda :</Text>
+              {imminentEvents.length > 0 ? imminentEvents.map((event) => {
+                const dayLabel = event.daysUntil === 0 ? "Aujourd'hui" : 'Demain';
+                const eventEmoji = event.eventType === 'birthday' ? '🎁' : '🌸';
+                return (
+                  <View key={`${event.contact.id}-${event.eventType}`} style={styles.imminentCard}>
+                    <View style={styles.imminentLeft}>
+                      <Text style={styles.imminentEmoji}>{eventEmoji}</Text>
+                      <View>
+                        <Text style={styles.imminentName}>{event.contact.name}</Text>
+                        <Text style={styles.imminentDay}>{dayLabel} · {event.eventType === 'birthday' ? 'Anniversaire' : 'Fête'}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity style={styles.imminentBtn} activeOpacity={0.8} onPress={() => handleQuickSend(event)}>
+                      <Text style={styles.imminentBtnText}>✨ Envoyer</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }) : (
+                <View style={styles.imminentEmpty}>
+                  <Text style={styles.imminentEmptyText}>😌 Rien en vue, tout est calme ✨</Text>
+                </View>
+              )}
+            </View>
+
+            {/* ── Agenda : Dans les jours suivants ── */}
+            <Text style={[styles.imminentTitle, { marginLeft: Spacing[4], marginTop: Spacing[5] }]}>Dans les jours qui suivent :</Text>
+            <View style={styles.eventSummaryList}>
+              <TouchableOpacity style={styles.eventSummaryRow} activeOpacity={0.75} onPress={() => router.push('/(app)/calendar' as never)}>
+                <Text style={styles.eventSummaryEmoji}>🎁</Text>
+                <Text style={styles.eventSummaryLabel}>{t('home.birthdays')}</Text>
+                {birthdayEvents.length > 0 && <View style={styles.eventSummaryBadge}><Text style={styles.eventSummaryBadgeText}>{birthdayEvents.length}</Text></View>}
+                <Text style={styles.eventSummaryChevron}>›</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.eventSummaryRow} activeOpacity={0.75} onPress={() => router.push({ pathname: '/(app)/calendar', params: { type: 'name_day' } } as never)}>
+                <Text style={styles.eventSummaryEmoji}>🌸</Text>
+                <Text style={styles.eventSummaryLabel}>Les fêtes des prénoms à venir</Text>
+                {nameDayEvents.length > 0 && <View style={styles.eventSummaryBadge}><Text style={styles.eventSummaryBadgeText}>{nameDayEvents.length}</Text></View>}
+                <Text style={styles.eventSummaryChevron}>›</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.eventSummaryRow} activeOpacity={0.75} onPress={() => router.push({ pathname: '/(app)/calendar', params: { type: 'custom' } } as never)}>
+                <Text style={styles.eventSummaryEmoji}>📅</Text>
+                <Text style={styles.eventSummaryLabel}>{t('home.otherEvents')}</Text>
+                {customEvents.length > 0 && <View style={styles.eventSummaryBadge}><Text style={styles.eventSummaryBadgeText}>{customEvents.length}</Text></View>}
+                <Text style={styles.eventSummaryChevron}>›</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.eventSummaryRow} activeOpacity={0.75} onPress={() => router.push({ pathname: '/(app)/calendar', params: { type: 'holidays' } } as never)}>
+                <Text style={styles.eventSummaryEmoji}>🗓</Text>
+                <Text style={styles.eventSummaryLabel}>Les fêtes spéciales à venir</Text>
+                {upcomingHolidaysCount > 0 && <View style={styles.eventSummaryBadge}><Text style={styles.eventSummaryBadgeText}>{upcomingHolidaysCount}</Text></View>}
+                <Text style={styles.eventSummaryChevron}>›</Text>
+              </TouchableOpacity>
+              {partnerName && (
+                <TouchableOpacity style={[styles.eventSummaryRow, { borderLeftWidth: 3, borderLeftColor: '#FF6B9D' }]} activeOpacity={0.75} onPress={() => router.push('/(app)/couple/' as never)}>
+                  <Text style={styles.eventSummaryEmoji}>💑</Text>
+                  <Text style={styles.eventSummaryLabel}>Agenda de {partnerName}</Text>
+                  {partnerEvents.length > 0 && <View style={styles.eventSummaryBadge}><Text style={styles.eventSummaryBadgeText}>{partnerEvents.length}</Text></View>}
+                  <Text style={styles.eventSummaryChevron}>›</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
             {/* Grille navigation rapide */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: Spacing[4], marginTop: Spacing[5], marginBottom: Spacing[2] }}>
               <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface }}>Navigation rapide · l'essentiel</Text>
