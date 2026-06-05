@@ -65,21 +65,7 @@ export default function ContactsScreen() {
     () => contacts.filter((c) => c.relation === 'pet'),
     [contacts],
   );
-  const scrollToContactsList = useCallback(() => {
-    const idx = allSections.findIndex((s: any) => s.letter === '__all_contacts__');
-    if (idx >= 0) {
-      scrollRef.current?.scrollToLocation({ sectionIndex: idx, itemIndex: 0, animated: false, viewOffset: 0 });
-    } else {
-      scrollRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
-    }
-  }, [allSections]);
-
-  useTabScrollToTop('contacts/index', scrollToContactsList);
-
-  useFocusEffect(useCallback(() => {
-    const t = setTimeout(scrollToContactsList, 200);
-    return () => clearTimeout(t);
-  }, [scrollToContactsList]));
+  useTabScrollToTop('contacts/index', () => scrollRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false }));
 
   const urgentMap = useMemo(() => {
     const map = new Map<string, (typeof upcomingEvents)[0]>();
@@ -148,6 +134,20 @@ export default function ContactsScreen() {
       ...(filteredSections.length > 0 ? [{ letter: '__all_contacts__', data: [] }, ...filteredSections] : filteredSections),
     ];
   }, [urgentContacts, filteredSections, filter, search]);
+
+  const scrollToContactsList = useCallback(() => {
+    const idx = allSections.findIndex((s: any) => s.letter === '__all_contacts__');
+    if (idx >= 0) {
+      scrollRef.current?.scrollToLocation({ sectionIndex: idx, itemIndex: 0, animated: false, viewOffset: 0 });
+    } else {
+      scrollRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
+    }
+  }, [allSections]);
+
+  useFocusEffect(useCallback(() => {
+    const t = setTimeout(scrollToContactsList, 200);
+    return () => clearTimeout(t);
+  }, [scrollToContactsList]));
 
   const styles = useMemo(() => makeStyles(C), [C]);
 
