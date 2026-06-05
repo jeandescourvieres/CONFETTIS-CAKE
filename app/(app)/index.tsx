@@ -763,7 +763,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
               {animalCardOpen && (
                 <View style={{ gap: 8, marginTop: 4 }}>
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22 }}>{'C\'est l\'IA qui tient la plume — mais le résultat est bluffant 😄\nTon chien qui écrit à ta mère pour lui souhaiter sa fête. Le chat de ta sœur — avec toute l\'indifférence dont il est capable.\nEt ça marche dans les deux sens : tu peux aussi écrire directement à l\'animal d\'un contact.'}</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22 }}>{'C\'est l\'IA qui tient la plume — mais le résultat est bluffant 😄\nTon chien qui écrit à ta mère pour lui souhaiter sa fête. Le chat de ta sœur qui lui souhaite son anniversaire — avec toute l\'indifférence dont il est capable.\nEt ça marche dans les deux sens : tu peux aussi écrire directement à l\'animal d\'un contact.'}</Text>
                   <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#6EE7B7' }}>{'👉 Depuis la fiche d\'un contact ou le générateur de messages.'}</Text>
                 </View>
               )}
