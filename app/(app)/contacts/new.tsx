@@ -472,6 +472,19 @@ export default function NewContactScreen() {
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {/* Carte intro photo/avatar */}
+        <View style={{ backgroundColor: '#F0F9FF', borderRadius: 14, borderWidth: 1.5, borderColor: '#BAE6FD', padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: Spacing[2] }}>
+          <Text style={{ fontSize: 22 }}>🖼️</Text>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 13, color: '#0369A1' }}>Personnalise la fiche de ce contact</Text>
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#0284C7', lineHeight: 18 }}>
+              {'📷 Appuie sur le rond ci-dessous pour charger une vraie photo.\n✨ Une fois la fiche créée, tu pourras aussi générer un '}
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>portrait IA unique</Text>
+              {' depuis la fiche du contact.'}
+            </Text>
+          </View>
+        </View>
+
         {/* Avatar */}
         <TouchableOpacity style={styles.avatarPickerWrap} onPress={pickAvatar} activeOpacity={0.8}>
           <View style={{ position: 'relative' }}>
