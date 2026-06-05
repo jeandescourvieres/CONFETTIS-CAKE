@@ -385,6 +385,8 @@ export default function HomeScreen() {
     const next = homeMode === 'simple' ? 'advanced' : 'simple';
     setHomeMode(next);
     await SecureStore.setItemAsync(HOME_MODE_KEY, next);
+    // Toujours remonter en haut pour voir la carte de bienvenue
+    setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
   }, [homeMode]);
 
   const [briefsOpen, setBriefsOpen] = useState(false);
