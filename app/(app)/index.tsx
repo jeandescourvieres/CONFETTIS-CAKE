@@ -787,9 +787,9 @@ export default function HomeScreen() {
 
             {/* Transition */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 24, marginHorizontal: 16, gap: 10 }}>
-              <View style={{ flex: 1, height: 2, backgroundColor: '#064E3B', borderRadius: 2 }} />
-              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: '#064E3B', textAlign: 'center' }}>Et ce n'est pas tout… 🐾</Text>
-              <View style={{ flex: 1, height: 2, backgroundColor: '#064E3B', borderRadius: 2 }} />
+              <View style={{ flex: 1, height: 2, backgroundColor: '#FFD600', borderRadius: 2 }} />
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: '#FFD600', textAlign: 'center' }}>Et ce n'est pas tout… 🐾</Text>
+              <View style={{ flex: 1, height: 2, backgroundColor: '#FFD600', borderRadius: 2 }} />
             </View>
 
             {/* Carte animaux */}
