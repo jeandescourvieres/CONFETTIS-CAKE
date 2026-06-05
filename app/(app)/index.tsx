@@ -495,83 +495,6 @@ export default function HomeScreen() {
               </View>
             </LinearGradient>
 
-            {/* ── Météo dark ── */}
-            {weather && (
-              <TouchableOpacity
-                style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#1E293B', borderRadius: Radii.xl, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}
-                onPress={() => setWeatherOpen(v => !v)}
-                activeOpacity={0.85}
-              >
-                <Text style={{ fontSize: 28 }}>{weather.emoji}</Text>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 22, color: '#fff' }}>{weather.temp}°</Text>
-                <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.sm, color: 'rgba(255,255,255,0.8)', flex: 1 }}>{weather.description}</Text>
-                {weather.city && <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(255,255,255,0.6)' }}>📍 {weather.city}</Text>}
-                <Text style={{ color: 'rgba(255,255,255,0.5)' }}>{weatherOpen ? '▲' : '▼'}</Text>
-              </TouchableOpacity>
-            )}
-            {weather && weatherOpen && (
-              <View style={{ marginHorizontal: Spacing[4], backgroundColor: '#1E293B', borderBottomLeftRadius: Radii.xl, borderBottomRightRadius: Radii.xl, padding: 12, gap: 10, marginTop: -8, paddingTop: 16 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: 'rgba(255,255,255,0.5)' }}>Aujourd'hui</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {weather.hourly.map((h, i) => (
-                      <View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 44, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: Radii.md, padding: 6 }}>
-                        <Text style={{ fontSize: 16 }}>{h.emoji}</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: '#fff' }}>{h.temp}°</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>{h.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: 'rgba(255,255,255,0.5)' }}>Cette semaine et la suivante</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {weather.daily.map((d, i) => (
-                      <View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 48, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: Radii.md, padding: 6 }}>
-                        <Text style={{ fontSize: 16 }}>{d.emoji}</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: '#fff' }}>{d.max}°</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>{d.min}°</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{d.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
-            )}
-
-            {/* ── Dicton du jour ── */}
-            <TouchableOpacity
-              style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: Colors.surfaceContainerHighest, borderRadius: Radii.xl, padding: 14 }}
-              onPress={() => setDictonOpen(v => !v)}
-              activeOpacity={0.85}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={{ fontSize: 20 }}>💬</Text>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurfaceVariant, letterSpacing: 0.5, flex: 1 }}>DICTON DU JOUR</Text>
-                <Text style={{ color: Colors.outlineVariant }}>{dictonOpen ? '▲' : '▼'}</Text>
-              </View>
-              {dictonOpen && (
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurface, lineHeight: 22, fontStyle: 'italic', paddingHorizontal: 4, marginTop: 8 }}>
-                  "{getDictonDuJour()}"
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            {/* ── Signe du moment ── */}
-            <TouchableOpacity style={[styles.zodiacSignBlock, { marginTop: Spacing[3] }]} onPress={() => router.push('/(app)/zodiac-season' as never)} activeOpacity={0.8}>
-              <Text style={styles.zodiacSignEmoji}>{currentZodiacSign.emoji}</Text>
-              <View style={styles.zodiacSignInfo}>
-                <Text style={styles.zodiacSignTitle}>Signe du moment · {currentZodiacSign.name}</Text>
-                <Text style={styles.zodiacSignTrait} numberOfLines={1}>{currentZodiacSign.trait}</Text>
-                <Text style={styles.zodiacSignSub}>
-                  {zodiacSeasonContacts.length > 0
-                    ? `${zodiacSeasonContacts.length} contact${zodiacSeasonContacts.length > 1 ? 's' : ''} concerné${zodiacSeasonContacts.length > 1 ? 's' : ''}`
-                    : 'Aucun contact pour ce signe'}
-                </Text>
-              </View>
-              <Text style={styles.zodiacSignChevron}>›</Text>
-            </TouchableOpacity>
-
             {/* Brèves du jour */}
             <TouchableOpacity
               style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}
@@ -858,83 +781,45 @@ export default function HomeScreen() {
               </View>
             </LinearGradient>
 
-            {/* ── Météo dark ── */}
-            {weather && (() => {
-              return (
-                <TouchableOpacity
-                  style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#1E293B', borderRadius: Radii.xl, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}
-                  onPress={() => setWeatherOpen(v => !v)}
-                  activeOpacity={0.85}
-                >
-                  <Text style={{ fontSize: 28 }}>{weather.emoji}</Text>
-                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 22, color: '#fff' }}>{weather.temp}°</Text>
-                  <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.sm, color: 'rgba(255,255,255,0.8)', flex: 1 }}>{weather.description}</Text>
-                  {weather.city && <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(255,255,255,0.6)' }}>📍 {weather.city}</Text>}
-                  <Text style={{ color: 'rgba(255,255,255,0.5)' }}>{weatherOpen ? '▲' : '▼'}</Text>
-                </TouchableOpacity>
-              );
-            })()}
-            {weather && weatherOpen && (
-              <View style={{ marginHorizontal: Spacing[4], backgroundColor: '#1E293B', borderBottomLeftRadius: Radii.xl, borderBottomRightRadius: Radii.xl, padding: 12, gap: 10, marginTop: -8, paddingTop: 16 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: 'rgba(255,255,255,0.5)' }}>Aujourd'hui</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {weather.hourly.map((h, i) => (
-                      <View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 44, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: Radii.md, padding: 6 }}>
-                        <Text style={{ fontSize: 16 }}>{h.emoji}</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: '#fff' }}>{h.temp}°</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>{h.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: 'rgba(255,255,255,0.5)' }}>Cette semaine et la suivante</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {weather.daily.map((d, i) => (
-                      <View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 48, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: Radii.md, padding: 6 }}>
-                        <Text style={{ fontSize: 16 }}>{d.emoji}</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: '#fff' }}>{d.max}°</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>{d.min}°</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{d.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
-            )}
-
-            {/* ── Dicton du jour (standalone) ── */}
+            {/* ── Brèves du jour (mode complet) ── */}
             <TouchableOpacity
-              style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: Colors.surfaceContainerHighest, borderRadius: Radii.xl, padding: 14 }}
-              onPress={() => setDictonOpen(v => !v)}
-              activeOpacity={0.85}
+              style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}
+              onPress={() => { const next = !briefsOpen; setBriefsOpen(next); SecureStore.setItemAsync('cc_briefs_open', next ? 'open' : 'closed'); }}
+              activeOpacity={0.8}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={{ fontSize: 20 }}>💬</Text>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurfaceVariant, letterSpacing: 0.5, flex: 1 }}>DICTON DU JOUR</Text>
-                <Text style={{ color: Colors.outlineVariant }}>{dictonOpen ? '▲' : '▼'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>☀️ Les brèves du jour</Text>
+                <Text style={{ color: '#7C3AED', fontSize: 14 }}>{briefsOpen ? '▲' : '▼'}</Text>
               </View>
-              {dictonOpen && (
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurface, lineHeight: 22, fontStyle: 'italic', paddingHorizontal: 4, marginTop: 8 }}>
-                  "{getDictonDuJour()}"
-                </Text>
+              {!briefsOpen && (
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Météo · fête & dicton · zodiaque…</Text>
               )}
-            </TouchableOpacity>
-
-            {/* ── Signe du moment ── */}
-            <TouchableOpacity style={styles.zodiacSignBlock} onPress={() => router.push('/(app)/zodiac-season' as never)} activeOpacity={0.8}>
-              <Text style={styles.zodiacSignEmoji}>{currentZodiacSign.emoji}</Text>
-              <View style={styles.zodiacSignInfo}>
-                <Text style={styles.zodiacSignTitle}>Signe du moment · {currentZodiacSign.name}</Text>
-                <Text style={styles.zodiacSignTrait} numberOfLines={1}>{currentZodiacSign.trait}</Text>
-                <Text style={styles.zodiacSignSub}>
-                  {zodiacSeasonContacts.length > 0
-                    ? `${zodiacSeasonContacts.length} contact${zodiacSeasonContacts.length > 1 ? 's' : ''} concerné${zodiacSeasonContacts.length > 1 ? 's' : ''}`
-                    : 'Aucun contact pour ce signe'}
-                </Text>
-              </View>
-              <Text style={styles.zodiacSignChevron}>›</Text>
+              {briefsOpen && (
+                <View style={{ marginTop: 12, gap: 10 }}>
+                  {weather && (() => {
+                    const bgColor = weather.emoji.includes('☀') ? '#FEF9C3' : weather.emoji.includes('🌧') || weather.emoji.includes('⛈') ? '#DBEAFE' : weather.emoji.includes('❄') ? '#EFF6FF' : '#F0FDF4';
+                    const txtColor = weather.emoji.includes('☀') ? '#92400E' : weather.emoji.includes('🌧') || weather.emoji.includes('⛈') ? '#1E3A5F' : '#166534';
+                    return (
+                      <TouchableOpacity style={{ backgroundColor: bgColor, borderRadius: Radii.lg, padding: 12, gap: 8 }} onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <Text style={{ fontSize: 28 }}>{weather.emoji}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txtColor }}>{weather.temp}°C · {weather.description}</Text>
+                            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: txtColor, opacity: 0.75 }}>Ressenti {weather.apparentTemp}°C{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
+                            <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.xs, color: txtColor, marginTop: 2 }}>{weather.emoji.includes('☀') ? '😎 Parfait pour sortir !' : weather.emoji.includes('🌧') ? '☂️ Prévois un parapluie !' : weather.emoji.includes('⛈') ? '⚡ Reste à l\'abri !' : weather.emoji.includes('❄') || weather.emoji.includes('🌨') ? '🧤 Couvre-toi bien !' : weather.emoji.includes('🌦') ? '🌈 Variable — garde un œil !' : weather.emoji.includes('🌫') ? '👀 Visibilité réduite.' : weather.emoji.includes('🌤') ? '🙂 Agréable, profites-en !' : '🌡️ Temps variable.'}</Text>
+                          </View>
+                          <Text style={{ color: txtColor, opacity: 0.6 }}>{weatherOpen ? '▲' : '▼'}</Text>
+                        </View>
+                        {weatherOpen && weather.hourly.length > 0 && (<View style={{ gap: 4 }}><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: txtColor, opacity: 0.7 }}>Aujourd'hui</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled><View style={{ flexDirection: 'row', gap: 8 }}>{weather.hourly.map((h, i) => (<View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 44, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: Radii.md, padding: 6 }}><Text style={{ fontSize: 16 }}>{h.emoji}</Text><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txtColor }}>{h.temp}°</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: txtColor, opacity: 0.7 }}>{h.label}</Text></View>))}</View></ScrollView></View>)}
+                        {weatherOpen && weather.daily.length > 0 && (<View style={{ gap: 4 }}><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: txtColor, opacity: 0.7 }}>Cette semaine et la suivante</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled><View style={{ flexDirection: 'row', gap: 8 }}>{weather.daily.map((d, i) => (<View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 48, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: Radii.md, padding: 6 }}><Text style={{ fontSize: 16 }}>{d.emoji}</Text><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txtColor }}>{d.max}°</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: txtColor, opacity: 0.7 }}>{d.min}°</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: txtColor, opacity: 0.6 }}>{d.label}</Text></View>))}</View></ScrollView></View>)}
+                      </TouchableOpacity>
+                    );
+                  })()}
+                  {todayNames.length > 0 && (<View style={{ backgroundColor: '#FDF4FF', borderRadius: Radii.lg, padding: 10, gap: 8 }}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><Text style={{ fontSize: 24 }}>🌸</Text><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#7C3AED', flex: 1 }}>{`Aujourd'hui on fête ${todayNames.join(' et ')}`}</Text></View><TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }} onPress={() => router.push({ pathname: '/(app)/explore/prenoms', params: { initialPrenom: todayNames[0] } } as never)} activeOpacity={0.8}><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#9333EA' }}>{`✨ En savoir plus sur le prénom ${todayNames[0]}`}</Text><Text style={{ color: '#C084FC' }}>›</Text></TouchableOpacity></View>)}
+                  <View style={{ backgroundColor: '#FFFBEB', borderRadius: Radii.lg, padding: 10, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#92400E', marginBottom: 3 }}>📜 Dicton du jour</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#78350F', lineHeight: 20, fontStyle: 'italic' }}>"{getDictonDuJour()}"</Text></View>
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={() => router.push('/(app)/zodiac-season' as never)} activeOpacity={0.8}><Text style={{ fontSize: 24 }}>{currentZodiacSign.emoji}</Text><View style={{ flex: 1 }}><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{currentZodiacSign.name}</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, fontStyle: 'italic' }}>{currentZodiacSign.trait}</Text></View><Text style={{ color: Colors.outlineVariant }}>›</Text></TouchableOpacity>
+                </View>
+              )}
             </TouchableOpacity>
 
             {/* Grille navigation rapide */}
