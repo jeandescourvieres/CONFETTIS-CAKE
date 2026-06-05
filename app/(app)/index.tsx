@@ -1141,7 +1141,7 @@ export default function HomeScreen() {
             {/* Derniers messages */}
             {recentSent.length > 0 && (
               <>
-                <Text style={[styles.quickSectionLabel, { marginTop: Spacing[4] }]}>Derniers messages envoyés</Text>
+                <Text style={[styles.quickSectionLabel, { marginTop: Spacing[4] }]}>Derniers messages envoyés :</Text>
                 <View style={styles.recentList}>
                   {recentSent.map((msg) => (
                     <RecentMessageCard key={msg.id} contactName={msg.contact_name} format={msg.format} status={msg.status} date={msg.created_at} onPress={() => router.push(`/(app)/message/${msg.id}` as never)} />
