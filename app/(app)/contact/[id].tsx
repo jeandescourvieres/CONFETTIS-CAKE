@@ -926,16 +926,17 @@ export default function ContactDetailScreen() {
         <LinearGradient colors={[...Gradients.primary]} style={styles.hero}>
           <View style={styles.heroPattern} />
           <View style={styles.heroContent}>
-            <View style={styles.avatarWrap}>
-              <Avatar uri={contact.avatar_url} name={contact.name} size="xl" />
-              <TouchableOpacity style={styles.editAvatarBtn} onPress={handleChangeAvatar} disabled={isUploadingAvatar}>
-                <Text style={{ fontSize: 16 }}>{isUploadingAvatar ? '⏳' : '📷'}</Text>
-              </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               <TouchableOpacity style={styles.aiAvatarBtn} onPress={() => { setAiAvatarError(null); setAiAvatarVisible(true); }}>
                 <Text style={{ fontSize: 16 }}>✨</Text>
               </TouchableOpacity>
+              <View style={styles.avatarWrap}>
+                <Avatar uri={contact.avatar_url} name={contact.name} size="xl" />
+              </View>
+              <TouchableOpacity style={styles.editAvatarBtn} onPress={handleChangeAvatar} disabled={isUploadingAvatar}>
+                <Text style={{ fontSize: 16 }}>{isUploadingAvatar ? '⏳' : '📷'}</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.65)', marginTop: 4, letterSpacing: 0.5 }}>📷 photo · ✨ avatar IA</Text>
             {contact.civilite && (
               <Text style={styles.heroCivilite}>{contact.civilite}</Text>
             )}
@@ -3857,12 +3858,9 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   heroContent: { alignItems: 'center', zIndex: 1 },
   avatarWrap: { position: 'relative', marginBottom: 12 },
   editAvatarBtn: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.secondaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
@@ -3870,12 +3868,9 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderColor: Colors.white,
   },
   aiAvatarBtn: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#7B1FA2',
     alignItems: 'center',
     justifyContent: 'center',
