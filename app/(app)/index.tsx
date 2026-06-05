@@ -699,18 +699,15 @@ export default function HomeScreen() {
             {/* Étape 1 — Profil */}
             <TouchableOpacity style={styles.profileIntroCard} onPress={() => router.push('/(app)/profile' as never)} activeOpacity={0.85}>
               <View style={styles.profileIntroBadge}><Text style={styles.profileIntroBadgeText}>👆 Étape 1</Text></View>
-              <View style={styles.profileIntroBody}>
-                <Text style={styles.profileIntroEmoji}>📋</Text>
-                <View style={styles.profileIntroCenter}>
-                  <Text style={styles.profileIntroTitle}>Crée ton profil</Text>
-                  <Text style={styles.profileIntroDesc}>{"Renseigne ta civilité, ton prénom, ton nom et ta date de naissance -- l'IA s'en sert pour personnaliser chaque message et signature. Et n'oublie pas de personnaliser l'application avec l'une des 9 couleurs disponibles pour créer ton ambiance préférée."}</Text>
-                  <TouchableOpacity style={styles.profileIntroBtn} onPress={() => router.push('/(app)/profile' as never)} activeOpacity={0.85}>
-                    <Text style={styles.profileIntroBtnText}>Créer mon profil 🎉</Text>
-                    <View style={styles.profileIntroBtnArrow}><Text style={styles.profileIntroBtnArrowText}>›</Text></View>
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.profileIntroRightEmoji}>✨</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <Text style={styles.profileIntroTitle}>Crée ton profil</Text>
+                <Text style={{ fontSize: 20 }}>✨</Text>
               </View>
+              <Text style={styles.profileIntroDesc}>{"Renseigne ta civilité, ton prénom, ton nom et ta date de naissance — l'IA s'en sert pour personnaliser chaque message et signature."}</Text>
+              <TouchableOpacity style={[styles.profileIntroBtn, { marginTop: 10 }]} onPress={() => router.push('/(app)/profile' as never)} activeOpacity={0.85}>
+                <Text style={styles.profileIntroBtnText}>Créer mon profil 🎉</Text>
+                <View style={styles.profileIntroBtnArrow}><Text style={styles.profileIntroBtnArrowText}>›</Text></View>
+              </TouchableOpacity>
             </TouchableOpacity>
 
             {/* Étape 2 — Contacts */}
