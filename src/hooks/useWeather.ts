@@ -64,7 +64,7 @@ export function useWeather() {
           `&current=temperature_2m,apparent_temperature,weather_code,is_day`,
           `&hourly=temperature_2m,weather_code,is_day`,
           `&daily=temperature_2m_max,temperature_2m_min,weather_code`,
-          `&timezone=auto&forecast_days=10`,
+          `&timezone=auto&forecast_days=14`,
         ].join('');
 
         const res  = await fetch(url);
@@ -103,7 +103,7 @@ export function useWeather() {
         const dailyMin:   number[] = json.daily?.temperature_2m_min ?? [];
         const dailyCodes: number[] = json.daily?.weather_code ?? [];
 
-        const daily: DailyWeather[] = dailyTimes.slice(0, 10).map((t: string, i: number) => {
+        const daily: DailyWeather[] = dailyTimes.slice(0, 14).map((t: string, i: number) => {
           const dayOfWeek = new Date(t).getDay();
           const label = i === 0 ? 'Auj.' : i === 1 ? 'Dem.' : DAY_FR[dayOfWeek];
           return {

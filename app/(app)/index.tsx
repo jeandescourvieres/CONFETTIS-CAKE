@@ -539,7 +539,7 @@ export default function HomeScreen() {
                         {/* Semaine */}
                         {weatherOpen && weather.daily.length > 0 && (
                           <View style={{ gap: 4 }}>
-                            <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: txtColor, opacity: 0.7 }}>Cette semaine</Text>
+                            <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: txtColor, opacity: 0.7 }}>Cette semaine et la suivante</Text>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled>
                               <View style={{ flexDirection: 'row', gap: 8 }}>
                                 {weather.daily.map((d, i) => (
