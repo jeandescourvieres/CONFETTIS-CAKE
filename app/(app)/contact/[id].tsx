@@ -929,12 +929,13 @@ export default function ContactDetailScreen() {
             <View style={styles.avatarWrap}>
               <Avatar uri={contact.avatar_url} name={contact.name} size="xl" />
               <TouchableOpacity style={styles.editAvatarBtn} onPress={handleChangeAvatar} disabled={isUploadingAvatar}>
-                <Text style={{ fontSize: 10 }}>{isUploadingAvatar ? '⏳' : '📷'}</Text>
+                <Text style={{ fontSize: 16 }}>{isUploadingAvatar ? '⏳' : '📷'}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.aiAvatarBtn} onPress={() => { setAiAvatarError(null); setAiAvatarVisible(true); }}>
-                <Text style={{ fontSize: 10 }}>✨</Text>
+                <Text style={{ fontSize: 16 }}>✨</Text>
               </TouchableOpacity>
             </View>
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.65)', marginTop: 4, letterSpacing: 0.5 }}>📷 photo · ✨ avatar IA</Text>
             {contact.civilite && (
               <Text style={styles.heroCivilite}>{contact.civilite}</Text>
             )}
@@ -3859,26 +3860,26 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.secondaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: Colors.white,
   },
   aiAvatarBtn: {
     position: 'absolute',
     bottom: 0,
     left: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#7B1FA2',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: Colors.white,
   },
   aiStyleGrid: {
