@@ -538,7 +538,7 @@ export default function HomeScreen() {
                                 <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 44, color: txt, lineHeight: 48 }}>{weather.temp}°</Text>
                                 <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txt }}>{weather.description}</Text>
                                 <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: sub, marginTop: 2 }}>Ressenti {weather.apparentTemp}°{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
-                                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: sub, marginTop: 4 }}>{comment}</Text>
+                                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: txt, marginTop: 6 }}>{comment}</Text>
                               </View>
                               <View style={{ alignItems: 'flex-end', gap: 4 }}>
                                 <Text style={{ fontSize: 52, opacity: 0.9 }}>{weather.emoji}</Text>
@@ -817,7 +817,7 @@ export default function HomeScreen() {
                                 <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 44, color: txt, lineHeight: 48 }}>{weather.temp}°</Text>
                                 <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txt }}>{weather.description}</Text>
                                 <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: sub, marginTop: 2 }}>Ressenti {weather.apparentTemp}°{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
-                                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: sub, marginTop: 4 }}>{comment}</Text>
+                                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: txt, marginTop: 6 }}>{comment}</Text>
                               </View>
                               <View style={{ alignItems: 'flex-end', gap: 4 }}>
                                 <Text style={{ fontSize: 52, opacity: 0.9 }}>{weather.emoji}</Text>
