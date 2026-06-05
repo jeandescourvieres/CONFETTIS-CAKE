@@ -786,7 +786,7 @@ export default function HomeScreen() {
             </View>
 
             {/* Transition */}
-            <View style={{ marginTop: 24, marginHorizontal: 16, backgroundColor: '#FFD600', borderRadius: Radii.xl, paddingVertical: 8, paddingHorizontal: 20, alignItems: 'center', borderWidth: 3, borderColor: '#F57F17' }}>
+            <View style={{ marginTop: 24, marginHorizontal: 16, backgroundColor: '#FFD600', borderRadius: Radii.xl, paddingVertical: 5, paddingHorizontal: 16, alignItems: 'center', borderWidth: 3, borderColor: '#F57F17' }}>
               <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: '#064E3B', textAlign: 'center' }}>Et ce n'est pas tout… 🐾</Text>
             </View>
 
