@@ -753,11 +753,11 @@ export default function HomeScreen() {
             {/* Carte animaux */}
             <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 8, marginTop: 32, marginHorizontal: 16 }}>
               <View style={{ alignSelf: 'flex-start', backgroundColor: '#6EE7B7', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10, marginBottom: 2 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#064E3B' }}>✨ Nouveauté</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#064E3B' }}>✨ Nouveauté 🐾</Text>
               </View>
               <TouchableOpacity onPress={() => setAnimalCardOpen(v => !v)} activeOpacity={0.85}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>🐾 Vos animaux peuvent écrire !</Text>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Vos animaux peuvent écrire !</Text>
                   <Text style={{ color: '#6EE7B7', fontSize: 18, fontWeight: '700' }}>{animalCardOpen ? '▲' : '▼'}</Text>
                 </View>
               </TouchableOpacity>
