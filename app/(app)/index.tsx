@@ -787,7 +787,7 @@ export default function HomeScreen() {
 
             {/* Transition */}
             <View style={{ marginTop: 24, marginHorizontal: 16, backgroundColor: '#FFD600', borderRadius: Radii.xl, paddingVertical: 5, paddingHorizontal: 16, alignItems: 'center', borderWidth: 3, borderColor: '#F57F17' }}>
-              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: '#064E3B', textAlign: 'center' }}>Et ce n'est pas tout… 🐾</Text>
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: '#064E3B', textAlign: 'center' }}>Et ce n'est pas tout… 🐾</Text>
             </View>
 
             {/* Carte animaux */}
