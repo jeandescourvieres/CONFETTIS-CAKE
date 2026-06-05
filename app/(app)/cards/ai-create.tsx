@@ -42,7 +42,7 @@ const CARD_OCCASIONS: { value: CardOccasion; label: string; emoji: string }[] = 
   { value: 'halloween',     label: 'Halloween',           emoji: '🎃' },
   { value: 'support',       label: 'Soutien',             emoji: '🤍' },
   { value: 'weekend',       label: 'Bon weekend',         emoji: '🌞' },
-  { value: 'courage',       label: 'Félicitations',       emoji: '🎉' },
+  { value: 'courage',       label: 'Bon courage',         emoji: '💪' },
 ];
 
 // ── Styles visuels par occasion (avec mood pour filtrer les templates) ─────────
