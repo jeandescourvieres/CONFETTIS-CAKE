@@ -770,9 +770,10 @@ export default function HomeScreen() {
                   <Text style={{ color: '#6EE7B7', fontSize: 18, fontWeight: '700' }}>{animalCardOpen ? '▲' : '▼'}</Text>
                 </View>
               </TouchableOpacity>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 20 }}>{"C'est l'IA qui tient la plume — mais le résultat est bluffant 😄"}</Text>
               {animalCardOpen && (
                 <View style={{ gap: 8, marginTop: 4 }}>
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22 }}>{'C\'est l\'IA qui tient la plume — mais le résultat est bluffant 😄\nTon chien qui écrit à ta mère pour lui souhaiter sa fête. Le chat de ta sœur qui lui souhaite son anniversaire — avec toute l\'indifférence dont il est capable.\nEt ça marche dans les deux sens : tu peux aussi écrire directement à l\'animal d\'un contact.'}</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22 }}>{'Ton chien qui écrit à ta mère pour lui souhaiter sa fête. Le chat de ta sœur qui lui souhaite son anniversaire — avec toute l\'indifférence dont il est capable.\nEt ça marche dans les deux sens : tu peux aussi écrire directement à l\'animal d\'un contact.'}</Text>
                   <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#6EE7B7' }}>{'👉 Explore cette fonction depuis la fiche d\'un contact ou depuis le générateur de messages (bouton "Créer un message" ci-dessus et dans le menu en bas de ton écran).'}</Text>
                 </View>
               )}
