@@ -718,13 +718,13 @@ export default function HomeScreen() {
 
             {/* Bouton "Tout ce que tu peux faire ici" */}
             <TouchableOpacity
-              style={{ marginHorizontal: Spacing[4], marginTop: Spacing[2], backgroundColor: Colors.primary, borderRadius: Radii.lg, paddingVertical: 13, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' }}
+              style={{ marginHorizontal: Spacing[4], marginTop: Spacing[5], backgroundColor: Colors.primary, borderRadius: Radii.lg, paddingVertical: 13, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' }}
               onPress={() => router.push('/(app)/help' as never)}
               activeOpacity={0.8}
             >
               <View style={{ flex: 1, gap: 4 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#fff' }}>✨ Tout ce que tu peux faire ici :</Text>
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(255,255,255,0.85)' }}>💬 Messages · 👥 Contacts · 📅 Agenda · 🐾 Animaux</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#fff' }}>✨ Tout ce que tu peux faire ici :</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.85)' }}>💬 Messages · 👥 Contacts · 📅 Agenda · 🐾 Animaux</Text>
               </View>
               <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#fff' }}>›</Text>
             </TouchableOpacity>
