@@ -360,6 +360,7 @@ export default function HomeScreen() {
     setMorseCardOpen(false);
     setFeatAccordionOpen(null);
     setDictonOpen(false);
+    setAdvancedWelcomeDismissed(false);
   }, []));
 
   const [introVisible, setIntroVisible] = useState(true);
@@ -391,11 +392,6 @@ export default function HomeScreen() {
   const [animalCardOpen, setAnimalCardOpen] = useState(false);
   const [morseCardOpen, setMorseCardOpen] = useState(false);
   const [advancedWelcomeDismissed, setAdvancedWelcomeDismissed] = useState(false);
-  useEffect(() => {
-    SecureStore.getItemAsync('cc_advanced_welcome_dismissed').then(val => {
-      if (val === 'true') setAdvancedWelcomeDismissed(true);
-    });
-  }, []);
   useEffect(() => {
     // Brèves toujours fermées au démarrage (pas de restauration SecureStore)
   }, []);
@@ -1011,22 +1007,22 @@ export default function HomeScreen() {
 
             {/* ── Carte bienvenue mode complet (masquable) ── */}
             {!advancedWelcomeDismissed && (
-              <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F5F3FF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 16 }}>
+              <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#1E1B4B', borderRadius: Radii.xl, borderWidth: 3, borderColor: '#818CF8', padding: 16, gap: 10 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: '#7C3AED', flex: 1 }}>🍭 Bienvenue en mode complet !</Text>
-                  <TouchableOpacity
-                    onPress={() => { setAdvancedWelcomeDismissed(true); SecureStore.setItemAsync('cc_advanced_welcome_dismissed', 'true'); }}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Text style={{ fontSize: 18, color: Colors.onSurfaceVariant }}>✕</Text>
+                  <View style={{ alignSelf: 'flex-start', backgroundColor: '#818CF8', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10 }}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#fff' }}>🍭 Mode complet</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setAdvancedWelcomeDismissed(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Text style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)' }}>✕</Text>
                   </TouchableOpacity>
                 </View>
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurface, lineHeight: 20, marginTop: 8 }}>
+                <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff' }}>Bienvenue en mode complet !</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.85)', lineHeight: 20 }}>
                   {'Tu accèdes désormais à l\'ensemble des fonctionnalités de ConfettiCake pour aller plus loin et sans limites.'}
                 </Text>
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurface, lineHeight: 20, marginTop: 6 }}>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.85)', lineHeight: 20 }}>
                   {'À tout moment, tu peux revenir au '}
-                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>mode apprentissage</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', color: '#A5B4FC' }}>mode apprentissage</Text>
                   {', une version simplifiée pour aller à l\'essentiel.'}
                 </Text>
               </View>
