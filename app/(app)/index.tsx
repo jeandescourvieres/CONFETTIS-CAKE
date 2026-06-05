@@ -449,7 +449,7 @@ export default function HomeScreen() {
     });
   }, [customEvents]);
 
-  const { weather } = useWeather();
+  const { weather, loading: weatherLoading } = useWeather();
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'toi';
   const greeting = getGreeting(firstName, t);
@@ -517,6 +517,15 @@ export default function HomeScreen() {
             </LinearGradient>
 
             {/* ── Météo standalone (toujours visible) ── */}
+            {weatherLoading && !weather && (
+              <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, backgroundColor: Colors.surfaceContainerHighest, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Text style={{ fontSize: 28 }}>🌡️</Text>
+                <View style={{ flex: 1, gap: 6 }}>
+                  <View style={{ height: 14, backgroundColor: Colors.outlineVariant, borderRadius: 4, width: '60%', opacity: 0.5 }} />
+                  <View style={{ height: 10, backgroundColor: Colors.outlineVariant, borderRadius: 4, width: '40%', opacity: 0.3 }} />
+                </View>
+              </View>
+            )}
             {weather && (() => {
               const { grad, txt, sub } = getWeatherTheme(weather.emoji);
               const comment = weather.emoji.includes('☀') ? '😎 Parfait pour sortir !' : weather.emoji.includes('🌧') ? '☂️ Prévois un parapluie !' : weather.emoji.includes('⛈') ? '⚡ Reste à l\'abri !' : weather.emoji.includes('❄') || weather.emoji.includes('🌨') ? '🧤 Couvre-toi bien !' : weather.emoji.includes('🌦') ? '🌈 Variable — garde un œil !' : weather.emoji.includes('🌫') ? '👀 Visibilité réduite.' : weather.emoji.includes('🌤') ? '🙂 Agréable, profites-en !' : '🌡️ Temps variable.';
@@ -855,6 +864,15 @@ export default function HomeScreen() {
             </LinearGradient>
 
             {/* ── Météo standalone (toujours visible) ── */}
+            {weatherLoading && !weather && (
+              <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, backgroundColor: Colors.surfaceContainerHighest, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Text style={{ fontSize: 28 }}>🌡️</Text>
+                <View style={{ flex: 1, gap: 6 }}>
+                  <View style={{ height: 14, backgroundColor: Colors.outlineVariant, borderRadius: 4, width: '60%', opacity: 0.5 }} />
+                  <View style={{ height: 10, backgroundColor: Colors.outlineVariant, borderRadius: 4, width: '40%', opacity: 0.3 }} />
+                </View>
+              </View>
+            )}
             {weather && (() => {
               const { grad, txt, sub } = getWeatherTheme(weather.emoji);
               const comment = weather.emoji.includes('☀') ? '😎 Parfait pour sortir !' : weather.emoji.includes('🌧') ? '☂️ Prévois un parapluie !' : weather.emoji.includes('⛈') ? '⚡ Reste à l\'abri !' : weather.emoji.includes('❄') || weather.emoji.includes('🌨') ? '🧤 Couvre-toi bien !' : weather.emoji.includes('🌦') ? '🌈 Variable — garde un œil !' : weather.emoji.includes('🌫') ? '👀 Visibilité réduite.' : weather.emoji.includes('🌤') ? '🙂 Agréable, profites-en !' : '🌡️ Temps variable.';
