@@ -379,6 +379,7 @@ export default function HomeScreen() {
   const [briefsOpen, setBriefsOpen] = useState(false);
   const [weatherOpen, setWeatherOpen] = useState(false);
   const [dictonOpen, setDictonOpen] = useState(false);
+  const [animalCardOpen, setAnimalCardOpen] = useState(false);
   useEffect(() => {
     SecureStore.getItemAsync('cc_briefs_open').then((val) => {
       if (val === 'open') setBriefsOpen(true);
@@ -750,10 +751,19 @@ export default function HomeScreen() {
             </View>
 
             {/* Carte animaux */}
-            <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 12, marginTop: 32, marginHorizontal: 16 }}>
-              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 17, color: '#6EE7B7', lineHeight: 24 }}>{'🐾 C\'est la grande nouveauté de ConfettiCake : vos animaux de compagnie peuvent désormais… écrire des messages !'}</Text>
-              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22 }}>{'Bon, c\'est l\'IA qui tient la plume — mais le résultat est bluffant 😄\nTon chien qui écrit à ta mère pour lui souhaiter sa fête. Le chat de ta sœur qui lui souhaite sa fête — avec toute l\'indifférence dont il est capable.\nEt ça marche dans les deux sens : tu peux aussi écrire directement à l\'animal d\'un contact pour son anniversaire ou sa fête.'}</Text>
-              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#6EE7B7' }}>{'👉 Explore cette fonction depuis la fiche d\'un contact — ou depuis le générateur de messages (bouton "Créer un message" ci-dessus et dans le menu de bas de page).'}</Text>
+            <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 10, marginTop: 32, marginHorizontal: 16 }}>
+              <TouchableOpacity onPress={() => setAnimalCardOpen(v => !v)} activeOpacity={0.85}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 17, color: '#6EE7B7', lineHeight: 24, flex: 1 }}>{'🐾 C\'est la grande nouveauté de ConfettiCake : vos animaux de compagnie peuvent désormais… écrire des messages !'}</Text>
+                  <Text style={{ color: '#6EE7B7', fontSize: 18, fontWeight: '700', marginTop: 2 }}>{animalCardOpen ? '▲' : '▼'}</Text>
+                </View>
+              </TouchableOpacity>
+              {animalCardOpen && (
+                <>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22 }}>{'Bon, c\'est l\'IA qui tient la plume — mais le résultat est bluffant 😄\nTon chien qui écrit à ta mère pour lui souhaiter sa fête. Le chat de ta sœur qui lui souhaite sa fête — avec toute l\'indifférence dont il est capable.\nEt ça marche dans les deux sens : tu peux aussi écrire directement à l\'animal d\'un contact pour son anniversaire ou sa fête.'}</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#6EE7B7' }}>{'👉 Explore cette fonction depuis la fiche d\'un contact — ou depuis le générateur de messages (bouton "Créer un message" ci-dessus et dans le menu de bas de page).'}</Text>
+                </>
+              )}
             </View>
 
             {/* Carte morse */}
