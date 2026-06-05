@@ -829,7 +829,7 @@ export default function HomeScreen() {
             </View>
 
             {/* Grille accès rapide */}
-            <Text style={styles.quickSectionLabel}>🗺️ Accès rapide — toutes les fonctions</Text>
+            <Text style={styles.quickSectionLabel}>🗺️ Accès rapide. Toutes les fonctions :</Text>
             <Text style={styles.quickSectionSub}>{"Ces boutons te donnent accès en un clic à toutes les fonctions de l'appli : agenda, contacts, cartes, cagnotte, numérologie et bien plus."}</Text>
             <View style={styles.quickGrid}>
               <QuickAction emoji="😎"  label="Mode Jeune"          onPress={() => router.push('/(app)/mode-jeune' as never)} />
