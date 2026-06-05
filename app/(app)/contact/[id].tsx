@@ -1198,6 +1198,18 @@ export default function ContactDetailScreen() {
           })()
         ) : (
           <View style={{ gap: 8 }}>
+            {/* Carte intro photo/avatar */}
+            <View style={{ marginHorizontal: Spacing[4], backgroundColor: '#F0F9FF', borderRadius: Radii.lg, borderWidth: 1.5, borderColor: '#BAE6FD', padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+              <Text style={{ fontSize: 22 }}>🖼️</Text>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#0369A1' }}>Personnalise la fiche de {contactFirstName}</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#0284C7', lineHeight: 18 }}>
+                  {'📷 Charge une vraie photo depuis ton téléphone — ou laisse l\'IA créer un '}
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>portrait illustré unique</Text>
+                  {' ✨ en appuyant sur les boutons de la photo ci-dessus.'}
+                </Text>
+              </View>
+            </View>
             <TouchableOpacity
               style={[styles.sendMessageBtn, { backgroundColor: C.primary, marginBottom: 0 }]}
               onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: id } } as never)}
