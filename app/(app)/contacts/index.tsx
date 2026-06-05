@@ -11,7 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useTabScrollToTop } from '../../../src/hooks/useTabScrollToTop';
 import {
   useContacts,
@@ -65,7 +65,21 @@ export default function ContactsScreen() {
     () => contacts.filter((c) => c.relation === 'pet'),
     [contacts],
   );
-  useTabScrollToTop('contacts/index', () => scrollRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false }));
+  const scrollToContactsList = useCallback(() => {
+    const idx = allSections.findIndex((s: any) => s.letter === '__all_contacts__');
+    if (idx >= 0) {
+      scrollRef.current?.scrollToLocation({ sectionIndex: idx, itemIndex: 0, animated: false, viewOffset: 0 });
+    } else {
+      scrollRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
+    }
+  }, [allSections]);
+
+  useTabScrollToTop('contacts/index', scrollToContactsList);
+
+  useFocusEffect(useCallback(() => {
+    const t = setTimeout(scrollToContactsList, 200);
+    return () => clearTimeout(t);
+  }, [scrollToContactsList]));
 
   const urgentMap = useMemo(() => {
     const map = new Map<string, (typeof upcomingEvents)[0]>();
