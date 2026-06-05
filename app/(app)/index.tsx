@@ -2171,7 +2171,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   bottomBannerBtn: { flexDirection: 'row', alignItems: 'center' },
   bottomBannerBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: 'rgba(255,255,255,0.9)' },
   bottomBannerArrow: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: 'rgba(255,255,255,0.9)' },
-  bottomBannerSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  bottomBannerSub: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: 'rgba(255,255,255,0.9)', marginTop: 4 },
   bottomBannerEmoji: { fontSize: 36 },
   collapseSeeAll: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: C.primary },
   });
