@@ -1148,8 +1148,12 @@ export default function HomeScreen() {
             </View>
 
             {/* Retour en mode simple */}
-            <TouchableOpacity style={{ alignSelf: 'center', padding: 12, marginBottom: 8 }} onPress={toggleHomeMode} activeOpacity={0.75}>
-              <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.sm, color: Colors.onSurfaceVariant }}>← Revenir en mode apprentissage</Text>
+            <TouchableOpacity
+              style={{ alignSelf: 'center', marginTop: Spacing[3], marginBottom: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.full, paddingVertical: 8, paddingHorizontal: 20, borderWidth: 1.5, borderColor: '#C4B5FD' }}
+              onPress={toggleHomeMode}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#7C3AED' }}>← Revenir en mode apprentissage</Text>
             </TouchableOpacity>
           </>
         )}
