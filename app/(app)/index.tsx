@@ -376,12 +376,12 @@ export default function HomeScreen() {
     await SecureStore.setItemAsync(HOME_MODE_KEY, next);
   }, [homeMode]);
 
-  const [briefsOpen, setBriefsOpen] = useState(true);
+  const [briefsOpen, setBriefsOpen] = useState(false);
   const [weatherOpen, setWeatherOpen] = useState(false);
   const [dictonOpen, setDictonOpen] = useState(false);
   useEffect(() => {
     SecureStore.getItemAsync('cc_briefs_open').then((val) => {
-      if (val === 'closed') setBriefsOpen(false);
+      if (val === 'open') setBriefsOpen(true);
     });
   }, []);
 
@@ -1222,9 +1222,9 @@ export default function HomeScreen() {
           </>
         )}
 
-        <View style={{ height: 32 }} />
         </>)} {/* fin {false && ( */}
 
+        <View style={{ height: 60 }} />
       </ScrollView>
     </SafeAreaView>
   );
