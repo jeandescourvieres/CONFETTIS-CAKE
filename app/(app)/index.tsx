@@ -496,20 +496,19 @@ export default function HomeScreen() {
             </LinearGradient>
 
             {/* Brèves du jour */}
-            <TouchableOpacity
-              style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}
-              onPress={() => { const next = !briefsOpen; setBriefsOpen(next); SecureStore.setItemAsync('cc_briefs_open', next ? 'open' : 'closed'); }}
-              activeOpacity={0.8}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>
-                  ☀️ Les brèves du jour
-                </Text>
-                <Text style={{ color: '#7C3AED', fontSize: 14 }}>{briefsOpen ? '▲' : '▼'}</Text>
-              </View>
-              {!briefsOpen && (
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Météo · fête & dicton · zodiaque…</Text>
-              )}
+            <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}>
+              <TouchableOpacity
+                onPress={() => { const next = !briefsOpen; setBriefsOpen(next); SecureStore.setItemAsync('cc_briefs_open', next ? 'open' : 'closed'); }}
+                activeOpacity={0.8}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>☀️ Les brèves du jour</Text>
+                  <Text style={{ color: '#7C3AED', fontSize: 14 }}>{briefsOpen ? '▲' : '▼'}</Text>
+                </View>
+                {!briefsOpen && (
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Météo · fête & dicton · zodiaque…</Text>
+                )}
+              </TouchableOpacity>
               {briefsOpen && (
                 <View style={{ marginTop: 12, gap: 10 }}>
                   {/* Météo widget */}
@@ -636,7 +635,7 @@ export default function HomeScreen() {
                   </View>
                 </View>
               )}
-            </TouchableOpacity>
+            </View>
 
             {/* Carte Bienvenue */}
             <LinearGradient colors={['#7C3AED', '#9b6bb5', '#c084fc']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.welcomeCard}>
@@ -806,18 +805,19 @@ export default function HomeScreen() {
             </LinearGradient>
 
             {/* ── Brèves du jour (mode complet) ── */}
-            <TouchableOpacity
-              style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}
-              onPress={() => { const next = !briefsOpen; setBriefsOpen(next); SecureStore.setItemAsync('cc_briefs_open', next ? 'open' : 'closed'); }}
-              activeOpacity={0.8}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>☀️ Les brèves du jour</Text>
-                <Text style={{ color: '#7C3AED', fontSize: 14 }}>{briefsOpen ? '▲' : '▼'}</Text>
-              </View>
-              {!briefsOpen && (
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Météo · fête & dicton · zodiaque…</Text>
-              )}
+            <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14 }}>
+              <TouchableOpacity
+                onPress={() => { const next = !briefsOpen; setBriefsOpen(next); SecureStore.setItemAsync('cc_briefs_open', next ? 'open' : 'closed'); }}
+                activeOpacity={0.8}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>☀️ Les brèves du jour</Text>
+                  <Text style={{ color: '#7C3AED', fontSize: 14 }}>{briefsOpen ? '▲' : '▼'}</Text>
+                </View>
+                {!briefsOpen && (
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Météo · fête & dicton · zodiaque…</Text>
+                )}
+              </TouchableOpacity>
               {briefsOpen && (
                 <View style={{ marginTop: 12, gap: 10 }}>
                   {weather && (() => {
@@ -875,7 +875,7 @@ export default function HomeScreen() {
                   </View>
                 </View>
               )}
-            </TouchableOpacity>
+            </View>
 
             {/* Grille navigation rapide */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: Spacing[4], marginTop: Spacing[5], marginBottom: Spacing[2] }}>
