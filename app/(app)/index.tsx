@@ -751,7 +751,7 @@ export default function HomeScreen() {
             </View>
 
             {/* Carte animaux */}
-            <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 8, marginTop: 32, marginHorizontal: 16 }}>
+            <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 8, marginTop: 32, marginHorizontal: 16, borderWidth: 3, borderColor: '#6EE7B7' }}>
               <View style={{ alignSelf: 'flex-start', backgroundColor: '#6EE7B7', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10, marginBottom: 2 }}>
                 <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#064E3B' }}>✨ Nouveauté 🐾</Text>
               </View>
