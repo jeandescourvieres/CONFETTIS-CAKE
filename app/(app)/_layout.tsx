@@ -11,9 +11,9 @@ import { scrollToTopRegistry } from '../../src/utils/scrollRegistry';
 const VISIBLE_TABS: { routeName: string; emoji: string; label: string }[] = [
   { routeName: 'index',           emoji: '🏠', label: 'Accueil'        },
   { routeName: 'dashboard',       emoji: '📊', label: 'Tableau de bord'},
+  { routeName: 'contacts/index',  emoji: '👥', label: 'Contacts'       },
   { routeName: 'create/index',    emoji: '✨', label: 'Créer message'  },
   { routeName: 'cards/index',     emoji: '✨', label: 'Animation'     },
-  { routeName: 'contacts/index',  emoji: '👥', label: 'Contacts'       },
   { routeName: 'profile',         emoji: '👤', label: 'Mon profil'     },
   { routeName: 'notes',           emoji: '📝', label: 'Notes'          },
   { routeName: 'creations',       emoji: '💬', label: 'Messages'       },
