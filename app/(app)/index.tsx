@@ -1012,13 +1012,9 @@ export default function HomeScreen() {
             </View>
 
             {/* ── Bouton retour mode apprentissage ── */}
-            <TouchableOpacity
-              style={{ alignSelf: 'center', marginTop: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.full, paddingVertical: 8, paddingHorizontal: 20, borderWidth: 1.5, borderColor: '#C4B5FD' }}
-              onPress={toggleHomeMode}
-              activeOpacity={0.8}
-            >
-              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#7C3AED' }}>← Revenir en mode apprentissage</Text>
-            </TouchableOpacity>
+            <View style={{ alignSelf: 'center', marginTop: Spacing[3] }}>
+              <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FBBF24" shadowColor="#D97706" textColor="#7C2D12" />
+            </View>
 
             {/* ── Carte bienvenue mode complet (masquable) ── */}
             {!advancedWelcomeDismissed && (
@@ -1119,12 +1115,10 @@ export default function HomeScreen() {
 
             {/* Grille navigation rapide */}
             <TouchableOpacity
-              style={{ alignSelf: 'center', marginTop: Spacing[5], marginBottom: Spacing[2], backgroundColor: '#F3EFFF', borderRadius: Radii.full, paddingVertical: 8, paddingHorizontal: 20, borderWidth: 1.5, borderColor: '#C4B5FD' }}
-              onPress={toggleHomeMode}
-              activeOpacity={0.8}
+              style={{ alignSelf: 'center', marginTop: Spacing[5], marginBottom: Spacing[2] }}
             >
-              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#7C3AED' }}>← Revenir en mode apprentissage</Text>
-            </TouchableOpacity>
+              <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FBBF24" shadowColor="#D97706" textColor="#7C2D12" />
+            </View>
             <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface, marginHorizontal: Spacing[4], marginBottom: Spacing[2] }}>Navigation rapide · l'essentiel</Text>
             <View style={styles.quickGrid}>
               <QuickAction emoji="💬✨" label="Créer un message"    onPress={() => router.push('/(app)/create' as never)} accent />
@@ -1205,12 +1199,10 @@ export default function HomeScreen() {
 
             {/* Retour en mode simple */}
             <TouchableOpacity
-              style={{ alignSelf: 'center', marginTop: Spacing[3], marginBottom: Spacing[3], backgroundColor: '#F3EFFF', borderRadius: Radii.full, paddingVertical: 8, paddingHorizontal: 20, borderWidth: 1.5, borderColor: '#C4B5FD' }}
-              onPress={toggleHomeMode}
-              activeOpacity={0.8}
+              style={{ alignSelf: 'center', marginTop: Spacing[3], marginBottom: Spacing[3] }}
             >
-              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#7C3AED' }}>← Revenir en mode apprentissage</Text>
-            </TouchableOpacity>
+              <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FBBF24" shadowColor="#D97706" textColor="#7C2D12" />
+            </View>
           </>
         )}
 
