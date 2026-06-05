@@ -34,6 +34,51 @@ import type { UpcomingEvent } from '../../src/types/models';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+const DICTONS = [
+  "Après la pluie, le beau temps.",
+  "Mieux vaut tard que jamais.",
+  "Les absents ont toujours tort.",
+  "Quand le chat n'est pas là, les souris dansent.",
+  "L'habit ne fait pas le moine.",
+  "Il ne faut pas vendre la peau de l'ours avant de l'avoir tué.",
+  "Qui sème le vent récolte la tempête.",
+  "Les chiens aboient, la caravane passe.",
+  "Pierre qui roule n'amasse pas mousse.",
+  "Mieux vaut prévenir que guérir.",
+  "Qui va à la chasse perd sa place.",
+  "Les bons comptes font les bons amis.",
+  "On ne fait pas d'omelette sans casser des œufs.",
+  "Il ne faut pas mettre tous ses œufs dans le même panier.",
+  "La nuit porte conseil.",
+  "Qui trop embrasse mal étreint.",
+  "Vouloir, c'est pouvoir.",
+  "À chaque jour suffit sa peine.",
+  "Le temps, c'est de l'argent.",
+  "Loin des yeux, loin du cœur.",
+  "Il n'y a pas de fumée sans feu.",
+  "Chat échaudé craint l'eau froide.",
+  "Les petits ruisseaux font les grandes rivières.",
+  "On a souvent besoin d'un plus petit que soi.",
+  "L'union fait la force.",
+  "Rien ne sert de courir, il faut partir à point.",
+  "Aide-toi, le ciel t'aidera.",
+  "Tel est pris qui croyait prendre.",
+  "Une hirondelle ne fait pas le printemps.",
+  "À bon entendeur, salut.",
+  "Qui vivra verra.",
+  "Rome ne s'est pas faite en un jour.",
+  "Tous les chemins mènent à Rome.",
+  "La fortune sourit aux audacieux.",
+  "Là où il y a une volonté, il y a un chemin.",
+];
+
+function getDictonDuJour(): string {
+  const start = new Date(new Date().getFullYear(), 0, 0);
+  const diff = new Date().getTime() - start.getTime();
+  const dayOfYear = Math.floor(diff / 86400000);
+  return DICTONS[dayOfYear % DICTONS.length];
+}
+
 const INTRO_DISMISSED_KEY = 'cc_home_intro_dismissed';
 const HOME_MODE_KEY       = 'cc_home_mode';
 const WELCOME_SIMPLE_KEY  = 'cc_welcome_simple';
@@ -318,6 +363,7 @@ export default function HomeScreen() {
   }, [homeMode]);
 
   const [briefsOpen, setBriefsOpen] = useState(false);
+  const [weatherOpen, setWeatherOpen] = useState(false);
   useEffect(() => {
     SecureStore.getItemAsync('cc_briefs_open').then((val) => {
       if (val === 'open') setBriefsOpen(true);
@@ -451,25 +497,90 @@ export default function HomeScreen() {
               )}
               {briefsOpen && (
                 <View style={{ marginTop: 12, gap: 10 }}>
-                  {/* Météo */}
-                  {weather && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Text style={{ fontSize: 24 }}>{weather.emoji}</Text>
-                      <View>
-                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{weather.temp}°C · {weather.description}</Text>
-                        {weather.city && <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant }}>📍 {weather.city}</Text>}
-                      </View>
-                    </View>
-                  )}
+                  {/* Météo widget */}
+                  {weather && (() => {
+                    const bgColor = weather.emoji.includes('☀') ? '#FEF9C3' : weather.emoji.includes('🌧') || weather.emoji.includes('⛈') ? '#DBEAFE' : weather.emoji.includes('❄') ? '#EFF6FF' : '#F0FDF4';
+                    const txtColor = weather.emoji.includes('☀') ? '#92400E' : weather.emoji.includes('🌧') || weather.emoji.includes('⛈') ? '#1E3A5F' : '#166534';
+                    return (
+                      <TouchableOpacity
+                        style={{ backgroundColor: bgColor, borderRadius: Radii.lg, padding: 12, gap: 8 }}
+                        onPress={() => setWeatherOpen(v => !v)}
+                        activeOpacity={0.85}
+                      >
+                        {/* Ligne principale */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <Text style={{ fontSize: 28 }}>{weather.emoji}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txtColor }}>{weather.temp}°C · {weather.description}</Text>
+                            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: txtColor, opacity: 0.75 }}>Ressenti {weather.apparentTemp}°C{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
+                          </View>
+                          <Text style={{ color: txtColor, opacity: 0.6 }}>{weatherOpen ? '▲' : '▼'}</Text>
+                        </View>
+                        {/* Horaires */}
+                        {weatherOpen && weather.hourly.length > 0 && (
+                          <View style={{ gap: 4 }}>
+                            <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: txtColor, opacity: 0.7 }}>Aujourd'hui</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled>
+                              <View style={{ flexDirection: 'row', gap: 8 }}>
+                                {weather.hourly.map((h, i) => (
+                                  <View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 44, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: Radii.md, padding: 6 }}>
+                                    <Text style={{ fontSize: 16 }}>{h.emoji}</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txtColor }}>{h.temp}°</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: txtColor, opacity: 0.7 }}>{h.label}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </ScrollView>
+                          </View>
+                        )}
+                        {/* Semaine */}
+                        {weatherOpen && weather.daily.length > 0 && (
+                          <View style={{ gap: 4 }}>
+                            <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: txtColor, opacity: 0.7 }}>Cette semaine</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled>
+                              <View style={{ flexDirection: 'row', gap: 8 }}>
+                                {weather.daily.map((d, i) => (
+                                  <View key={i} style={{ alignItems: 'center', gap: 2, minWidth: 48, backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: Radii.md, padding: 6 }}>
+                                    <Text style={{ fontSize: 16 }}>{d.emoji}</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 11, color: txtColor }}>{d.max}°</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: txtColor, opacity: 0.7 }}>{d.min}°</Text>
+                                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: txtColor, opacity: 0.6 }}>{d.label}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </ScrollView>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })()}
                   {/* Fête du jour */}
                   {todayNames.length > 0 && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FDF4FF', borderRadius: Radii.lg, padding: 10 }}
+                      onPress={() => router.push('/(app)/calendar' as never)}
+                      activeOpacity={0.8}
+                    >
                       <Text style={{ fontSize: 24 }}>🌸</Text>
-                      <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.sm, color: Colors.onSurface }}>
-                        Fête aujourd'hui : <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{todayNames.join(', ')}</Text>
-                      </Text>
-                    </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#7C3AED' }}>
+                          {todayNames.join(' · ')}
+                        </Text>
+                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA' }}>
+                          Fête du jour · appuie pour voir l'agenda
+                        </Text>
+                      </View>
+                      <Text style={{ color: '#C084FC' }}>›</Text>
+                    </TouchableOpacity>
                   )}
+
+                  {/* Dicton du jour */}
+                  <View style={{ backgroundColor: '#FFFBEB', borderRadius: Radii.lg, padding: 10, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#92400E', marginBottom: 3 }}>📜 Dicton du jour</Text>
+                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#78350F', lineHeight: 20, fontStyle: 'italic' }}>
+                      "{getDictonDuJour()}"
+                    </Text>
+                  </View>
                   {/* Zodiaque */}
                   <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={() => router.push('/(app)/zodiac-season' as never)} activeOpacity={0.8}>
                     <Text style={{ fontSize: 24 }}>{currentZodiacSign.emoji}</Text>
