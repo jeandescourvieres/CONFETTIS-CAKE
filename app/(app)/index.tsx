@@ -1926,7 +1926,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   pageTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface, marginHorizontal: Spacing[4], marginTop: Spacing[5] },
   pageSubtitle: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, marginHorizontal: Spacing[4], marginTop: 4, lineHeight: 20 },
 
-  profileIntroCard: { marginHorizontal: Spacing[4], marginTop: Spacing[4], backgroundColor: '#F3EFFF', borderRadius: Radii.xl, padding: Spacing[4], borderWidth: 1.5, borderColor: '#C4B5FD' },
+  profileIntroCard: { marginHorizontal: Spacing[4], marginTop: Spacing[4], backgroundColor: '#EDE9FE', borderRadius: Radii.xl, padding: Spacing[4], borderWidth: 3, borderColor: '#7C3AED' },
   profileIntroBadge: { alignSelf: 'flex-start', backgroundColor: '#7C3AED', borderRadius: Radii.full, paddingVertical: 4, paddingHorizontal: 12, marginBottom: 10 },
   profileIntroBadgeText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#fff' },
   profileIntroBody: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
@@ -1940,12 +1940,12 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   profileIntroBtnArrowText: { fontSize: 14, color: '#fff' },
   profileIntroRightEmoji: { fontSize: 32 },
 
-  featuredCard: { marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#FFF5F7', borderRadius: Radii.xl, padding: Spacing[4], borderWidth: 1.5, borderColor: '#FBCFE8' },
+  featuredCard: { marginHorizontal: Spacing[4], marginTop: Spacing[3], backgroundColor: '#E0F2FE', borderRadius: Radii.xl, padding: Spacing[4], borderWidth: 3, borderColor: '#0891B2' },
   contactBadge: { alignSelf: 'flex-start', backgroundColor: C.primary, borderRadius: Radii.full, paddingVertical: 4, paddingHorizontal: 12, marginBottom: 10 },
   contactBadgeText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#fff' },
   messageBadge: { alignSelf: 'flex-start', backgroundColor: '#9333EA', borderRadius: Radii.full, paddingVertical: 4, paddingHorizontal: 12, marginBottom: 10 },
   messageBadgeText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#fff' },
-  messageCard: { backgroundColor: '#F5F3FF', borderColor: '#C4B5FD' },
+  messageCard: { backgroundColor: '#FDF4FF', borderColor: '#A855F7', borderWidth: 3 },
   messageBtnColor: { backgroundColor: '#9333EA' },
   featuredBody: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   featuredLeftEmoji: { fontSize: 36 },
