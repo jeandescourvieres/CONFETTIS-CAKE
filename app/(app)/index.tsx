@@ -786,16 +786,14 @@ export default function HomeScreen() {
               </View>
               <TouchableOpacity onPress={() => setMorseCardOpen(v => !v)} activeOpacity={0.85}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Tes messages cachent un secret !</Text>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Cache un secret dans ton message !</Text>
                   <Text style={{ color: '#A5B4FC', fontSize: 18, fontWeight: '700' }}>{morseCardOpen ? '▲' : '▼'}</Text>
                 </View>
               </TouchableOpacity>
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
               {morseCardOpen && (
-                <View style={{ gap: 8, marginTop: 4 }}>
-                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20 }}>{'Chaque message festif animé contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nAccessible dans le lien de la carte — cherche le panneau 📡'}</Text>
-                </View>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20, marginTop: 4 }}>{'Chaque message festif animé contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nAccessible dans le lien de la carte — cherche le panneau 📡'}</Text>
               )}
             </View>
 
@@ -1120,16 +1118,14 @@ export default function HomeScreen() {
               </View>
               <TouchableOpacity onPress={() => setMorseCardOpen(v => !v)} activeOpacity={0.85}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Tes messages cachent un secret !</Text>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Cache un secret dans ton message !</Text>
                   <Text style={{ color: '#A5B4FC', fontSize: 18, fontWeight: '700' }}>{morseCardOpen ? '▲' : '▼'}</Text>
                 </View>
               </TouchableOpacity>
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
               {morseCardOpen && (
-                <View style={{ gap: 8, marginTop: 4 }}>
-                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20 }}>{'Chaque message festif animé contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nAccessible dans le lien de la carte — cherche le panneau 📡'}</Text>
-                </View>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20, marginTop: 4 }}>{'Chaque message festif animé contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nAccessible dans le lien de la carte — cherche le panneau 📡'}</Text>
               )}
             </View>
 
