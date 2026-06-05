@@ -943,15 +943,10 @@ export default function ContactDetailScreen() {
                 <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 9, color: 'rgba(255,255,255,0.7)' }}>Ma photo</Text>
               </View>
             </View>
-            {contact.civilite && (
-              <Text style={styles.heroCivilite}>{contact.civilite}</Text>
-            )}
             <Text style={styles.heroName}>
               {contact.relation === 'pet'
                 ? contact.name
-                : contactFirstName && contactLastName !== contactFirstName
-                  ? `${contactFirstName} ${contactLastName}`
-                  : contactFirstName || contactLastName}
+                : `${contact.civilite ? contact.civilite + ' ' : ''}${contactFirstName && contactLastName !== contactFirstName ? `${contactFirstName} ${contactLastName}` : contactFirstName || contactLastName}`}
               {age !== null ? <Text style={styles.heroNameAge}> · {age} ans</Text> : null}
             </Text>
             <Text style={[styles.heroBirthday, !contact.birthday && styles.heroBirthdayEmpty]}>
