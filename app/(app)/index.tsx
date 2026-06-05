@@ -1121,7 +1121,7 @@ export default function HomeScreen() {
             <View style={{ alignSelf: 'center', marginTop: Spacing[5], marginBottom: Spacing[2] }}>
               <Button3D label="← Revenir en mode apprentissage" onPress={toggleHomeMode} color="#FFD600" shadowColor="#F57F17" textColor="#4A2000" />
             </View>
-            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface, marginHorizontal: Spacing[4], marginBottom: Spacing[2] }}>Navigation rapide · l'essentiel</Text>
+            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.onSurface, marginHorizontal: Spacing[4], marginBottom: Spacing[2], textAlign: 'center' }}>Navigation rapide · l'essentiel</Text>
             <View style={styles.quickGrid}>
               <QuickAction emoji="💬✨" label="Créer un message"    onPress={() => router.push('/(app)/create' as never)} accent />
               <QuickAction emoji="😎"   label="Mode Jeune"           onPress={() => router.push('/(app)/mode-jeune' as never)} />
@@ -2166,7 +2166,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   featuredBtnArrowText: { fontSize: 14, color: '#fff' },
   featuredRightEmoji: { fontSize: 36 },
 
-  quickSectionLabel: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface, marginHorizontal: Spacing[4], marginTop: Spacing[5], marginBottom: Spacing[2] },
+  quickSectionLabel: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.onSurface, marginHorizontal: Spacing[4], marginTop: Spacing[5], marginBottom: Spacing[2], textAlign: 'center' },
   quickSectionSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, marginHorizontal: Spacing[4], marginBottom: Spacing[2], lineHeight: 18 },
   infoStrip: { flexDirection: 'row', marginHorizontal: Spacing[4], marginTop: Spacing[4], gap: 8 },
   infoChip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.surfaceContainerHighest, borderRadius: Radii.lg, paddingVertical: 12, paddingHorizontal: 14 },
