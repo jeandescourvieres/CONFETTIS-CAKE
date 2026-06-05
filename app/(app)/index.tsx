@@ -801,7 +801,7 @@ export default function HomeScreen() {
               <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
               <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
               {morseCardOpen && (
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20, marginTop: 4 }}>{'Chaque message festif animé contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nAccessible dans le lien de la carte — cherche le panneau 📡'}</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20, marginTop: 4 }}>{'Chaque message festif animé contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nPour y accéder : ouvre le lien du message festif animé et cherche l\'icône 📡 en bas de l\'écran.'}</Text>
               )}
             </View>
 
