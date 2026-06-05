@@ -776,9 +776,16 @@ export default function HomeScreen() {
                   <Text style={{ fontSize: 20 }}>✨</Text>
                 </View>
                 <Text style={styles.featuredSub}>{'Avec ConfettiCake, tu as plusieurs façons de créer un message pour tes proches. Avec ou sans l\'aide de l\'IA.\nChoisis celle qui te convient le mieux !\nTu peux même envoyer un message à un animal… ou un message de la part d\'un animal 🐾. Ou encore un message en morse ! 📡 (lol). Voir ci-dessous.'}</Text>
-                <TouchableOpacity style={[styles.featuredBtn, styles.messageBtnColor]} onPress={() => router.push({ pathname: '/(app)/create', params: { fromGuide: '1' } } as never)} activeOpacity={0.85}>
-                  <Text style={styles.featuredBtnText}>Créer un message 🎉</Text>
-                  <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
+                {/* Bouton 3D */}
+                <TouchableOpacity
+                  onPress={() => router.push({ pathname: '/(app)/create', params: { fromGuide: '1' } } as never)}
+                  activeOpacity={0.85}
+                  style={{ alignSelf: 'flex-start', backgroundColor: '#CC3377', borderRadius: Radii.full, paddingBottom: 5 }}
+                >
+                  <View style={{ backgroundColor: Colors.primary, borderRadius: Radii.full, paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.featuredBtnText}>Créer un message 🎉</Text>
+                    <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
