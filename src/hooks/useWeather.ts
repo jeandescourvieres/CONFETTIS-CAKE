@@ -87,7 +87,7 @@ export function useWeather() {
         const nowISO = new Date().toISOString().slice(0, 13);
         const startIdx = Math.max(0, hourlyTimes.findIndex((t: string) => t.startsWith(nowISO)));
 
-        const hourly: HourlyWeather[] = Array.from({ length: 24 }, (_, i) => {
+        const hourly: HourlyWeather[] = Array.from({ length: 48 }, (_, i) => {
           const idx   = startIdx + i;
           const time  = hourlyTimes[idx] ?? '';
           const h     = time ? new Date(time).getHours() : 0;
