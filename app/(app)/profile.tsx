@@ -31,6 +31,7 @@ import { APP_THEMES } from '../../src/constants/appThemes';
 import { useColors } from '../../src/hooks/useColors';
 import { schedulePetBirthdayReminders } from '../../src/services/notifications.service';
 import Constants from 'expo-constants';
+import { Button3D } from '../../src/components/ui/Button3D';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 // settingsCard : marginH=16×2, themeGrid : padding=16×2, gap=12×2 (entre 3 colonnes)
@@ -622,9 +623,7 @@ export default function ProfileScreen() {
                 <Text style={styles.editHint}>
                   🔮 Permet de calculer ta compatibilité zodiacale avec tes contacts !
                 </Text>
-                <TouchableOpacity style={styles.editSaveBtn} onPress={handleSaveProfile}>
-                  <Text style={styles.editSaveBtnText}>Enregistrer</Text>
-                </TouchableOpacity>
+                <Button3D label="Enregistrer" onPress={handleSaveProfile} fullWidth />
               </View>
               </ScrollView>
             </TouchableOpacity>

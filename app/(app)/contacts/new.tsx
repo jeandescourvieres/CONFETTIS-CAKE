@@ -22,6 +22,7 @@ import { getNameDayForName, getCompoundNameDays, type CompoundNameDay } from '..
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 import { HelpModal } from '../../../src/components/ui/HelpModal';
+import { Button3D } from '../../../src/components/ui/Button3D';
 import type { Relation } from '../../../src/types/models';
 
 const SEND_TIMES: { value: 'morning' | 'afternoon' | 'evening' | 'anytime'; label: string; emoji: string }[] = [
@@ -466,13 +467,7 @@ export default function NewContactScreen() {
             title="Fiche contact"
             content={"Renseigne au minimum le prénom et la date d'anniversaire pour activer les rappels automatiques.\n\n📸 Ajoute une photo en appuyant sur l'avatar.\n\n🐾 Pour un animal, choisis 'Animal de compagnie' et renseigne 'Animal de qui ?'.\n\n🌍 Si ton contact est étranger, sélectionne sa langue pour que l'IA génère le message dans sa langue."}
           />
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={isPending}
-            style={[styles.saveBtn, isPending && { opacity: 0.4 }]}
-          >
-            <Text style={styles.saveBtnText}>Enregistrer</Text>
-          </TouchableOpacity>
+          <Button3D label="Enregistrer" onPress={handleSave} disabled={isPending} size="sm" />
         </View>
       </View>
 
@@ -1049,15 +1044,13 @@ export default function NewContactScreen() {
 
       {/* Bouton enregistrer — fixé en bas */}
       <View style={styles.submitBar}>
-        <TouchableOpacity
-          style={[styles.submitBtn, isPending && { opacity: 0.42 }]}
+        <Button3D
+          label={isPending ? 'Enregistrement...' : isEditing ? '✓ Enregistrer les modifications' : '✓ Enregistrer le contact'}
           onPress={handleSave}
           disabled={isPending}
-        >
-          <Text style={styles.submitBtnText}>
-            {isPending ? 'Enregistrement...' : isEditing ? '✓ Enregistrer les modifications' : '✓ Enregistrer le contact'}
-          </Text>
-        </TouchableOpacity>
+          fullWidth
+          size="lg"
+        />
       </View>
 
       {/* ── Phase 10 — Popup prénom composé ── */}
