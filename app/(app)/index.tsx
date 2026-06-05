@@ -716,17 +716,17 @@ export default function HomeScreen() {
             {/* Étape 2 — Contacts */}
             <View style={styles.featuredCard}>
               <View style={styles.contactBadge}><Text style={styles.contactBadgeText}>👆 Étape 2</Text></View>
-              <View style={styles.featuredBody}>
-                <Text style={styles.featuredLeftEmoji}>👥</Text>
-                <View style={styles.featuredCenter}>
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={styles.featuredTitle}>Ajoute tes contacts</Text>
-                  <Text style={styles.featuredSub}>{'Commence par exemple par tes proches.'}</Text>
-                  <TouchableOpacity style={styles.featuredBtn} onPress={() => router.push('/(app)/contacts' as never)} activeOpacity={0.85}>
-                    <Text style={styles.featuredBtnText}>Ajouter 🎉</Text>
-                    <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
-                  </TouchableOpacity>
+                  <Text style={{ fontSize: 20 }}>👥</Text>
+                  <Text style={{ fontSize: 20 }}>🎂</Text>
                 </View>
-                <Text style={styles.featuredRightEmoji}>🎂</Text>
+                <Text style={styles.featuredSub}>{'Commence par exemple par tes proches.'}</Text>
+                <TouchableOpacity style={styles.featuredBtn} onPress={() => router.push('/(app)/contacts' as never)} activeOpacity={0.85}>
+                  <Text style={styles.featuredBtnText}>Ajouter 🎉</Text>
+                  <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
+                </TouchableOpacity>
               </View>
             </View>
 
