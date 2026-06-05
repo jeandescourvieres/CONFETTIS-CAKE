@@ -782,7 +782,7 @@ export default function HomeScreen() {
             {/* Carte morse */}
             <View style={{ borderRadius: Radii.xl, backgroundColor: '#1E1B4B', padding: Spacing[4], gap: 8, marginTop: 16, marginHorizontal: 16, borderWidth: 3, borderColor: '#F472B6' }}>
               <View style={{ alignSelf: 'flex-start', backgroundColor: '#A5B4FC', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10, marginBottom: 2 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#1E1B4B' }}>🤫 Easter egg</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#1E1B4B' }}>🤫 Psst… secret !</Text>
               </View>
               <TouchableOpacity onPress={() => setMorseCardOpen(v => !v)} activeOpacity={0.85}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -1114,7 +1114,7 @@ export default function HomeScreen() {
             {/* Carte morse */}
             <View style={{ borderRadius: Radii.xl, backgroundColor: '#1E1B4B', padding: Spacing[4], gap: 8, marginTop: 16, marginHorizontal: 16, borderWidth: 3, borderColor: '#F472B6' }}>
               <View style={{ alignSelf: 'flex-start', backgroundColor: '#A5B4FC', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10, marginBottom: 2 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#1E1B4B' }}>🤫 Easter egg</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#1E1B4B' }}>🤫 Psst… secret !</Text>
               </View>
               <TouchableOpacity onPress={() => setMorseCardOpen(v => !v)} activeOpacity={0.85}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
