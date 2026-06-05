@@ -513,6 +513,9 @@ export default function HomeScreen() {
                           <View style={{ flex: 1 }}>
                             <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txtColor }}>{weather.temp}°C · {weather.description}</Text>
                             <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: txtColor, opacity: 0.75 }}>Ressenti {weather.apparentTemp}°C{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
+                            <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.xs, color: txtColor, marginTop: 2 }}>
+                              {weather.emoji.includes('☀') ? '😎 Parfait pour sortir !' : weather.emoji.includes('🌧') ? '☂️ Prévois un parapluie !' : weather.emoji.includes('⛈') ? '⚡ Reste à l\'abri !' : weather.emoji.includes('❄') || weather.emoji.includes('🌨') ? '🧤 Couvre-toi bien !' : weather.emoji.includes('🌦') ? '🌈 Variable — garde un œil !' : weather.emoji.includes('🌫') ? '👀 Visibilité réduite.' : weather.emoji.includes('🌤') ? '🙂 Agréable, profites-en !' : '🌡️ Temps variable.'}
+                            </Text>
                           </View>
                           <Text style={{ color: txtColor, opacity: 0.6 }}>{weatherOpen ? '▲' : '▼'}</Text>
                         </View>
