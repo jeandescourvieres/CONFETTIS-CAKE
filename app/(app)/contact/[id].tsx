@@ -927,15 +927,21 @@ export default function ContactDetailScreen() {
           <View style={styles.heroPattern} />
           <View style={styles.heroContent}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-              <TouchableOpacity style={styles.aiAvatarBtn} onPress={() => { setAiAvatarError(null); setAiAvatarVisible(true); }}>
-                <Text style={{ fontSize: 16 }}>✨</Text>
-              </TouchableOpacity>
+              <View style={{ alignItems: 'center', gap: 4 }}>
+                <TouchableOpacity style={styles.aiAvatarBtn} onPress={() => { setAiAvatarError(null); setAiAvatarVisible(true); }}>
+                  <Text style={{ fontSize: 16 }}>✨</Text>
+                </TouchableOpacity>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 9, color: 'rgba(255,255,255,0.7)' }}>Avatar IA</Text>
+              </View>
               <View style={styles.avatarWrap}>
                 <Avatar uri={contact.avatar_url} name={contact.name} size="xl" />
               </View>
-              <TouchableOpacity style={styles.editAvatarBtn} onPress={handleChangeAvatar} disabled={isUploadingAvatar}>
-                <Text style={{ fontSize: 16 }}>{isUploadingAvatar ? '⏳' : '📷'}</Text>
-              </TouchableOpacity>
+              <View style={{ alignItems: 'center', gap: 4 }}>
+                <TouchableOpacity style={styles.editAvatarBtn} onPress={handleChangeAvatar} disabled={isUploadingAvatar}>
+                  <Text style={{ fontSize: 16 }}>{isUploadingAvatar ? '⏳' : '📷'}</Text>
+                </TouchableOpacity>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 9, color: 'rgba(255,255,255,0.7)' }}>Ma photo</Text>
+              </View>
             </View>
             {contact.civilite && (
               <Text style={styles.heroCivilite}>{contact.civilite}</Text>
