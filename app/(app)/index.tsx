@@ -12,6 +12,7 @@ import * as SecureStore from 'expo-secure-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
+import { Button3D } from '../../src/components/ui/Button3D';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -711,9 +712,9 @@ export default function HomeScreen() {
               <Text style={styles.onboardingNoteText}>{'Pour démarrer en douceur, tu es en '}<Text style={styles.onboardingNoteBold}>mode apprentissage</Text>{" — l'essentiel à portée de main. Passe en "}<Text style={styles.onboardingNoteBold}>mode complet</Text>{' à tout moment pour tout débloquer.'}</Text>
               <Text style={styles.onboardingNoteFooter}>Bonne découverte… et régale-toi 🍰</Text>
             </View>
-            <TouchableOpacity style={styles.modeSmallBtn} onPress={toggleHomeMode} activeOpacity={0.85}>
-              <Text style={styles.modeSmallBtnText}>🍭 Passer en mode complet</Text>
-            </TouchableOpacity>
+            <View style={{ alignSelf: 'center', marginTop: Spacing[3] }}>
+              <Button3D label="🍭 Passer en mode complet" onPress={toggleHomeMode} color="#7C3AED" shadowColor="#5B21B6" />
+            </View>
 
             {/* Bouton "Tout ce que tu peux faire ici" */}
             <TouchableOpacity
@@ -742,10 +743,7 @@ export default function HomeScreen() {
                   <Text style={{ fontSize: 18 }}>✨</Text>
                 </View>
                 <Text style={styles.profileIntroDesc}>{"Renseigne ta civilité, ton prénom, ton nom et ta date de naissance — l'IA s'en sert pour personnaliser chaque message et signature."}</Text>
-                <TouchableOpacity style={styles.profileIntroBtn} onPress={() => router.push('/(app)/profile' as never)} activeOpacity={0.85}>
-                  <Text style={styles.profileIntroBtnText}>Créer mon profil 🎉</Text>
-                  <View style={styles.profileIntroBtnArrow}><Text style={styles.profileIntroBtnArrowText}>›</Text></View>
-                </TouchableOpacity>
+                <Button3D label="Créer mon profil 🎉" onPress={() => router.push('/(app)/profile' as never)} color="#7C3AED" shadowColor="#5B21B6" />
               </View>
             </TouchableOpacity>
 
@@ -759,10 +757,7 @@ export default function HomeScreen() {
                   <Text style={{ fontSize: 20 }}>🎂</Text>
                 </View>
                 <Text style={styles.featuredSub}>{'Ajoute tes proches, ta famille, tes amis, tes collègues… L\'appli surveille leurs anniversaires et fêtes et t\'alerte avant pour ne jamais oublier.'}</Text>
-                <TouchableOpacity style={styles.featuredBtn} onPress={() => router.push('/(app)/contacts' as never)} activeOpacity={0.85}>
-                  <Text style={styles.featuredBtnText}>Ajouter 🎉</Text>
-                  <View style={styles.featuredBtnArrow}><Text style={styles.featuredBtnArrowText}>›</Text></View>
-                </TouchableOpacity>
+                <Button3D label="Ajouter 🎉" onPress={() => router.push('/(app)/contacts' as never)} color="#0891B2" shadowColor="#0E6A8A" />
               </View>
             </View>
 
