@@ -602,14 +602,38 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                   {/* Zodiaque */}
-                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={() => router.push('/(app)/zodiac-season' as never)} activeOpacity={0.8}>
-                    <Text style={{ fontSize: 24 }}>{currentZodiacSign.emoji}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{currentZodiacSign.name}</Text>
-                      <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, fontStyle: 'italic' }}>{currentZodiacSign.trait}</Text>
-                    </View>
-                    <Text style={{ color: Colors.outlineVariant }}>›</Text>
-                  </TouchableOpacity>
+                  <View style={{ backgroundColor: Colors.surface, borderRadius: Radii.lg, padding: 10, gap: 8 }}>
+                    <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={() => router.push('/(app)/zodiac-season' as never)} activeOpacity={0.8}>
+                      <Text style={{ fontSize: 24 }}>{currentZodiacSign.emoji}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>Signe du moment · {currentZodiacSign.name}</Text>
+                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, fontStyle: 'italic' }}>{currentZodiacSign.trait}</Text>
+                      </View>
+                      <Text style={{ color: Colors.outlineVariant }}>›</Text>
+                    </TouchableOpacity>
+                    {zodiacSeasonContacts.length > 0 && (
+                      <View style={{ gap: 4 }}>
+                        <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.onSurfaceVariant }}>
+                          {zodiacSeasonContacts.length} contact{zodiacSeasonContacts.length > 1 ? 's' : ''} concerné{zodiacSeasonContacts.length > 1 ? 's' : ''} :
+                        </Text>
+                        {zodiacSeasonContacts.slice(0, 4).map((c) => {
+                          const firstName = c.name.trim().split(/\s+/).find((w: string) => w !== w.toUpperCase()) ?? c.name.split(' ')[0];
+                          return (
+                            <TouchableOpacity key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => router.push(`/(app)/contact/${c.id}` as never)} activeOpacity={0.75}>
+                              <Text style={{ fontSize: 14 }}>👤</Text>
+                              <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.xs, color: Colors.primary, flex: 1 }}>{firstName}</Text>
+                              <Text style={{ color: Colors.outlineVariant, fontSize: 12 }}>›</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                        {zodiacSeasonContacts.length > 4 && (
+                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant }}>
+                            et {zodiacSeasonContacts.length - 4} autre{zodiacSeasonContacts.length - 4 > 1 ? 's' : ''}…
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
                 </View>
               )}
             </TouchableOpacity>
@@ -817,7 +841,38 @@ export default function HomeScreen() {
                   })()}
                   {todayNames.length > 0 && (<View style={{ backgroundColor: '#FDF4FF', borderRadius: Radii.lg, padding: 10, gap: 8 }}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><Text style={{ fontSize: 24 }}>🌸</Text><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#7C3AED', flex: 1 }}>{`Aujourd'hui on fête ${todayNames.join(' et ')}`}</Text></View><TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }} onPress={() => router.push({ pathname: '/(app)/explore/prenoms', params: { initialPrenom: todayNames[0] } } as never)} activeOpacity={0.8}><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#9333EA' }}>{`✨ En savoir plus sur le prénom ${todayNames[0]}`}</Text><Text style={{ color: '#C084FC' }}>›</Text></TouchableOpacity></View>)}
                   <View style={{ backgroundColor: '#FFFBEB', borderRadius: Radii.lg, padding: 10, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}><Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#92400E', marginBottom: 3 }}>📜 Dicton du jour</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#78350F', lineHeight: 20, fontStyle: 'italic' }}>"{getDictonDuJour()}"</Text></View>
-                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={() => router.push('/(app)/zodiac-season' as never)} activeOpacity={0.8}><Text style={{ fontSize: 24 }}>{currentZodiacSign.emoji}</Text><View style={{ flex: 1 }}><Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{currentZodiacSign.name}</Text><Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, fontStyle: 'italic' }}>{currentZodiacSign.trait}</Text></View><Text style={{ color: Colors.outlineVariant }}>›</Text></TouchableOpacity>
+                  <View style={{ backgroundColor: Colors.surface, borderRadius: Radii.lg, padding: 10, gap: 8 }}>
+                    <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={() => router.push('/(app)/zodiac-season' as never)} activeOpacity={0.8}>
+                      <Text style={{ fontSize: 24 }}>{currentZodiacSign.emoji}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>Signe du moment · {currentZodiacSign.name}</Text>
+                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, fontStyle: 'italic' }}>{currentZodiacSign.trait}</Text>
+                      </View>
+                      <Text style={{ color: Colors.outlineVariant }}>›</Text>
+                    </TouchableOpacity>
+                    {zodiacSeasonContacts.length > 0 && (
+                      <View style={{ gap: 4 }}>
+                        <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.onSurfaceVariant }}>
+                          {zodiacSeasonContacts.length} contact{zodiacSeasonContacts.length > 1 ? 's' : ''} concerné{zodiacSeasonContacts.length > 1 ? 's' : ''} :
+                        </Text>
+                        {zodiacSeasonContacts.slice(0, 4).map((c) => {
+                          const firstName = c.name.trim().split(/\s+/).find((w: string) => w !== w.toUpperCase()) ?? c.name.split(' ')[0];
+                          return (
+                            <TouchableOpacity key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => router.push(`/(app)/contact/${c.id}` as never)} activeOpacity={0.75}>
+                              <Text style={{ fontSize: 14 }}>👤</Text>
+                              <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.xs, color: Colors.primary, flex: 1 }}>{firstName}</Text>
+                              <Text style={{ color: Colors.outlineVariant, fontSize: 12 }}>›</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                        {zodiacSeasonContacts.length > 4 && (
+                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant }}>
+                            et {zodiacSeasonContacts.length - 4} autre{zodiacSeasonContacts.length - 4 > 1 ? 's' : ''}…
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
                 </View>
               )}
             </TouchableOpacity>
