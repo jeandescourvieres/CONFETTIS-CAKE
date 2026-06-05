@@ -517,7 +517,7 @@ export default function HomeScreen() {
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>☀️ Les brèves du jour</Text>
-                  <Text style={{ color: '#7C3AED', fontSize: 14 }}>{briefsOpen ? '▲' : '▼'}</Text>
+                  <Text style={{ color: '#7C3AED', fontSize: 18, fontWeight: '700' }}>{briefsOpen ? '▲' : '▼'}</Text>
                 </View>
                 {!briefsOpen && (
                   <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Météo · fête & dicton · zodiaque…</Text>
@@ -542,7 +542,7 @@ export default function HomeScreen() {
                               </View>
                               <View style={{ alignItems: 'flex-end', gap: 4 }}>
                                 <Text style={{ fontSize: 52, opacity: 0.9 }}>{weather.emoji}</Text>
-                                <Text style={{ color: sub, fontSize: 14 }}>{weatherOpen ? '▲' : '▼'}</Text>
+                                <Text style={{ color: txt, fontSize: 18, fontWeight: '700' }}>{weatherOpen ? '▲' : '▼'}</Text>
                               </View>
                             </View>
                           </TouchableOpacity>
@@ -593,7 +593,7 @@ export default function HomeScreen() {
                         <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>Signe du moment · {currentZodiacSign.name}</Text>
                         <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, fontStyle: 'italic' }}>{currentZodiacSign.trait}</Text>
                       </View>
-                      <Text style={{ color: Colors.outlineVariant }}>›</Text>
+                      <Text style={{ color: Colors.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
                     </TouchableOpacity>
                     {zodiacSeasonContacts.length > 0 && (
                       <View style={{ gap: 4 }}>
@@ -606,7 +606,7 @@ export default function HomeScreen() {
                             <TouchableOpacity key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => router.push(`/(app)/contact/${c.id}` as never)} activeOpacity={0.75}>
                               <Text style={{ fontSize: 14 }}>👤</Text>
                               <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.xs, color: Colors.primary, flex: 1 }}>{firstName}</Text>
-                              <Text style={{ color: Colors.outlineVariant, fontSize: 12 }}>›</Text>
+                              <Text style={{ color: Colors.primary, fontSize: 18, fontWeight: '700' }}>›</Text>
                             </TouchableOpacity>
                           );
                         })}
@@ -797,7 +797,7 @@ export default function HomeScreen() {
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>☀️ Les brèves du jour</Text>
-                  <Text style={{ color: '#7C3AED', fontSize: 14 }}>{briefsOpen ? '▲' : '▼'}</Text>
+                  <Text style={{ color: '#7C3AED', fontSize: 18, fontWeight: '700' }}>{briefsOpen ? '▲' : '▼'}</Text>
                 </View>
                 {!briefsOpen && (
                   <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Météo · fête & dicton · zodiaque…</Text>
@@ -821,7 +821,7 @@ export default function HomeScreen() {
                               </View>
                               <View style={{ alignItems: 'flex-end', gap: 4 }}>
                                 <Text style={{ fontSize: 52, opacity: 0.9 }}>{weather.emoji}</Text>
-                                <Text style={{ color: sub, fontSize: 14 }}>{weatherOpen ? '▲' : '▼'}</Text>
+                                <Text style={{ color: txt, fontSize: 18, fontWeight: '700' }}>{weatherOpen ? '▲' : '▼'}</Text>
                               </View>
                             </View>
                           </TouchableOpacity>
@@ -844,7 +844,7 @@ export default function HomeScreen() {
                         <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>Signe du moment · {currentZodiacSign.name}</Text>
                         <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, fontStyle: 'italic' }}>{currentZodiacSign.trait}</Text>
                       </View>
-                      <Text style={{ color: Colors.outlineVariant }}>›</Text>
+                      <Text style={{ color: Colors.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
                     </TouchableOpacity>
                     {zodiacSeasonContacts.length > 0 && (
                       <View style={{ gap: 4 }}>
@@ -857,7 +857,7 @@ export default function HomeScreen() {
                             <TouchableOpacity key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => router.push(`/(app)/contact/${c.id}` as never)} activeOpacity={0.75}>
                               <Text style={{ fontSize: 14 }}>👤</Text>
                               <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.xs, color: Colors.primary, flex: 1 }}>{firstName}</Text>
-                              <Text style={{ color: Colors.outlineVariant, fontSize: 12 }}>›</Text>
+                              <Text style={{ color: Colors.primary, fontSize: 18, fontWeight: '700' }}>›</Text>
                             </TouchableOpacity>
                           );
                         })}
