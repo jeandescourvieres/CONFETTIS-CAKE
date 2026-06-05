@@ -786,7 +786,11 @@ export default function HomeScreen() {
             </View>
 
             {/* Transition */}
-            <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurfaceVariant, textAlign: 'center', marginTop: 16, marginHorizontal: 16 }}>Et ce n'est pas tout… 🐾</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 24, marginHorizontal: 16, gap: 10 }}>
+              <View style={{ flex: 1, height: 2, backgroundColor: '#064E3B', borderRadius: 2 }} />
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: '#064E3B', textAlign: 'center' }}>Et ce n'est pas tout… 🐾</Text>
+              <View style={{ flex: 1, height: 2, backgroundColor: '#064E3B', borderRadius: 2 }} />
+            </View>
 
             {/* Carte animaux */}
             <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 8, marginTop: 8, marginHorizontal: 16, borderWidth: 3, borderColor: '#FDE047' }}>
