@@ -786,12 +786,12 @@ export default function HomeScreen() {
             </View>
 
             {/* Transition */}
-            <View style={{ marginTop: 24, alignSelf: 'center', backgroundColor: '#FFD600', borderRadius: Radii.xl, paddingVertical: 5, paddingHorizontal: 20, borderWidth: 3, borderColor: '#F57F17' }}>
+            <View style={{ marginTop: 20, marginBottom: 20, alignSelf: 'center', backgroundColor: '#FFD600', borderRadius: Radii.xl, paddingVertical: 5, paddingHorizontal: 20, borderWidth: 3, borderColor: '#F57F17' }}>
               <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: '#064E3B', textAlign: 'center' }}>Et ce n'est pas tout… 🐾</Text>
             </View>
 
             {/* Carte animaux */}
-            <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 8, marginTop: 8, marginHorizontal: 16, borderWidth: 3, borderColor: '#FDE047' }}>
+            <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 8, marginTop: 0, marginHorizontal: 16, borderWidth: 3, borderColor: '#FDE047' }}>
               <View style={{ alignSelf: 'flex-start', backgroundColor: '#6EE7B7', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10, marginBottom: 2 }}>
                 <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#064E3B' }}>✨ Nouveauté 🐾</Text>
               </View>
