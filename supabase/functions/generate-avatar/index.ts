@@ -121,6 +121,9 @@ Deno.serve(async (req: Request) => {
   const details: string[] = [];
 
   if (contact.birthday && !contact.birthday.startsWith('0000-')) {
+    const birthYear = parseInt(contact.birthday.split('-')[0]);
+    const age = new Date().getFullYear() - birthYear;
+    if (age > 0 && age < 120) details.push(`approximately ${age} years old`);
     const zodiac = getZodiacName(contact.birthday);
     const animal = getChineseAnimal(contact.birthday);
     if (zodiac) details.push(`inspired by ${zodiac} zodiac energy`);
@@ -158,12 +161,11 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model:           'gpt-image-1',
+        model:   'gpt-image-1',
         prompt,
-        n:               1,
-        size:            '1024x1024',
-        quality:         'medium',
-        response_format: 'b64_json',
+        n:       1,
+        size:    '1024x1024',
+        quality: 'medium',
       }),
     });
 
