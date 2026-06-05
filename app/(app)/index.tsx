@@ -1958,6 +1958,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_600SemiBold',
     fontSize: Typography.md,
     color: Colors.onSurface,
+    textAlign: 'center',
   },
   quickActionLabelAccent: { color: Colors.white },
 
