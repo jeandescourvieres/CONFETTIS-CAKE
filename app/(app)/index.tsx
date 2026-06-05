@@ -757,7 +757,7 @@ export default function HomeScreen() {
               </View>
               <TouchableOpacity onPress={() => setAnimalCardOpen(v => !v)} activeOpacity={0.85}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 20, color: '#fff', flex: 1 }}>🐾 Vos animaux peuvent écrire !</Text>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>🐾 Vos animaux peuvent écrire !</Text>
                   <Text style={{ color: '#6EE7B7', fontSize: 18, fontWeight: '700' }}>{animalCardOpen ? '▲' : '▼'}</Text>
                 </View>
               </TouchableOpacity>
