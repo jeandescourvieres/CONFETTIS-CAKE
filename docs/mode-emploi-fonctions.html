@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confettis & Cake — Mode d'emploi complet</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      --primary: #7C3AED;
+      --primary-light: #EDE9FE;
+      --accent: #F59E0B;
+      --accent-light: #FFFBEB;
+      --text: #1F2937;
+      --text-muted: #6B7280;
+      --border: #E5E7EB;
+      --surface: #F9FAFB;
+      --white: #ffffff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 10pt;
+      color: var(--text);
+      background: var(--white);
+      line-height: 1.6;
+    }
+
+    /* ── COVER PAGE ── */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #4C1D95 0%, #7C3AED 50%, #A855F7 100%);
+      color: white;
+      text-align: center;
+      padding: 60px 40px;
+      page-break-after: always;
+    }
+
+    .cover-logo {
+      font-size: 72pt;
+      margin-bottom: 24px;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.3));
+    }
+
+    .cover-title {
+      font-size: 36pt;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .cover-subtitle {
+      font-size: 14pt;
+      font-weight: 300;
+      opacity: 0.85;
+      margin-bottom: 48px;
+      letter-spacing: 1px;
+    }
+
+    .cover-badges {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 60px;
+    }
+
+    .cover-badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 9pt;
+      font-weight: 500;
+      backdrop-filter: blur(8px);
+    }
+
+    .cover-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .cover-stat {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .cover-stat-num {
+      font-size: 22pt;
+      font-weight: 800;
+      display: block;
+    }
+
+    .cover-stat-label {
+      font-size: 7.5pt;
+      opacity: 0.75;
+      margin-top: 2px;
+    }
+
+    .cover-date {
+      margin-top: 48px;
+      opacity: 0.6;
+      font-size: 8.5pt;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ── LAYOUT ── */
+    .page {
+      padding: 20mm 18mm;
+      max-width: 210mm;
+      margin: 0 auto;
+    }
+
+    /* ── TABLE OF CONTENTS ── */
+    .toc-page {
+      page-break-after: always;
+    }
+
+    .toc-title {
+      font-size: 22pt;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 32px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid var(--primary-light);
+    }
+
+    .toc-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .toc-num {
+      width: 26px;
+      height: 26px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7.5pt;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .toc-label {
+      font-size: 9pt;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .toc-emoji {
+      font-size: 11pt;
+      flex-shrink: 0;
+    }
+
+    /* ── SECTION HEADERS ── */
+    .section {
+      page-break-inside: avoid;
+      margin-bottom: 32px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary-light);
+    }
+
+    .section-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16pt;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 15pt;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .section-num {
+      font-size: 8pt;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--surface);
+      border-radius: 100px;
+      padding: 2px 8px;
+    }
+
+    h3 {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: var(--text);
+      margin: 14px 0 8px;
+    }
+
+    p {
+      margin-bottom: 8px;
+      font-size: 9.5pt;
+      color: var(--text);
+    }
+
+    /* ── TABLES ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 8.5pt;
+    }
+
+    thead tr {
+      background: var(--primary);
+      color: white;
+    }
+
+    thead th {
+      padding: 7px 10px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 8pt;
+    }
+
+    tbody tr:nth-child(even) {
+      background: var(--surface);
+    }
+
+    tbody td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    /* ── CALLOUT BOXES ── */
+    .callout {
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin: 10px 0;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 9pt;
+    }
+
+    .callout-purple {
+      background: var(--primary-light);
+      border-left: 3px solid var(--primary);
+    }
+
+    .callout-amber {
+      background: var(--accent-light);
+      border-left: 3px solid var(--accent);
+    }
+
+    .callout-green {
+      background: #ECFDF5;
+      border-left: 3px solid #10B981;
+    }
+
+    .callout-icon { font-size: 14pt; flex-shrink: 0; margin-top: 1px; }
+
+    .callout-text { color: var(--text); line-height: 1.5; }
+
+    /* ── TAG GRID ── */
+    .tag-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0;
+    }
+
+    .tag {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 3px 10px;
+      font-size: 8pt;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .tag-purple {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* ── FEATURE GRID ── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .feature-card-icon { font-size: 14pt; margin-bottom: 4px; }
+    .feature-card-title { font-size: 8.5pt; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .feature-card-desc { font-size: 7.5pt; color: var(--text-muted); line-height: 1.4; }
+
+    /* ── STAT ROW ── */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .stat-box {
+      background: linear-gradient(135deg, var(--primary-light), white);
+      border: 1px solid var(--primary);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-box-num {
+      font-size: 18pt;
+      font-weight: 800;
+      color: var(--primary);
+      display: block;
+    }
+
+    .stat-box-label {
+      font-size: 7pt;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ── UL LISTS ── */
+    ul {
+      padding-left: 18px;
+      margin-bottom: 10px;
+    }
+
+    li {
+      font-size: 9pt;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    /* ── PAGE BREAK ── */
+    .page-break { page-break-before: always; }
+
+    /* ── FOOTER ── */
+    @page {
+      margin: 15mm 15mm 20mm;
+      @bottom-center {
+        content: counter(page) " / " counter(pages);
+        font-size: 8pt;
+        color: #9CA3AF;
+        font-family: 'Inter', sans-serif;
+      }
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .cover { min-height: 100vh; }
+      .section { page-break-inside: avoid; }
+      table { page-break-inside: avoid; }
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+    }
+
+    .highlight-row {
+      background: linear-gradient(135deg, var(--primary-light) 0%, #F5F3FF 100%);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin: 12px 0;
+      border: 1px solid var(--primary);
+    }
+
+    .highlight-row strong {
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     COUVERTURE
+═══════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">🎉</div>
+  <div class="cover-title">Confettis & Cake</div>
+  <div class="cover-subtitle">Mode d'emploi complet — Toutes les fonctionnalités</div>
+
+  <div class="cover-badges">
+    <span class="cover-badge">📱 Application mobile</span>
+    <span class="cover-badge">🤖 IA intégrée</span>
+    <span class="cover-badge">🎯 22 fonctions</span>
+    <span class="cover-badge">🇫🇷 100% français</span>
+  </div>
+
+  <div class="cover-stats">
+    <div class="cover-stat">
+      <span class="cover-stat-num">2 800+</span>
+      <div class="cover-stat-label">messages en bibliothèque</div>
+    </div>
+    <div class="cover-stat">
+      <span class="cover-stat-num">18</span>
+      <div class="cover-stat-label">occasions couvertes</div>
+    </div>
+    <div class="cover-stat">
+      <span class="cover-stat-num">880</span>
+      <div class="cover-stat-label">messages Mode Jeune</div>
+    </div>
+    <div class="cover-stat">
+      <span class="cover-stat-num">820</span>
+      <div class="cover-stat-label">messages animaux</div>
+    </div>
+  </div>
+
+  <div class="cover-date">Document de référence · Mai 2026</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     TABLE DES MATIÈRES
+═══════════════════════════════════════════════════════ -->
+<div class="page toc-page">
+  <div class="toc-title">📋 Table des matières</div>
+  <ul class="toc-list">
+    <li class="toc-item"><span class="toc-num">1</span><span class="toc-emoji">✍️</span><span class="toc-label">Création de messages</span></li>
+    <li class="toc-item"><span class="toc-num">2</span><span class="toc-emoji">😎</span><span class="toc-label">Mode Jeune (13-25 ans)</span></li>
+    <li class="toc-item"><span class="toc-num">3</span><span class="toc-emoji">🐾</span><span class="toc-label">Messages animaux</span></li>
+    <li class="toc-item"><span class="toc-num">4</span><span class="toc-emoji">🎨</span><span class="toc-label">Cartes animées</span></li>
+    <li class="toc-item"><span class="toc-num">5</span><span class="toc-emoji">🪙</span><span class="toc-label">Cagnotte collective</span></li>
+    <li class="toc-item"><span class="toc-num">6</span><span class="toc-emoji">👥</span><span class="toc-label">Contacts</span></li>
+    <li class="toc-item"><span class="toc-num">7</span><span class="toc-emoji">📅</span><span class="toc-label">Calendrier & Agenda</span></li>
+    <li class="toc-item"><span class="toc-num">8</span><span class="toc-emoji">🤖</span><span class="toc-label">Auto-envois</span></li>
+    <li class="toc-item"><span class="toc-num">9</span><span class="toc-emoji">📊</span><span class="toc-label">Tableau de bord</span></li>
+    <li class="toc-item"><span class="toc-num">10</span><span class="toc-emoji">🔭</span><span class="toc-label">Explorer</span></li>
+    <li class="toc-item"><span class="toc-num">11</span><span class="toc-emoji">🔢</span><span class="toc-label">Numérologie</span></li>
+    <li class="toc-item"><span class="toc-num">12</span><span class="toc-emoji">⭐</span><span class="toc-label">Zodiaque & Saison</span></li>
+    <li class="toc-item"><span class="toc-num">13</span><span class="toc-emoji">💑</span><span class="toc-label">Compatibilité</span></li>
+    <li class="toc-item"><span class="toc-num">14</span><span class="toc-emoji">🏠</span><span class="toc-label">Accueil</span></li>
+    <li class="toc-item"><span class="toc-num">15</span><span class="toc-emoji">📖</span><span class="toc-label">Livre d'or</span></li>
+    <li class="toc-item"><span class="toc-num">16</span><span class="toc-emoji">📷</span><span class="toc-label">QR Codes</span></li>
+    <li class="toc-item"><span class="toc-num">17</span><span class="toc-emoji">👤</span><span class="toc-label">Profil utilisateur</span></li>
+    <li class="toc-item"><span class="toc-num">18</span><span class="toc-emoji">⚙️</span><span class="toc-label">Paramètres</span></li>
+    <li class="toc-item"><span class="toc-num">19</span><span class="toc-emoji">📖</span><span class="toc-label">Aide & FAQ</span></li>
+    <li class="toc-item"><span class="toc-num">20</span><span class="toc-emoji">💌</span><span class="toc-label">Carte postale numérique</span></li>
+    <li class="toc-item"><span class="toc-num">21</span><span class="toc-emoji">💬</span><span class="toc-label">Gestion des messages</span></li>
+    <li class="toc-item"><span class="toc-num">22</span><span class="toc-emoji">🔔</span><span class="toc-label">Notifications</span></li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     1. CRÉATION DE MESSAGES
+═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">✍️</div>
+      <div>
+        <div class="section-title">Création de messages</div>
+      </div>
+      <span class="section-num">01</span>
+    </div>
+
+    <p>Le cœur de l'application. L'utilisateur choisit un contact, une occasion, puis navigue dans une bibliothèque de messages organisée par thèmes et styles.</p>
+
+    <h3>Occasions disponibles</h3>
+    <table>
+      <thead><tr><th>Occasion</th><th>Description</th><th>Occasion</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>🎂 Anniversaire</td><td>Date de naissance</td><td>🎁 Cadeau surprise</td><td>Accompagnement cadeau</td></tr>
+        <tr><td>🌸 Fête du prénom</td><td>Calendrier français</td><td>✈️ Bon voyage</td><td>Messages de départ</td></tr>
+        <tr><td>🎓 Diplôme / Bac</td><td>Réussites scolaires</td><td>🏠 Nouvelle maison</td><td>Pendaison de crémaillère</td></tr>
+        <tr><td>💼 Premier job</td><td>Vie professionnelle</td><td>👶 Naissance</td><td>Félicitations naissance</td></tr>
+        <tr><td>💏 Fête des amoureux</td><td>Saint-Valentin</td><td>💒 Mariage</td><td>Félicitations nuptiales</td></tr>
+        <tr><td>🌸 Fête des mères</td><td>Pour la maman</td><td>🤒 Rétablissement</td><td>Prompt rétablissement</td></tr>
+        <tr><td>👨 Fête des pères</td><td>Pour le papa</td><td>😢 Condoléances</td><td>Messages de compassion</td></tr>
+        <tr><td>🎄 Noël</td><td>Vœux de fin d'année</td><td>🏆 Félicitations</td><td>Réussites diverses</td></tr>
+        <tr><td>🎉 Bonne année</td><td>Messages de nouvelle année</td><td>💔 Soutien</td><td>Messages de soutien</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Styles de messages</h3>
+    <div class="tag-grid">
+      <span class="tag">❤️ Chaleureux</span>
+      <span class="tag">😄 Humoristique</span>
+      <span class="tag">🌿 Poétique</span>
+      <span class="tag">💼 Professionnel</span>
+      <span class="tag">✂️ Court</span>
+      <span class="tag">🎵 En vers</span>
+    </div>
+
+    <div class="callout callout-purple">
+      <span class="callout-icon">💡</span>
+      <span class="callout-text">La variable <strong>{prenom}</strong> est remplacée automatiquement par le prénom du contact. Dans la catégorie "Ado → Parent", elle devient <strong>Papa</strong> ou <strong>Maman</strong> selon la civilité renseignée dans la fiche contact.</span>
+    </div>
+
+    <h3>Outils d'écriture</h3>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">🎙️</div>
+        <div class="feature-card-title">Saisie vocale</div>
+        <div class="feature-card-desc">Dicter son message avec le microphone</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🤖</div>
+        <div class="feature-card-title">Correction IA</div>
+        <div class="feature-card-desc">Reformulation et correction orthographique</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">✨</div>
+        <div class="feature-card-title">Complétion auto</div>
+        <div class="feature-card-desc">Suggestions de fin de phrase</div>
+      </div>
+    </div>
+
+    <h3>Styles d'écriture (8 polices)</h3>
+    <div class="tag-grid">
+      <span class="tag">Serif</span><span class="tag">Sans-serif</span><span class="tag">Manuscrit</span><span class="tag">Imprimé</span>
+      <span class="tag">Élégant</span><span class="tag">Moderne</span><span class="tag">Gras</span><span class="tag">Minimaliste</span>
+    </div>
+
+    <h3>Effets animés</h3>
+    <div class="tag-grid">
+      <span class="tag">🎊 Confettis</span><span class="tag">✨ Feux d'artifice</span><span class="tag">🎈 Ballons</span>
+      <span class="tag">❄️ Neige</span><span class="tag">💕 Cœurs</span><span class="tag">🌸 Pétales</span>
+    </div>
+
+    <h3>Aperçu & Envoi</h3>
+    <ul>
+      <li>Aperçu en plein écran avant envoi (rendu final + effets)</li>
+      <li>Canaux d'envoi : SMS, WhatsApp, email, copie presse-papier</li>
+      <li>Programmation de l'envoi à une date future (Auto-envoi)</li>
+      <li>Signature personnalisée ajoutée automatiquement</li>
+    </ul>
+  </div>
+
+  <!-- ── 2. MODE JEUNE ── -->
+  <div class="section page-break">
+    <div class="section-header">
+      <div class="section-icon">😎</div>
+      <div>
+        <div class="section-title">Mode Jeune (13-25 ans)</div>
+      </div>
+      <span class="section-num">02</span>
+    </div>
+
+    <p>Page dédiée aux messages entre jeunes, avec un ton authentique, moderne et adapté à chaque tranche d'âge.</p>
+
+    <div class="callout callout-purple">
+      <span class="callout-icon">🎯</span>
+      <span class="callout-text"><strong>Détection automatique :</strong> si l'utilisateur a 13-25 ans → badge "Pour toi 😎" et mise en avant prioritaire. Si un contact de 13-25 ans a un événement dans les 7 jours → bandeau d'alerte sur l'accueil.</span>
+    </div>
+
+    <h3>Bibliothèques disponibles</h3>
+    <table>
+      <thead><tr><th>Catégorie</th><th>Âge cible</th><th>Messages</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>🎂 Anniversaire Ado</td><td>13-17 ans</td><td>120</td><td>Ton ado, direct, sans fioriture</td></tr>
+        <tr><td>🎂 Anniversaire Jeune adulte</td><td>18-25 ans</td><td>120</td><td>Complice, références pop culture</td></tr>
+        <tr><td>🌸 Fête du prénom Ado</td><td>13-17 ans</td><td>120</td><td>Version jeune de la fête du prénom</td></tr>
+        <tr><td>🌸 Fête du prénom Jeune adulte</td><td>18-25 ans</td><td>120</td><td>Humour et affection mélangés</td></tr>
+        <tr><td>🎓 Diplôme / Bac / Brevet</td><td>13-17 ans</td><td>100</td><td>Félicitations pour les examens</td></tr>
+        <tr><td>💼 Premier job / Stage</td><td>18-25 ans</td><td>100</td><td>Encouragements vie professionnelle</td></tr>
+        <tr><td>🫂 Ado → Parent</td><td>Écrit par un ado</td><td>100</td><td>Un ado écrit à son papa ou sa maman</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-amber">
+      <span class="callout-icon">😤</span>
+      <span class="callout-text"><strong>"Je déteste les messages mais quand même"</strong> — 100 messages pour ceux qui n'aiment pas les textes trop longs. 20 messages × 5 occasions (Anniversaire · Fête du prénom · Diplôme · Premier job · Ado → Parent).</span>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box"><span class="stat-box-num">880</span><div class="stat-box-label">messages Mode Jeune</div></div>
+      <div class="stat-box"><span class="stat-box-num">7</span><div class="stat-box-label">catégories</div></div>
+      <div class="stat-box"><span class="stat-box-num">13-25</span><div class="stat-box-label">ans ciblés</div></div>
+      <div class="stat-box"><span class="stat-box-num">+100</span><div class="stat-box-label">msgs "je déteste"</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     3-5
+═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <!-- ── 3. MESSAGES ANIMAUX ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🐾</div>
+      <div><div class="section-title">Messages animaux</div></div>
+      <span class="section-num">03</span>
+    </div>
+
+    <p>Deux flux distincts pour intégrer l'animal de compagnie dans les moments de célébration.</p>
+
+    <h3>🐶🐱 De la part de l'animal (l'animal écrit à son maître)</h3>
+    <p>Messages rédigés à la première personne, comme si le chien ou le chat prenait la plume.</p>
+
+    <table>
+      <thead><tr><th>Espèce</th><th>Occasion</th><th>Messages</th><th>Thèmes</th></tr></thead>
+      <tbody>
+        <tr><td>🐶 Chien</td><td>Anniversaire</td><td>200</td><td>6 thèmes × sous-groupes</td></tr>
+        <tr><td>🐶 Chien</td><td>Fête du prénom</td><td>200</td><td>7 thèmes × sous-groupes</td></tr>
+        <tr><td>🐱 Chat</td><td>Anniversaire</td><td>200</td><td>7 thèmes × sous-groupes</td></tr>
+        <tr><td>🐱 Chat</td><td>Fête du prénom</td><td>220</td><td>7 thèmes (dont 🏠 Territorial)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-green">
+      <span class="callout-icon">🧭</span>
+      <span class="callout-text">Navigation hiérarchique : <strong>Thème → Sous-groupe → Messages → Aperçu → Utiliser</strong></span>
+    </div>
+
+    <h3>Du maître à l'animal</h3>
+    <p>Messages pour souhaiter joyeux anniversaire à son propre animal. Fiche animal : nom, espèce, race, date de naissance, couleur, traits de personnalité.</p>
+  </div>
+
+  <!-- ── 4. CARTES ANIMÉES ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🎨</div>
+      <div><div class="section-title">Cartes animées</div></div>
+      <span class="section-num">04</span>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">🎞️</div>
+        <div class="feature-card-title">Bibliothèque</div>
+        <div class="feature-card-desc">Cartes thématiques avec animations Lottie, filtrées par occasion et style</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🤖</div>
+        <div class="feature-card-title">Création par IA</div>
+        <div class="feature-card-desc">Génération d'une carte personnalisée à partir d'un prompt (DALL-E)</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🔗</div>
+        <div class="feature-card-title">Partage</div>
+        <div class="feature-card-desc">URL unique + QR code. Le destinataire voit la carte animée dans son navigateur</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. CAGNOTTE ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🪙</div>
+      <div><div class="section-title">Cagnotte collective</div></div>
+      <span class="section-num">05</span>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">➕</div>
+        <div class="feature-card-title">Création</div>
+        <div class="feature-card-desc">Titre · description · montant cible · photo · date limite · lien de partage</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">💳</div>
+        <div class="feature-card-title">Paiement</div>
+        <div class="feature-card-desc">Page web dédiée (Supabase Edge Function) · paiement Stripe sécurisé</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">📈</div>
+        <div class="feature-card-title">Suivi</div>
+        <div class="feature-card-desc">Montant collecté · liste contributeurs · notifications · clôture auto</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     6-9
+═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <!-- ── 6. CONTACTS ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">👥</div>
+      <div><div class="section-title">Contacts</div></div>
+      <span class="section-num">06</span>
+    </div>
+
+    <h3>Fiche contact</h3>
+    <div class="tag-grid">
+      <span class="tag">👤 Prénom NOM · âge</span>
+      <span class="tag">🎂 Date anniversaire</span>
+      <span class="tag">🌸 Fête du prénom</span>
+      <span class="tag">🔗 Relation</span>
+      <span class="tag">📧 Email</span>
+      <span class="tag">📱 Téléphone</span>
+      <span class="tag">🖼️ Photo de profil</span>
+      <span class="tag">📝 Notes libres</span>
+    </div>
+
+    <h3>Types de relation</h3>
+    <div class="tag-grid">
+      <span class="tag">👫 Ami(e)</span><span class="tag">👨‍👩‍👧 Famille</span><span class="tag">💼 Collègue</span>
+      <span class="tag">💏 Partenaire</span><span class="tag">👶 Enfant</span><span class="tag">🐾 Animal</span>
+    </div>
+
+    <h3>Liste des contacts</h3>
+    <ul>
+      <li>Tri par prénom, nom ou prochain événement</li>
+      <li>Recherche instantanée par nom</li>
+      <li>Filtres par type de relation</li>
+      <li>Indicateur J-X pour le prochain événement</li>
+      <li>Import depuis le carnet d'adresses téléphone</li>
+      <li>Timeline des messages envoyés par contact</li>
+    </ul>
+  </div>
+
+  <!-- ── 7. CALENDRIER ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📅</div>
+      <div><div class="section-title">Calendrier & Agenda</div></div>
+      <span class="section-num">07</span>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">🗓️</div>
+        <div class="feature-card-title">Vue mensuelle</div>
+        <div class="feature-card-desc">Points de couleur sur les jours avec événements · tap pour détail</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">📋</div>
+        <div class="feature-card-title">Agenda</div>
+        <div class="feature-card-desc">Liste chronologique des 30 prochains jours avec badges J-X</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">⏰</div>
+        <div class="feature-card-title">Rappels</div>
+        <div class="feature-card-desc">Notifications J-7 · J-1 · Jour J · récurrence annuelle</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8. AUTO-ENVOIS ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🤖</div>
+      <div><div class="section-title">Auto-envois</div></div>
+      <span class="section-num">08</span>
+    </div>
+
+    <p>Programmation automatique de messages à envoyer à une date future, sans avoir à y penser.</p>
+
+    <table>
+      <thead><tr><th>Paramètre</th><th>Options disponibles</th></tr></thead>
+      <tbody>
+        <tr><td>Contact cible</td><td>Tout contact de la liste</td></tr>
+        <tr><td>Message</td><td>Rédigé librement ou sélectionné en bibliothèque</td></tr>
+        <tr><td>Date & heure</td><td>Libre ou liée à un événement (anniversaire…)</td></tr>
+        <tr><td>Canal</td><td>SMS · WhatsApp · Email</td></tr>
+        <tr><td>Récurrence</td><td>Ponctuel ou annuel automatique</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── 9. TABLEAU DE BORD ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📊</div>
+      <div><div class="section-title">Tableau de bord</div></div>
+      <span class="section-num">09</span>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">🗓️</div>
+        <div class="feature-card-title">Événements à venir</div>
+        <div class="feature-card-desc">Les 5 prochains avec J-X</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">📤</div>
+        <div class="feature-card-title">Messages envoyés</div>
+        <div class="feature-card-desc">Compteur total + graphique hebdomadaire</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🔔</div>
+        <div class="feature-card-title">Rappels actifs</div>
+        <div class="feature-card-desc">Liste des rappels programmés en attente</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     10-14
+═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <!-- ── 10. EXPLORER ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🔭</div>
+      <div><div class="section-title">Explorer</div></div>
+      <span class="section-num">10</span>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">🔤</div>
+        <div class="feature-card-title">Prénoms</div>
+        <div class="feature-card-desc">Étymologie · origine · caractère · courbe INSEE depuis 1900 · partage</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🏷️</div>
+        <div class="feature-card-title">Noms de famille</div>
+        <div class="feature-card-desc">Étymologie · origine géographique · popularité INSEE</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">💞</div>
+        <div class="feature-card-title">Compatibilité</div>
+        <div class="feature-card-desc">Score + détail par dimension · partage du résultat</div>
+      </div>
+    </div>
+
+    <div class="callout callout-purple">
+      <span class="callout-icon">🔀</span>
+      <span class="callout-text">Navigation croisée : les résultats de la page Prénoms permettent de naviguer vers la page Noms de famille et inversement.</span>
+    </div>
+  </div>
+
+  <!-- ── 11. NUMÉROLOGIE ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🔢</div>
+      <div><div class="section-title">Numérologie</div></div>
+      <span class="section-num">11</span>
+    </div>
+
+    <p>Calcul des nombres numériques à partir du prénom, nom et date de naissance du contact.</p>
+    <div class="tag-grid">
+      <span class="tag tag-purple">🔢 Chemin de vie</span>
+      <span class="tag tag-purple">💬 Expression</span>
+      <span class="tag tag-purple">❤️ Âme</span>
+      <span class="tag tag-purple">🌟 Réalisation</span>
+    </div>
+    <p style="margin-top:8px">Chaque nombre : définition complète + conseils personnalisés.</p>
+  </div>
+
+  <!-- ── 12. ZODIAQUE ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">⭐</div>
+      <div><div class="section-title">Zodiaque & Saison</div></div>
+      <span class="section-num">12</span>
+    </div>
+
+    <ul>
+      <li>Signe solaire du contact calculé automatiquement depuis sa date de naissance</li>
+      <li>Compatibilité zodiacale entre deux signes</li>
+      <li>Saison zodiacale en cours : signe actuel, dates, traits principaux</li>
+      <li>Descriptions détaillées pour les 12 signes du zodiaque</li>
+    </ul>
+  </div>
+
+  <!-- ── 13. COMPATIBILITÉ CHINOISE ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">💑</div>
+      <div><div class="section-title">Compatibilité (zodiaque chinois)</div></div>
+      <span class="section-num">13</span>
+    </div>
+
+    <ul>
+      <li>Calcul du signe chinois basé sur l'année de naissance</li>
+      <li>12 signes : Rat · Bœuf · Tigre · Lapin · Dragon · Serpent · Cheval · Chèvre · Singe · Coq · Chien · Cochon</li>
+      <li>Matrice de compatibilité inter-signes</li>
+      <li>Description des forces et faiblesses de chaque paire</li>
+    </ul>
+  </div>
+
+  <!-- ── 14. ACCUEIL ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🏠</div>
+      <div><div class="section-title">Accueil</div></div>
+      <span class="section-num">14</span>
+    </div>
+
+    <h3>Deux modes d'affichage</h3>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">🎓</div>
+        <div class="feature-card-title">Mode apprentissage</div>
+        <div class="feature-card-desc">Sections guidées · explication de chaque fonctionnalité · idéal débutant</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">⚡</div>
+        <div class="feature-card-title">Mode initié</div>
+        <div class="feature-card-desc">Vue condensée · grille 9 actions rapides · accès direct à tout</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">😎</div>
+        <div class="feature-card-title">Bandeau Mode Jeune</div>
+        <div class="feature-card-desc">Alerte si contact 13-25 ans avec événement dans les 7 jours</div>
+      </div>
+    </div>
+
+    <h3>Informations du jour</h3>
+    <div class="tag-grid">
+      <span class="tag">🌤️ Météo</span><span class="tag">🌸 Fête du jour</span><span class="tag">📜 Dicton du jour</span>
+      <span class="tag">💭 Citation</span><span class="tag">🗓️ Prochains événements J-7</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     15-22 + RÉCAP
+═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <!-- ── 15. LIVRE D'OR ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📖</div>
+      <div><div class="section-title">Livre d'or</div></div>
+      <span class="section-num">15</span>
+    </div>
+    <ul>
+      <li>Laisser un message dans le livre d'or de l'application</li>
+      <li>Messages visibles par tous les utilisateurs</li>
+      <li>Modération manuelle activable par l'administrateur</li>
+    </ul>
+  </div>
+
+  <!-- ── 16. QR CODES ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📷</div>
+      <div><div class="section-title">QR Codes</div></div>
+      <span class="section-num">16</span>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">➕</div>
+        <div class="feature-card-title">Génération</div>
+        <div class="feature-card-desc">QR lié à une carte animée ou un message · export image · impression</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">📸</div>
+        <div class="feature-card-title">Scanner</div>
+        <div class="feature-card-desc">Scanner le QR d'un autre utilisateur → affiche la carte/message associé</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🔗</div>
+        <div class="feature-card-title">Lien unique</div>
+        <div class="feature-card-desc">Chaque carte générée possède son URL permanente et partageable</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 17. PROFIL ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">👤</div>
+      <div><div class="section-title">Profil utilisateur</div></div>
+      <span class="section-num">17</span>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">📝</div>
+        <div class="feature-card-title">Infos personnelles</div>
+        <div class="feature-card-desc">Prénom · nom · naissance · photo · couleur favorite · bio</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🔐</div>
+        <div class="feature-card-title">Connexion</div>
+        <div class="feature-card-desc">Google OAuth · email + mot de passe · réinitialisation par email</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🎁</div>
+        <div class="feature-card-title">Parrainage</div>
+        <div class="feature-card-desc">Lien unique · suivi des parrainages · récompenses (crédits, premium)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 18-22 ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">⚙️</div>
+      <div><div class="section-title">Paramètres</div></div>
+      <span class="section-num">18</span>
+    </div>
+    <div class="tag-grid">
+      <span class="tag">🎨 Thème de couleur</span><span class="tag">🔔 Notifications</span>
+      <span class="tag">🔐 Compte</span><span class="tag">ℹ️ À propos</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">❓</div>
+      <div><div class="section-title">Aide & FAQ</div></div>
+      <span class="section-num">19</span>
+    </div>
+    <ul>
+      <li>Questions fréquentes organisées par catégorie thématique</li>
+      <li>Recherche dans les articles d'aide</li>
+      <li>Liens vers les sections concernées de l'appli</li>
+      <li>Contact support par email</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">💌</div>
+      <div><div class="section-title">Carte postale numérique</div></div>
+      <span class="section-num">20</span>
+    </div>
+    <ul>
+      <li>Composition avec photo + message + décoration</li>
+      <li>Partage par lien ou QR code · rendu imprimable disponible</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">💬</div>
+      <div><div class="section-title">Gestion des messages envoyés</div></div>
+      <span class="section-num">21</span>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="feature-card-icon">📜</div><div class="feature-card-title">Historique</div><div class="feature-card-desc">Tous les messages avec date · contact · occasion · statut</div></div>
+      <div class="feature-card"><div class="feature-card-icon">😊</div><div class="feature-card-title">Réactions</div><div class="feature-card-desc">Le destinataire répond en emoji · notification à l'expéditeur</div></div>
+      <div class="feature-card"><div class="feature-card-icon">🔁</div><div class="feature-card-title">Re-envoi</div><div class="feature-card-desc">Dupliquer un message pour l'envoyer à un autre contact</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🔔</div>
+      <div><div class="section-title">Notifications</div></div>
+      <span class="section-num">22</span>
+    </div>
+    <div class="tag-grid">
+      <span class="tag">🗓️ Rappels d'événements</span><span class="tag">😊 Réactions reçues</span>
+      <span class="tag">🪙 Contributions cagnotte</span><span class="tag">📤 Auto-envois</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE RÉCAP CHIFFRES CLÉS
+═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div style="background: linear-gradient(135deg, #4C1D95, #7C3AED, #A855F7); border-radius: 20px; padding: 32px; color: white; margin-bottom: 28px;">
+    <div style="font-size: 22pt; font-weight: 800; margin-bottom: 6px;">Chiffres clés</div>
+    <div style="opacity: 0.75; font-size: 9.5pt; margin-bottom: 28px;">Confettis & Cake en un coup d'œil</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+      <div style="background: rgba(255,255,255,0.12); border-radius: 14px; padding: 16px; text-align:center;">
+        <div style="font-size: 26pt; font-weight: 800;">2 800+</div>
+        <div style="font-size: 8pt; opacity: 0.8; margin-top: 4px;">messages en bibliothèque</div>
+      </div>
+      <div style="background: rgba(255,255,255,0.12); border-radius: 14px; padding: 16px; text-align:center;">
+        <div style="font-size: 26pt; font-weight: 800;">18</div>
+        <div style="font-size: 8pt; opacity: 0.8; margin-top: 4px;">occasions couvertes</div>
+      </div>
+      <div style="background: rgba(255,255,255,0.12); border-radius: 14px; padding: 16px; text-align:center;">
+        <div style="font-size: 26pt; font-weight: 800;">22</div>
+        <div style="font-size: 8pt; opacity: 0.8; margin-top: 4px;">fonctionnalités majeures</div>
+      </div>
+      <div style="background: rgba(255,255,255,0.12); border-radius: 14px; padding: 16px; text-align:center;">
+        <div style="font-size: 26pt; font-weight: 800;">880</div>
+        <div style="font-size: 8pt; opacity: 0.8; margin-top: 4px;">messages Mode Jeune</div>
+      </div>
+      <div style="background: rgba(255,255,255,0.12); border-radius: 14px; padding: 16px; text-align:center;">
+        <div style="font-size: 26pt; font-weight: 800;">820</div>
+        <div style="font-size: 8pt; opacity: 0.8; margin-top: 4px;">messages animaux</div>
+      </div>
+      <div style="background: rgba(255,255,255,0.12); border-radius: 14px; padding: 16px; text-align:center;">
+        <div style="font-size: 26pt; font-weight: 800;">8</div>
+        <div style="font-size: 8pt; opacity: 0.8; margin-top: 4px;">styles d'écriture</div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Bibliothèque</th><th>Messages</th><th>Détail</th></tr></thead>
+    <tbody>
+      <tr><td>🎂 Messages adultes (anniversaire + fête)</td><td><strong>~1 000+</strong></td><td>Classique · Humour · Poétique · Pro · Court · Vers</td></tr>
+      <tr><td>😎 Mode Jeune (toutes catégories)</td><td><strong>880</strong></td><td>Ado 13-17 · Jeune adulte 18-25 · Diplôme · Job · Ado→Parent</td></tr>
+      <tr><td>🐾 Messages animaux (4 bibliothèques)</td><td><strong>820</strong></td><td>Chien × 2 occasions · Chat × 2 occasions</td></tr>
+      <tr><td>😤 Je déteste les messages</td><td><strong>100</strong></td><td>5 occasions × 20 messages</td></tr>
+      <tr style="background: var(--primary-light);"><td><strong>TOTAL</strong></td><td><strong>~2 800+</strong></td><td>Toutes bibliothèques confondues</td></tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top: 32px; padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); text-align: center;">
+    <div style="font-size: 9pt; color: var(--text-muted);">Document généré le 22 mai 2026 · Confettis & Cake</div>
+    <div style="font-size: 8pt; color: var(--text-muted); margin-top: 4px;">Ce document est destiné à la mise à jour du mode d'emploi de l'application</div>
+  </div>
+</div>
+
+</body>
+</html>

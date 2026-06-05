@@ -41,7 +41,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
  */
 export async function scheduleEventReminder(
   event: UpcomingEvent,
-  daysBefore = Config.defaultReminderDaysBefore,
+  daysBefore: number = Config.defaultReminderDaysBefore,
 ): Promise<string | null> {
   const triggerDays = event.daysUntil - daysBefore;
   if (triggerDays < 0) return null; // trop tard
@@ -81,10 +81,12 @@ export async function scheduleEventReminder(
  * Planifie des rappels pour tous les événements à venir d'une liste,
  * et aussi pour les fêtes généralistes des 60 prochains jours.
  * Annule d'abord tous les rappels existants.
+ * daysBeforeList : tableau des jours avant l'événement où envoyer un rappel
+ * Ex : [7, 3, 1, 0] = J-7, J-3, J-1 et Jour J
  */
 export async function scheduleAllReminders(
   events: UpcomingEvent[],
-  daysBefore = Config.defaultReminderDaysBefore,
+  daysBeforeList: number[] = [Config.defaultReminderDaysBefore],
 ): Promise<void> {
   const hasPermission = await requestNotificationPermissions();
   if (!hasPermission) return;
@@ -92,10 +94,10 @@ export async function scheduleAllReminders(
   // Annuler les rappels précédents
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  // Rappels contacts (anniversaires + fêtes des prénoms)
+  // Rappels contacts — un rappel par jour souhaité et par événement
   const contactPromises = events
     .filter((e) => e.daysUntil <= 30)
-    .map((e) => scheduleEventReminder(e, daysBefore));
+    .flatMap((e) => daysBeforeList.map((d) => scheduleEventReminder(e, d)));
 
   // Rappels fêtes généralistes (60 prochains jours)
   const upcomingHolidays = getUpcomingHolidays(60);
@@ -211,6 +213,43 @@ export async function scheduleCustomEventReminders(
 
 export async function cancelAllReminders(): Promise<void> {
   await Notifications.cancelAllScheduledNotificationsAsync();
+}
+
+// ── Anniversaires des animaux ───────────────────
+
+export async function schedulePetBirthdayReminders(
+  pets: Array<{ name: string; birthday: string | null; pet_type: string | null }>,
+): Promise<void> {
+  const PET_EMOJI: Record<string, string> = {
+    chien: '🐶', chat: '🐱', lapin: '🐰', cheval: '🐴', hamster: '🐹',
+    perroquet: '🦜', cochon_d_inde: '🐾', souris: '🐭', poisson: '🐠', tortue: '🐢',
+  };
+
+  for (const pet of pets) {
+    if (!pet.birthday) continue;
+    const [, mm, dd] = pet.birthday.split('-');
+    if (!mm || !dd) continue;
+
+    const now = new Date();
+    const thisYear = now.getFullYear();
+    let trigger = new Date(thisYear, parseInt(mm) - 1, parseInt(dd), 9, 0, 0);
+    // Si déjà passé cette année, planifier pour l'an prochain
+    if (trigger <= now) trigger.setFullYear(thisYear + 1);
+
+    const emoji = PET_EMOJI[pet.pet_type ?? ''] ?? '🐾';
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `${emoji} C'est l'anniversaire de ${pet.name} !`,
+        body: `Pense à lui souhaiter — et pourquoi pas lui écrire un petit message de sa part 🎂`,
+        data: { type: 'pet_birthday', petName: pet.name },
+        sound: 'default',
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: trigger,
+      },
+    });
+  }
 }
 
 export async function getScheduledRemindersCount(): Promise<number> {

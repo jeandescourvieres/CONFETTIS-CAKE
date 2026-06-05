@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,21 +11,25 @@ import {
   Modal,
   TextInput,
   Share,
+  Dimensions,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Svg, { Polyline, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useContact, useDeleteContact, useUpdateContact, useCreateContact, usePetsByOwnerName } from '../../../src/hooks/useContacts';
+import { useContact, useDeleteContact, useUpdateContact, useCreateContact, usePetsByOwnerName, useMyPets, useChildrenByParentName, useContacts } from '../../../src/hooks/useContacts';
 import { useWishItems, useAddWishItem, useToggleWishItem, useDeleteWishItem } from '../../../src/hooks/useWishlist';
 import { useGiftSuggestions } from '../../../src/hooks/useGiftSuggestions';
 import type { GiftIdea } from '../../../src/hooks/useGiftSuggestions';
-import { getPetMessages } from '../../../src/constants/petMessages';
+import { getPetMessages, getPetMessagesTo } from '../../../src/constants/petMessages';
 import type { PetType } from '../../../src/constants/petMessages';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadContactAvatar } from '../../../src/services/contacts.service';
 import { Avatar } from '../../../src/components/ui/Avatar';
 import { Badge } from '../../../src/components/ui/Badge';
-import { Colors, Typography, Spacing, Radii, Gradients } from '../../../src/constants/theme';
+import { Colors, Typography, Spacing, Radii, Gradients, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 import {
   daysUntilBirthday,
@@ -40,10 +44,12 @@ import { getNameDayForName, getNamesForDate } from '../../../src/utils/namedays'
 import { NAME_MEANINGS } from '../../../src/utils/nameMeanings';
 import { getZodiacSign, getZodiacCompatibility, getChineseZodiac } from '../../../src/utils/zodiac';
 import { calcNumerology, calcLifePath, getNumerologyProfile } from '../../../src/utils/numerology';
+import { extractFirstName, extractLastName } from '../../../src/utils/nameHelpers';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { supabase } from '../../../src/services/supabase';
 import type { Relation } from '../../../src/types/models';
 import { FeatureIntroCard } from '../../../src/components/ui/FeatureIntroCard';
+import { DOG_BREEDS, CAT_BREEDS } from '../../../src/constants/petData';
 
 const RELATION_LABELS: Record<Relation, string> = {
   best_friend: '💜 Meilleur·e ami·e',
@@ -52,6 +58,7 @@ const RELATION_LABELS: Record<Relation, string> = {
   partner: '💑 Partenaire',
   colleague: '💼 Collègue',
   pet: '🐾 Animal',
+  child_of: '👶 Enfant',
   other: '👤 Connaissance',
 };
 
@@ -74,19 +81,40 @@ export default function ContactDetailScreen() {
   const [giftBudget, setGiftBudget] = useState<string | null>(null);
   const { suggest, suggestions, isLoading: isLoadingGifts, error: giftError, reset: resetGifts } = useGiftSuggestions();
   const [petMsgModalVisible, setPetMsgModalVisible] = useState(false);
+  const [petToMsgModalVisible, setPetToMsgModalVisible] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [addPetModalVisible, setAddPetModalVisible] = useState(false);
-  const [newPetType, setNewPetType] = useState<'chien' | 'chat' | 'lapin' | 'perroquet' | 'hamster' | 'poisson' | 'cheval' | 'autre' | null>(null);
+  const [newPetType, setNewPetType] = useState<'chien' | 'chat' | 'lapin' | 'oiseau' | 'cheval' | 'hamster' | 'perroquet' | 'cochon_d_inde' | 'souris' | 'poisson' | 'tortue' | 'autre' | null>(null);
   const [newPetName, setNewPetName] = useState('');
   const [newPetBirthday, setNewPetBirthday] = useState('');
   const [editingPetId, setEditingPetId] = useState<string | null>(null);
   const [isSavingPet, setIsSavingPet] = useState(false);
+  const [newPetGender, setNewPetGender] = useState<'male' | 'female' | null>(null);
+  const [newPetBreed, setNewPetBreed] = useState('');
   const [newPetPersonalityTags, setNewPetPersonalityTags] = useState<string[]>([]);
+  const [partnerPickerVisible, setPartnerPickerVisible] = useState(false);
+  const [partnerSearch, setPartnerSearch] = useState('');
+  const [addChildModalVisible, setAddChildModalVisible] = useState(false);
+  const [newChildName, setNewChildName] = useState('');
+  const [newChildBirthday, setNewChildBirthday] = useState('');
+  const [newChildBirthdayDate, setNewChildBirthdayDate] = useState<Date | null>(null);
+  const [showChildBirthdayPicker, setShowChildBirthdayPicker] = useState(false);
+  const [newChildNameDay, setNewChildNameDay] = useState('');
+  const [newChildGender, setNewChildGender] = useState<'male' | 'female' | null>(null);
+  const [editingChildId, setEditingChildId] = useState<string | null>(null);
+  const [isSavingChild, setIsSavingChild] = useState(false);
   const { mutateAsync: createContact } = useCreateContact();
   const [firstNameMeaning, setFirstNameMeaning] = useState<string | null>(null);
   const [isFirstNameMeaningLoading, setIsFirstNameMeaningLoading] = useState(false);
   const [lastNameMeaning, setLastNameMeaning] = useState<string | null>(null);
   const [isLastNameMeaningLoading, setIsLastNameMeaningLoading] = useState(false);
+
+  type InseePoint = { year: number; count: number };
+  const [inseeFirst, setInseeFirst] = useState<InseePoint[] | null>(null);
+  const [inseeFirstLoading, setInseeFirstLoading] = useState(false);
+  const [inseeFirstNotFound, setInseeFirstNotFound] = useState(false);
+  const [inseeFirstPeak, setInseeFirstPeak] = useState<{ year: number; count: number } | null>(null);
+  const [inseeFirstSel, setInseeFirstSel] = useState<InseePoint | null>(null);
   const [showCompat, setShowCompat] = useState(false);
   const [interestsHelpVisible, setInterestsHelpVisible] = useState(false);
   const [chineseZodiacHelpVisible, setChineseZodiacHelpVisible] = useState(false);
@@ -126,6 +154,26 @@ export default function ContactDetailScreen() {
   const [petFromAiGenerating, setPetFromAiGenerating] = useState(false);
   const [petFromAiResult, setPetFromAiResult] = useState<string | null>(null);
   const [petFromAiError, setPetFromAiError] = useState<string | null>(null);
+
+  // ── Reset des données chargées à la demande quand on change de contact ────────
+  // Expo Router réutilise le composant entre deux contacts → les useState persistent
+  useEffect(() => {
+    setFirstNameMeaning(null);
+    setIsFirstNameMeaningLoading(false);
+    setLastNameMeaning(null);
+    setIsLastNameMeaningLoading(false);
+    setShowCompat(false);
+    setYearFacts(null);
+    setIsLoadingYearFacts(false);
+    setCelebrities(null);
+    setIsLoadingCelebs(false);
+    setDayFacts(null);
+    setIsLoadingDayFacts(false);
+    setLifePathAi(null);
+    setIsLoadingLifePath(false);
+    setPetFromAiResult(null);
+    setPetFromAiError(null);
+  }, [id]);
 
   // Phase 9 — Rappel partagé
   const [sharedReminderVisible, setSharedReminderVisible] = useState(false);
@@ -247,15 +295,30 @@ export default function ContactDetailScreen() {
   };
 
   const handleCreateMessage = () =>
-    router.push({ pathname: '/(app)/create/index', params: { contactId: id } } as never);
+    router.push({ pathname: '/(app)/create', params: { contactId: id } } as never);
 
   const handleOpenPot = () => router.push('/(app)/pot/new' as never);
-  const handleOpenQR = () => router.push('/(app)/qr/index' as never);
+  const handleOpenQR = () => router.push('/(app)/qr' as never);
   const handleOpenPostcard = () =>
-    router.push({ pathname: '/(app)/postcard/index', params: { contactId: id } } as never);
+    router.push({ pathname: '/(app)/postcard', params: { contactId: id } } as never);
 
   const pets = usePetsByOwnerName(contact?.name ?? '');
   const selectedPet = pets.find((p) => p.id === selectedPetId) ?? pets[0] ?? null;
+  const myPets = useMyPets();
+  const { data: allContacts = [] } = useContacts();
+  const partnerContact  = allContacts.find((c) => c.id === (contact as any)?.partner_contact_id) ?? null;
+  const ownChildren     = useChildrenByParentName(contact?.name ?? '');
+  const partnerChildren = useChildrenByParentName(partnerContact?.name ?? '');
+  const children = [
+    ...ownChildren,
+    ...partnerChildren.filter((pc) => !ownChildren.some((c) => c.id === pc.id)),
+  ];
+  const [showMyPetPicker, setShowMyPetPicker] = useState(false);
+  const [showContactPetPicker, setShowContactPetPicker] = useState(false);
+  const [contactPetPickerDirection, setContactPetPickerDirection] = useState<'to' | 'from'>('from');
+  const siblingPets = usePetsByOwnerName(
+    contact?.relation === 'pet' ? (contact?.pet_owner_name ?? '') : ''
+  ).filter((p) => p.id !== id);
 
   const runGiftSuggestions = (budget: string | null) => {
     if (!contact) return;
@@ -282,21 +345,98 @@ export default function ContactDetailScreen() {
     setNewPetType('chien'); // défaut — modifiable
     setNewPetName('');
     setNewPetBirthday('');
+    setNewPetBreed('');
     setNewPetPersonalityTags([]);
     setAddPetModalVisible(true);
   };
 
+  const openAddChild = () => {
+    setEditingChildId(null);
+    setNewChildName('');
+    setNewChildBirthday('');
+    setNewChildBirthdayDate(null);
+    setNewChildNameDay('');
+    setNewChildGender(null);
+    setAddChildModalVisible(true);
+  };
+
+  const openEditChild = (child: typeof children[0]) => {
+    setEditingChildId(child.id);
+    setNewChildName(child.name);
+    setNewChildGender((child as any).child_gender ?? null);
+    const bday = child.birthday ?? '';
+    setNewChildBirthday(bday ? bday.replace(/^0000-/, '').split('-').reverse().join('/') : '');
+    if (bday && !bday.startsWith('0000-')) {
+      setNewChildBirthdayDate(new Date(bday));
+    } else {
+      setNewChildBirthdayDate(null);
+    }
+    const nday = child.name_day ?? '';
+    setNewChildNameDay(nday ? nday.split('-').reverse().join('/') : '');
+    setAddChildModalVisible(true);
+  };
+
+  const handleSaveChild = async () => {
+    if (!newChildName.trim() || !newChildGender) return;
+    setIsSavingChild(true);
+    const parseDate = (raw: string): string | null => {
+      const parts = raw.trim().split('/');
+      if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+      if (parts.length === 2) return `0000-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+      return null;
+    };
+    const parseNameDay = (raw: string): string | null => {
+      const parts = raw.trim().split('/');
+      if (parts.length >= 2) return `${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+      return null;
+    };
+    const birthday = newChildBirthday.trim() ? parseDate(newChildBirthday) : null;
+    const name_day = newChildNameDay.trim() ? parseNameDay(newChildNameDay) : null;
+    try {
+      if (editingChildId) {
+        await updateContact({ id: editingChildId, updates: { name: newChildName.trim(), child_gender: newChildGender, birthday, name_day } as any });
+      } else {
+        await createContact({
+          name: newChildName.trim(),
+          relation: 'child_of',
+          child_parent_name: contact!.name,
+          child_parent_contact_id: contact!.id,
+          child_gender: newChildGender,
+          birthday,
+          name_day,
+          phone: null,
+          email: null,
+          notes: null,
+          avatar_url: null,
+          imported_from: null,
+          personality_tags: [],
+          preferred_channel: null,
+          preferred_send_time: null,
+          preferred_language: null,
+          favourite_color: null,
+        } as any);
+      }
+      setAddChildModalVisible(false);
+    } catch (err) {
+      Alert.alert('Erreur', err instanceof Error ? err.message : "Impossible d'enregistrer l'enfant.");
+    } finally {
+      setIsSavingChild(false);
+    }
+  };
+
   const openEditPet = (pet: typeof pets[0]) => {
     setEditingPetId(pet.id);
-    setNewPetType((pet.pet_type as 'chien' | 'chat' | 'lapin' | 'perroquet' | 'hamster' | 'poisson' | 'cheval' | 'autre') ?? null);
+    setNewPetType((pet.pet_type as 'chien' | 'chat' | 'lapin' | 'oiseau' | 'cheval' | 'hamster' | 'perroquet' | 'cochon_d_inde' | 'souris' | 'poisson' | 'tortue' | 'autre') ?? null);
     setNewPetName(pet.name);
     setNewPetBirthday(pet.birthday ?? '');
+    setNewPetBreed((pet as any).breed ?? '');
+    setNewPetGender((pet.pet_gender as 'male' | 'female' | null) ?? null);
     setNewPetPersonalityTags((pet.personality_tags ?? []) as string[]);
     setAddPetModalVisible(true);
   };
 
   const handleSavePet = async () => {
-    if (!newPetType || !newPetName.trim()) return;
+    if (!newPetType || !newPetName.trim() || !newPetGender) return;
     setIsSavingPet(true);
     // Convertit "JJ/MM/AAAA" ou "JJ/MM" en ISO "YYYY-MM-DD" ou "0000-MM-DD"
     const parseBirthday = (raw: string): string | null => {
@@ -308,7 +448,7 @@ export default function ContactDetailScreen() {
     const birthday = newPetBirthday.trim() ? parseBirthday(newPetBirthday) : null;
     try {
       if (editingPetId) {
-        await updateContact({ id: editingPetId, updates: { name: newPetName.trim(), pet_type: newPetType, birthday, personality_tags: newPetPersonalityTags } });
+        await updateContact({ id: editingPetId, updates: { name: newPetName.trim(), pet_type: newPetType, pet_gender: newPetGender, birthday, personality_tags: newPetPersonalityTags, breed: newPetBreed.trim() || null } as any });
       } else {
         await createContact({
           name: newPetName.trim(),
@@ -327,9 +467,10 @@ export default function ContactDetailScreen() {
           preferred_send_time: null,
           preferred_language: null,
           favourite_color: null,
-          pet_gender: null,
-          pet_owner_contact_id: null,
-        });
+          pet_gender: newPetGender,
+          pet_owner_contact_id: contact!.id,
+          breed: newPetBreed.trim() || null,
+        } as any);
       }
       setAddPetModalVisible(false);
     } catch (err) {
@@ -386,14 +527,26 @@ export default function ContactDetailScreen() {
     if (firstNameMeaning || isFirstNameMeaningLoading || !contact) return;
     const firstName = contact.name.split(' ').slice(1).join(' ');
     if (!firstName.trim()) return;
-    // Lookup statique en priorité (instantané)
+    // 1. Fichier local (instantané)
     const staticMeaning = NAME_MEANINGS[firstName];
     if (staticMeaning) { setFirstNameMeaning(staticMeaning); return; }
-    // Fallback Edge Function
+    // 2. Cache Supabase
+    const { data: cached } = await (supabase as any)
+      .from('name_meanings_cache')
+      .select('meaning')
+      .eq('name', firstName)
+      .eq('type', 'prénom')
+      .maybeSingle();
+    if (cached?.meaning) { setFirstNameMeaning(cached.meaning); return; }
+    // 3. Edge Function Mistral + sauvegarde en cache
     setIsFirstNameMeaningLoading(true);
     try {
       const { data } = await supabase.functions.invoke('name-meaning', { body: { name: firstName, type: 'prénom' } });
-      setFirstNameMeaning(data?.meaning ?? 'Signification introuvable pour ce prénom.');
+      const meaning = data?.meaning ?? 'Signification introuvable pour ce prénom.';
+      setFirstNameMeaning(meaning);
+      if (data?.meaning) {
+        await (supabase as any).from('name_meanings_cache').upsert({ name: firstName, type: 'prénom', meaning }).throwOnError();
+      }
     } catch {
       setFirstNameMeaning('Impossible de charger la signification pour le moment.');
     } finally {
@@ -405,15 +558,59 @@ export default function ContactDetailScreen() {
     if (lastNameMeaning || isLastNameMeaningLoading || !contact) return;
     const lastName = contact.name.split(' ')[0];
     if (!lastName.trim()) return;
+    // 1. Cache Supabase
+    const { data: cached } = await (supabase as any)
+      .from('name_meanings_cache')
+      .select('meaning')
+      .eq('name', lastName)
+      .eq('type', 'nom')
+      .maybeSingle();
+    if (cached?.meaning) { setLastNameMeaning(cached.meaning); return; }
+    // 2. Edge Function Mistral + sauvegarde en cache
     setIsLastNameMeaningLoading(true);
     try {
       const { data } = await supabase.functions.invoke('name-meaning', { body: { name: lastName, type: 'nom' } });
-      setLastNameMeaning(data?.meaning ?? 'Signification introuvable pour ce nom de famille.');
+      const meaning = data?.meaning ?? 'Signification introuvable pour ce nom de famille.';
+      setLastNameMeaning(meaning);
+      if (data?.meaning) {
+        await (supabase as any).from('name_meanings_cache').upsert({ name: lastName, type: 'nom', meaning }).throwOnError();
+      }
     } catch {
       setLastNameMeaning('Impossible de charger la signification pour le moment.');
     } finally {
       setIsLastNameMeaningLoading(false);
     }
+  };
+
+  const loadInsee = async (name: string) => {
+    setInseeFirstLoading(true); setInseeFirstNotFound(false); setInseeFirst(null);
+    try {
+      // 1. Cache Supabase
+      const { data: cached } = await (supabase as any)
+        .from('insee_prenoms_cache')
+        .select('data, peak_year, peak_count')
+        .eq('name', name.toUpperCase())
+        .maybeSingle();
+      if (cached?.data?.length) {
+        setInseeFirst(cached.data);
+        if (cached.peak_year) setInseeFirstPeak({ year: cached.peak_year, count: cached.peak_count ?? 0 });
+        return;
+      }
+      // 2. Edge Function + sauvegarde en cache
+      const { data } = await supabase.functions.invoke('insee-prenoms', { body: { name } });
+      if (data?.not_found || !data?.data?.length) { setInseeFirstNotFound(true); }
+      else {
+        setInseeFirst(data.data);
+        if (data.peak_year) setInseeFirstPeak({ year: data.peak_year, count: data.peak_count ?? 0 });
+        await (supabase as any).from('insee_prenoms_cache').upsert({
+          name: name.toUpperCase(),
+          data: data.data,
+          peak_year: data.peak_year ?? null,
+          peak_count: data.peak_count ?? null,
+        });
+      }
+    } catch { setInseeFirstNotFound(true); }
+    finally { setInseeFirstLoading(false); }
   };
 
   const handleLoadYearFacts = async () => {
@@ -610,9 +807,8 @@ export default function ContactDetailScreen() {
   const chineseZodiac = contact.birthday ? getChineseZodiac(contact.birthday) : null;
 
   // Numérologie — nom stocké "NOM Prénom"
-  const nameParts = contact.name.split(' ');
-  const contactLastName = nameParts[0] ?? '';
-  const contactFirstName = nameParts.slice(1).join(' ') || contactLastName;
+  const contactFirstName = extractFirstName(contact.name);
+  const contactLastName  = extractLastName(contact.name);
   const numéroPrenom = contactFirstName ? getNumerologyProfile(calcNumerology(contactFirstName)) : null;
   const numéroNom = contactLastName && contactLastName !== contactFirstName ? getNumerologyProfile(calcNumerology(contactLastName)) : null;
   const numéroExpression = (contactFirstName && contactLastName && contactLastName !== contactFirstName)
@@ -640,15 +836,79 @@ export default function ContactDetailScreen() {
       ? { type: 'name_day', days: nameDayDays }
       : null;
 
+  const renderInseeChart = (
+    data: { year: number; count: number }[],
+    peak: { year: number; count: number } | null,
+    selected: { year: number; count: number } | null,
+    setSelected: (p: { year: number; count: number } | null) => void,
+  ) => {
+    const W = Dimensions.get('window').width - 32 - 28 - 32;
+    const H = 130, PAD_L = 36, PAD_R = 8, PAD_T = 10, PAD_B = 24;
+    const chartW = W - PAD_L - PAD_R;
+    const chartH = H - PAD_T - PAD_B;
+    const minYear = data[0].year, maxYear = data[data.length - 1].year;
+    const maxCount = Math.max(...data.map((d) => d.count));
+    const toX = (y: number) => PAD_L + ((y - minYear) / (maxYear - minYear || 1)) * chartW;
+    const toY = (c: number) => PAD_T + chartH - (c / (maxCount || 1)) * chartH;
+    const points = data.map((d) => `${toX(d.year).toFixed(1)},${toY(d.count).toFixed(1)}`).join(' ');
+    const xLabels: number[] = [];
+    for (let y = Math.ceil(minYear / 20) * 20; y <= maxYear; y += 20) xLabels.push(y);
+    const yLabels = [0, Math.round(maxCount / 2), maxCount];
+    return (
+      <View style={{ marginTop: 10, gap: 4 }}>
+        {peak && (
+          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: C.primary }}>
+            🏆 Record : <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{peak.year}</Text> ({peak.count.toLocaleString('fr-FR')} naissances)
+          </Text>
+        )}
+        <View style={{ position: 'relative' }}>
+          <View style={{ width: W, height: H, backgroundColor: Colors.white, borderRadius: Radii.md, borderWidth: 0.5, borderColor: Colors.surfaceContainerHighest, overflow: 'hidden' }}>
+            <Svg width={W} height={H}>
+              {yLabels.map((v) => (
+                <Line key={v} x1={PAD_L} y1={toY(v)} x2={W - PAD_R} y2={toY(v)} stroke={Colors.surfaceContainerHighest} strokeWidth={1} />
+              ))}
+              {yLabels.map((v) => (
+                <SvgText key={`yl-${v}`} x={PAD_L - 3} y={toY(v) + 3} fontSize={7} textAnchor="end" fill={Colors.outlineVariant}>
+                  {v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)}
+                </SvgText>
+              ))}
+              <Polyline points={points} fill="none" stroke={C.primary} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+              {peak && (() => { const p = data.find((d) => d.year === peak.year); if (!p) return null; return <Circle cx={toX(p.year)} cy={toY(p.count)} r={5} fill={C.primary} />; })()}
+              {selected && <Circle cx={toX(selected.year)} cy={toY(selected.count)} r={6} fill={Colors.white} stroke={C.primary} strokeWidth={2.5} />}
+              {xLabels.map((y) => (
+                <SvgText key={`xl-${y}`} x={toX(y)} y={H - 4} fontSize={8} textAnchor="middle" fill={Colors.outlineVariant}>{y}</SvgText>
+              ))}
+            </Svg>
+          </View>
+          <View style={{ position: 'absolute', top: 0, left: 0, width: W, height: H - PAD_B }}>
+            {data.map((d, i) => (
+              <TouchableOpacity
+                key={i}
+                style={{ position: 'absolute', left: toX(d.year) - 10, top: toY(d.count) - 10, width: 20, height: 20 }}
+                onPress={() => setSelected(selected?.year === d.year ? null : d)}
+                activeOpacity={1}
+              />
+            ))}
+          </View>
+        </View>
+        {selected && (
+          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: C.primary, marginTop: 2 }}>
+            {selected.year} — {selected.count.toLocaleString('fr-FR')} naissances
+          </Text>
+        )}
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Topbar */}
       <View style={styles.topbar}>
         <TouchableOpacity
           onPress={() => router.canGoBack() ? router.back() : router.replace('/(app)/contacts/index' as never)}
-          style={styles.backBtn}
+          style={styles.backLink}
         >
-          <Text style={styles.backBtnText}>‹</Text>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>Fiche contact</Text>
         <TouchableOpacity
@@ -675,7 +935,17 @@ export default function ContactDetailScreen() {
                 <Text style={{ fontSize: 10 }}>✨</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.heroName}>{contact.name}</Text>
+            {contact.civilite && (
+              <Text style={styles.heroCivilite}>{contact.civilite}</Text>
+            )}
+            <Text style={styles.heroName}>
+              {contact.relation === 'pet'
+                ? contact.name
+                : contactFirstName && contactLastName !== contactFirstName
+                  ? `${contactFirstName} ${contactLastName}`
+                  : contactFirstName || contactLastName}
+              {age !== null ? <Text style={styles.heroNameAge}> · {age} ans</Text> : null}
+            </Text>
             <Text style={[styles.heroBirthday, !contact.birthday && styles.heroBirthdayEmpty]}>
               {contact.birthday
                 ? contact.birthday.startsWith('0000-')
@@ -695,7 +965,11 @@ export default function ContactDetailScreen() {
             )}
             <View style={styles.heroBadges}>
               <View style={styles.heroBadge}>
-                <Text style={styles.heroBadgeText}>{RELATION_LABELS[contact.relation]}</Text>
+                <Text style={styles.heroBadgeText}>
+                  {contact.relation === 'pet' && (contact as any).pet_type
+                    ? ({ chien: '🐶 Chien', chat: '🐱 Chat', lapin: '🐰 Lapin', oiseau: '🐦 Oiseau', cheval: '🐴 Cheval', hamster: '🐹 Hamster', perroquet: '🦜 Perroquet', cochon_d_inde: '🐾 Cochon d\'Inde', souris: '🐭 Souris', poisson: '🐠 Poisson', tortue: '🐢 Tortue', autre: '🐾 Animal' } as Record<string, string>)[(contact as any).pet_type] ?? '🐾 Animal'
+                    : RELATION_LABELS[contact.relation]}
+                </Text>
               </View>
               {age && (
                 <View style={[styles.heroBadge, styles.heroBadgeYellow]}>
@@ -705,6 +979,11 @@ export default function ContactDetailScreen() {
                 </View>
               )}
             </View>
+            {contact.relation === 'pet' && contact.pet_owner_name ? (
+              <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 0 }}>
+                {`🏠 de ${(contact.pet_owner_name.trim().split(/\s+/).find((p: string) => p !== p.toUpperCase()) ?? contact.pet_owner_name.trim().split(/\s+/)[0]) || contact.pet_owner_name}`}
+              </Text>
+            ) : null}
 
             {/* Alerte prochaine occasion */}
             {nextEvent && isUrgent(nextEvent.days) && (
@@ -724,6 +1003,55 @@ export default function ContactDetailScreen() {
                 <TouchableOpacity style={styles.alertBtn} onPress={handleCreateMessage}>
                   <Text style={styles.alertBtnText}>✦ Créer</Text>
                 </TouchableOpacity>
+              </View>
+            )}
+            {/* ── Autres animaux du même propriétaire (vue fiche animal) ── */}
+            {contact.relation === 'pet' && siblingPets.length > 0 && (
+              <View style={styles.heroPetsRow}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: 'rgba(255,255,255,0.9)', textAlign: 'center', width: '100%' }}>
+                  {(() => {
+                    const parts = (contact.pet_owner_name ?? '').trim().split(/\s+/);
+                    const first = parts.filter(p => !(p === p.toUpperCase() && /[A-Z]/.test(p))).join(' ');
+                    const last  = parts.filter(p =>   p === p.toUpperCase() && /[A-Z]/.test(p) ).join(' ');
+                    const full  = [first, last].filter(Boolean).join(' ') || contact.pet_owner_name;
+                    return `Aussi chez ${full} :`;
+                  })()}
+                </Text>
+                {siblingPets.map((pet) => {
+                  const petEmoji = ({ chien: '🐶', chat: '🐱', lapin: '🐰', oiseau: '🐦', cheval: '🐴', hamster: '🐹', perroquet: '🦜', cochon_d_inde: '🐾', souris: '🐭', poisson: '🐠', tortue: '🐢' } as Record<string, string>)[pet.pet_type ?? ''] ?? '🐾';
+                  return (
+                    <TouchableOpacity
+                      key={pet.id}
+                      style={styles.heroPetChip}
+                      onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: pet.id } } as never)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.heroPetChipText}>{petEmoji} {pet.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* ── Animal(aux) de compagnie ── */}
+            {contact.relation !== 'pet' && contact.relation !== 'child_of' && pets.length > 0 && (
+              <View style={styles.heroPetsRow}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: 'rgba(255,255,255,0.85)', textAlign: 'center', width: '100%' }}>
+                  {pets.length > 1 ? 'Ses animaux :' : 'Son animal :'}
+                </Text>
+                {pets.map((pet) => {
+                  const petEmoji = ({ chien: '🐶', chat: '🐱', lapin: '🐰', oiseau: '🐦', cheval: '🐴', hamster: '🐹', perroquet: '🦜', cochon_d_inde: '🐾', souris: '🐭', poisson: '🐠', tortue: '🐢' } as Record<string, string>)[pet.pet_type ?? ''] ?? '🐾';
+                  return (
+                    <TouchableOpacity
+                      key={pet.id}
+                      style={styles.heroPetChip}
+                      onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: pet.id } } as never)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.heroPetChipText}>{petEmoji} {pet.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
           </View>
@@ -765,11 +1093,392 @@ export default function ContactDetailScreen() {
           )}
         </View>
 
-        {/* Prénom & Astrologie — masqué pour les animaux */}
-        {contact.relation !== 'pet' && (
+        {/* Son humain — affiché uniquement pour les animaux, au-dessus du bouton */}
+        {contact.relation === 'pet' && contact.pet_owner_name && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>🧑 Son humain</Text>
+            <TouchableOpacity
+              style={styles.coordsCard}
+              activeOpacity={contact.pet_owner_contact_id ? 0.75 : 1}
+              onPress={() => {
+                if (contact.pet_owner_contact_id) {
+                  router.push({ pathname: '/(app)/contact/[id]', params: { id: contact.pet_owner_contact_id } } as never);
+                }
+              }}
+            >
+              <View style={styles.coordRow}>
+                <Text style={styles.coordIcon}>👤</Text>
+                <Text style={[styles.coordValue, contact.pet_owner_contact_id && { color: C.primary }]}>
+                  {contact.pet_owner_name}
+                </Text>
+                {contact.pet_owner_contact_id && (
+                  <Text style={{ color: C.primary, fontSize: 18, marginLeft: 'auto' }}>›</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Bouton envoyer un message */}
+        {contact.relation === 'pet' ? (
+          (() => {
+            const navBase = {
+              petId: contact.id,
+              petName: contact.name,
+              petType: (contact as any).pet_type ?? 'autre',
+              breed: (contact as any).breed ?? '',
+              petGender: contact.pet_gender ?? '',
+              ownerName: contact.pet_owner_name ?? '',
+              ownerId: contact.pet_owner_contact_id ?? '',
+              personalityTags: JSON.stringify((contact as any).personality_tags ?? []),
+            };
+            const ownerFirst = (contact.pet_owner_name ?? '').trim().split(/\s+/).find((p: string) => p !== p.toUpperCase()) ?? (contact.pet_owner_name ?? '').split(' ')[0] ?? '';
+            return (
+              <View style={{ gap: 10 }}>
+                {/* Intro Message à l'animal */}
+                <View style={{ borderLeftWidth: 4, borderLeftColor: '#0284C7', backgroundColor: '#EFF6FF', borderRadius: Radii.lg, padding: 14, gap: 4 }}>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.sm, color: '#0284C7' }}>📬 Écrire à {contactFirstName}</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#0369A1', lineHeight: 20 }}>
+                    {`Tu veux marquer un moment avec ${contactFirstName} ? Génère un message tendre ou drôle — une belle façon de célébrer votre complicité 🐾`}
+                  </Text>
+                </View>
+                {/* Bouton principal */}
+                <TouchableOpacity
+                  style={[styles.sendMessageBtn, { backgroundColor: '#0284C7' }]}
+                  onPress={() => router.push({ pathname: '/(app)/animal-message', params: { ...navBase, direction: 'to' } } as never)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.sendMessageBtnText}>📬 Message à {contactFirstName}</Text>
+                </TouchableOpacity>
+                {/* Intro + bouton "De la part de" */}
+                <View style={{ borderLeftWidth: 4, borderLeftColor: C.primary, backgroundColor: C.primaryContainer + '55', borderRadius: Radii.lg, padding: 14, gap: 6 }}>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.sm, color: C.primary }}>🐾 Messages de {contact.name}</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: C.onSurfaceVariant, lineHeight: 20 }}>
+                    {'Et si c\'était '}
+                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', color: C.onSurface }}>{contact.name}</Text>
+                    {(() => {
+                      const il = contact.pet_gender === 'female' ? 'Elle' : 'Il';
+                      const lui = contact.pet_gender === 'female' ? 'elle' : 'lui';
+                      return ` qui prenait la plume ? ${il} écrit à ${ownerFirst || 'son maître'} — un message rédigé comme si c'était ${lui} qui l'avait envoyé — hilarant, attendrissant et totalement inattendu 💛✨`;
+                    })()}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.sendMessageBtn, { backgroundColor: C.primary }]}
+                  onPress={() => router.push({ pathname: '/(app)/animal-message', params: { ...navBase, direction: 'from' } } as never)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.sendMessageBtnText}>
+                    🐾 {ownerFirst ? `Message de la part de ${contactFirstName} à ${ownerFirst}` : `Message de la part de ${contactFirstName}`}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Intro + bouton "écrit à quelqu'un" */}
+                <View style={{ borderLeftWidth: 4, borderLeftColor: '#D97706', backgroundColor: '#FFF7ED', borderRadius: Radii.lg, padding: 14, gap: 4 }}>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.sm, color: '#92400E' }}>✍️ {contactFirstName} écrit à quelqu'un</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#92400E', lineHeight: 20, opacity: 0.8 }}>
+                    {`${contactFirstName} peut aussi écrire à un autre contact — un ami de la famille, un proche. L'IA rédige le message à sa façon 🐾`}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.sendMessageBtn, { backgroundColor: '#D97706' }]}
+                  onPress={() => router.push({ pathname: '/(app)/animal-message', params: { ...navBase, direction: 'from_to_third' } } as never)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.sendMessageBtnText}>✍️ {contactFirstName} écrit à quelqu'un</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })()
+        ) : (
+          <View style={{ gap: 8 }}>
+            <TouchableOpacity
+              style={[styles.sendMessageBtn, { backgroundColor: C.primary, marginBottom: 0 }]}
+              onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: id } } as never)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.sendMessageBtnText}>✨ J'écris un message à {contactFirstName}</Text>
+            </TouchableOpacity>
+            {pets.length > 0 && (
+              <>
+                <TouchableOpacity
+                  style={[styles.sendMessageBtn, { backgroundColor: '#0891B2', marginBottom: 0 }]}
+                  onPress={() => {
+                    if (pets.length === 1) {
+                      router.push({ pathname: '/(app)/animal-message', params: { petId: pets[0].id, petName: pets[0].name, petType: (pets[0] as any).pet_type ?? 'autre', breed: (pets[0] as any).breed ?? '', petGender: (pets[0] as any).pet_gender ?? '', direction: 'to', ownerName: contact.name, ownerId: id } } as never);
+                    } else {
+                      setContactPetPickerDirection('to');
+                      setShowContactPetPicker(true);
+                    }
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.sendMessageBtnText}>
+                    🐾 {pets.length === 1 ? `J'écris à l'animal de ${contactFirstName}` : `J'écris à un des animaux de ${contactFirstName}`}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.sendMessageBtn, { backgroundColor: '#C2410C', marginBottom: 0 }]}
+                  onPress={() => {
+                    if (pets.length === 1) {
+                      router.push({ pathname: '/(app)/animal-message', params: { petId: pets[0].id, petName: pets[0].name, petType: (pets[0] as any).pet_type ?? 'autre', breed: (pets[0] as any).breed ?? '', petGender: (pets[0] as any).pet_gender ?? '', direction: 'from', ownerName: contact.name, ownerId: id } } as never);
+                    } else {
+                      setContactPetPickerDirection('from');
+                      setShowContactPetPicker(true);
+                    }
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.sendMessageBtnText}>
+                    🐾 {pets.length === 1 ? `L'animal de ${contactFirstName} écrit` : `Un des animaux de ${contactFirstName} écrit`}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* ── Boutons animaux rapides ── */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && myPets.length > 0 && (
+          <View style={{ marginTop: 8 }}>
+            <TouchableOpacity
+              style={[styles.sendMessageBtn, { backgroundColor: '#D97706' }]}
+              onPress={() => setShowMyPetPicker(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.sendMessageBtnText}>
+                🐾 {myPets.length === 1 ? `${myPets[0].name} écrit à ${contactFirstName}` : `Un de mes animaux écrit à ${contactFirstName}`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Animaux de compagnie — juste sous l'accroche */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Animaux de compagnie 🐾</Text>
+          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, lineHeight: 18, marginBottom: 4 }}>
+            Clique sur un animal pour lui écrire ou le laisser prendre la plume 🐾
+          </Text>
+          {pets.length === 0 ? (
+            <TouchableOpacity style={styles.addPetBtn} onPress={openAddPet} activeOpacity={0.85}>
+              <Text style={styles.addPetBtnText}>🐾 Ajouter son animal de compagnie</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              {pets.map((pet) => {
+                const petEmoji = ({ chien: '🐶', chat: '🐱', lapin: '🐰', oiseau: '🐦', cheval: '🐴', hamster: '🐹', perroquet: '🦜', cochon_d_inde: '🐾', souris: '🐭', poisson: '🐠', tortue: '🐢' } as Record<string, string>)[pet.pet_type ?? ''] ?? '🐾';
+                return (
+                  <TouchableOpacity
+                    key={pet.id}
+                    style={styles.ownerPetCard}
+                    onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: pet.id } } as never)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.ownerPetAvatar}>
+                      <Text style={{ fontSize: 22 }}>{petEmoji}</Text>
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={styles.ownerPetName}>{pet.name}</Text>
+                      {pet.birthday && (
+                        <Text style={styles.ownerPetSub}>
+                          Né{pet.pet_gender === 'female' ? 'e' : ''} le {pet.birthday.replace(/^0000-/, '').split('-').reverse().join('/')}
+                        </Text>
+                      )}
+                    </View>
+                    <TouchableOpacity
+                      style={styles.petEditBtn}
+                      onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: pet.id } } as never)}
+                      activeOpacity={0.75}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.petEditBtnText}>✏️</Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity style={styles.addPetBtnSmall} onPress={openAddPet} activeOpacity={0.85}>
+                <Text style={styles.addPetBtnSmallText}>＋ Ajouter un autre animal</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>}
+
+        {/* Enfants du contact */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Enfants 👶</Text>
+          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, lineHeight: 18, marginBottom: 8 }}>
+            {`🎂 Fête son anniversaire ou sa fête — 💌 laisse-le écrire lui-même à ${contactFirstName} — 🎴 ajoute une carte animée. Tout ça en quelques secondes.`}
+          </Text>
+          {children.length === 0 ? (
+            <TouchableOpacity style={styles.addPetBtn} onPress={openAddChild} activeOpacity={0.85}>
+              <Text style={styles.addPetBtnText}>👶 Ajouter un enfant</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              {children.map((child) => {
+                const emoji = (child as any).child_gender === 'female' ? '👧' : '👦';
+                const bday = child.birthday ? child.birthday.replace(/^0000-/, '').split('-').reverse().join('/') : null;
+                return (
+                  <View key={child.id} style={{ gap: 6 }}>
+                  <View style={styles.ownerPetCard}>
+                    <View style={styles.ownerPetAvatar}>
+                      <Text style={{ fontSize: 22 }}>{emoji}</Text>
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={styles.ownerPetName}>{child.name}</Text>
+                      {bday && <Text style={styles.ownerPetSub}>Né{(child as any).child_gender === 'female' ? 'e' : ''} le {bday}</Text>}
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                      {child.birthday && (() => {
+                        const age = child.birthday && !child.birthday.startsWith('0000-') ? (() => {
+                          const b = new Date(child.birthday!); const t = new Date();
+                          let a = t.getFullYear() - b.getFullYear();
+                          if (t < new Date(t.getFullYear(), b.getMonth(), b.getDate())) a--;
+                          return a >= 0 ? a : null;
+                        })() : null;
+                        return (
+                          <TouchableOpacity
+                            onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: contact.id, occasion: 'birthday', childName: child.name, ...(age !== null ? { childAge: String(age) } : {}) } } as never)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            activeOpacity={0.75}
+                          >
+                            <Text style={{ fontSize: 18 }}>🎂</Text>
+                          </TouchableOpacity>
+                        );
+                      })()}
+                      {child.name_day && (
+                        <TouchableOpacity
+                          onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: contact.id, occasion: 'nameday', childName: child.name } } as never)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          activeOpacity={0.75}
+                        >
+                          <Text style={{ fontSize: 18 }}>🎉</Text>
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity
+                        style={styles.petEditBtn}
+                        onPress={() => openEditChild(child)}
+                        activeOpacity={0.75}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={styles.petEditBtnText}>✏️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                    {/* De la part de l'enfant → au parent + au partenaire */}
+                    {(() => {
+                      const age = child.birthday && !child.birthday.startsWith('0000-') ? (() => {
+                        const b = new Date(child.birthday!); const t = new Date();
+                        let a = t.getFullYear() - b.getFullYear();
+                        if (t < new Date(t.getFullYear(), b.getMonth(), b.getDate())) a--;
+                        return a >= 0 ? a : null;
+                      })() : null;
+                      const ageParams = age !== null ? { childFromAge: String(age) } : {};
+                      return (
+                        <View style={{ marginTop: 6, gap: 6 }}>
+                          {/* → maman/papa (contact courant) */}
+                          <TouchableOpacity
+                            style={{ backgroundColor: '#FDF4FF', borderRadius: 10, borderWidth: 1.5, borderColor: '#9333EA40', padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                            onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: contact.id, childFromName: child.name, ...ageParams } } as never)}
+                            activeOpacity={0.85}
+                          >
+                            <Text style={{ fontSize: 18 }}>💌</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 12, color: '#7C3AED' }}>
+                                De la part de {child.name} → {contactFirstName}{contact.civilite === 'Mme' ? ', sa mère' : contact.civilite === 'M.' ? ', son père' : ''}
+                              </Text>
+                              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: '#7C3AED', opacity: 0.8 }}>
+                                Pour son anniversaire ou sa fête
+                              </Text>
+                            </View>
+                            <Text style={{ color: '#9333EA', fontSize: 14 }}>›</Text>
+                          </TouchableOpacity>
+                          {/* → partenaire (si lié) */}
+                          {partnerContact && (
+                            <TouchableOpacity
+                              style={{ backgroundColor: '#FFF7ED', borderRadius: 10, borderWidth: 1.5, borderColor: '#D9770640', padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                              onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: partnerContact.id, childFromName: child.name, ...ageParams } } as never)}
+                              activeOpacity={0.85}
+                            >
+                              <Text style={{ fontSize: 18 }}>💌</Text>
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 12, color: '#92400E' }}>
+                                  {(() => { const pFirst = partnerContact.name.split(' ').slice(1).join(' ') || partnerContact.name.split(' ')[0]; const pRole = partnerContact.civilite === 'Mme' ? ', sa mère' : partnerContact.civilite === 'M.' ? ', son père' : ''; return `De la part de ${child.name} → ${pFirst}${pRole}`; })()}
+                                </Text>
+                                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: '#92400E', opacity: 0.8 }}>
+                                  Pour son anniversaire ou sa fête
+                                </Text>
+                              </View>
+                              <Text style={{ color: '#D97706', fontSize: 14 }}>›</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      );
+                    })()}
+                  </View>
+                );
+              })}
+              <TouchableOpacity style={styles.addPetBtnSmall} onPress={openAddChild} activeOpacity={0.85}>
+                <Text style={styles.addPetBtnSmallText}>＋ Ajouter un autre enfant</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>}
+
+        {/* Partenaire / conjoint(e) */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Partenaire / conjoint(e) 💑</Text>
+          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, lineHeight: 18, marginBottom: 8 }}>
+            {partnerContact ? (() => {
+              const partnerFirst = partnerContact.name.split(' ').slice(1).join(' ') || partnerContact.name.split(' ')[0];
+              return `${contactFirstName} et ${partnerFirst} sont liés 💑\n\nMaintenant, quand c'est l'anniversaire ou la fête de ${contactFirstName}, leurs enfants peuvent lui envoyer un message comme si c'était eux qui l'avaient écrit — "Bon anni Maman !". Et pareil pour ${partnerFirst} — "Bon anni Papa !"\n\nChaque parent reçoit son message, chaque enfant signe à sa façon. Une attention qui touche au cœur, organisée par toi en quelques secondes ✨`;
+            })()
+              : `Lie le partenaire de ${contactFirstName} pour que leurs enfants puissent écrire à Maman ET à Papa pour leur anniversaire ou leur fête 💑`
+            }
+          </Text>
+          {partnerContact ? (
+            <View style={{ gap: 8 }}>
+              <TouchableOpacity
+                style={styles.ownerPetCard}
+                onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: partnerContact.id } } as never)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.ownerPetAvatar}>
+                  <Text style={{ fontSize: 22 }}>💑</Text>
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.ownerPetName}>{partnerContact.name}</Text>
+                  <Text style={styles.ownerPetSub}>Voir sa fiche →</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.petEditBtn}
+                  onPress={async () => { await updateContact({ id: contact.id, updates: { partner_contact_id: null } as any }); }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.petEditBtnText}>✕</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.addPetBtn} onPress={() => { setPartnerSearch(''); setPartnerPickerVisible(true); }} activeOpacity={0.85}>
+              <Text style={styles.addPetBtnText}>💑 Lier son partenaire</Text>
+            </TouchableOpacity>
+          )}
+        </View>}
+
+        {/* Bandeau transition — En savoir plus sur [contact] */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && (
+          <View style={styles.transitionBanner}>
+            <Text style={styles.transitionBannerText}>En savoir plus sur {contactFirstName}</Text>
+          </View>
+        )}
+
+        {/* Prénom & Astrologie — masqué pour les animaux et les enfants */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && (
           <>
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { fontSize: 11 }]}>Nom, Prénom & Astrologie</Text>
+            <Text style={styles.sectionLabel}>Nom, Prénom & Astrologie</Text>
             <View style={styles.coordsCard}>
 
               {/* Signification du nom de famille */}
@@ -829,6 +1538,15 @@ export default function ContactDetailScreen() {
                         {firstNameMeaning}
                       </Text>
                       <Text style={styles.aiDisclaimer}>Texte généré par IA à titre indicatif 🤖✨</Text>
+                      {/* Courbe INSEE prénom */}
+                      {!inseeFirst && !inseeFirstLoading && !inseeFirstNotFound && (
+                        <TouchableOpacity onPress={() => loadInsee(contact.name.split(' ').slice(1).join(' '))} activeOpacity={0.75} style={{ marginTop: 8 }}>
+                          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: C.primary }}>📊 Voir la courbe de popularité INSEE ›</Text>
+                        </TouchableOpacity>
+                      )}
+                      {inseeFirstLoading && <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}><ActivityIndicator size="small" color={C.primary} /><Text style={[styles.coordEmpty]}>Chargement INSEE…</Text></View>}
+                      {inseeFirstNotFound && <Text style={[styles.coordEmpty, { marginTop: 6 }]}>Prénom introuvable dans les données INSEE.</Text>}
+                      {inseeFirst && inseeFirst.length > 0 && renderInseeChart(inseeFirst, inseeFirstPeak, inseeFirstSel, setInseeFirstSel)}
                     </>
                   ) : !isFirstNameMeaningLoading ? (
                     <Text style={[styles.coordEmpty, { color: C.primary }]}>Appuyer pour découvrir ›</Text>
@@ -942,6 +1660,33 @@ export default function ContactDetailScreen() {
             <Text style={[styles.compatFullBtnArrow, { color: C.primary }]}>›</Text>
           </TouchableOpacity>
 
+          {/* Bouton compatibilité libre */}
+          {(() => {
+            const parts = (myProfile?.full_name ?? '').trim().split(' ');
+            // Format stocké : "NOM Prénom" — premier segment = nom, reste = prénom
+            const myLastName  = parts[0] ?? '';
+            const myFirstName = parts.slice(1).join(' ');
+            return (
+              <TouchableOpacity
+                style={[styles.compatFreeBtn, { borderColor: C.primary }]}
+                onPress={() => router.push({
+                  pathname: '/(app)/compat',
+                  params: { preA: myFirstName, nomA: myLastName },
+                } as never)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.compatFreeBtnEmoji}>💞</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.compatFreeBtnTitle, { color: C.primary }]}>
+                    Ta compatibilité avec un autre prénom
+                  </Text>
+                  <Text style={styles.compatFreeBtnSub}>Ton prénom déjà pré-rempli</Text>
+                </View>
+                <Text style={[styles.compatFullBtnArrow, { color: C.primary }]}>›</Text>
+              </TouchableOpacity>
+            );
+          })()}
+
           {/* Signe chinois */}
           {chineseZodiac && (
             <View style={styles.section}>
@@ -1045,6 +1790,26 @@ export default function ContactDetailScreen() {
 
             {/* Chemin de vie */}
             {cheminProfile && (
+              <>
+                <View style={styles.cheminVieHeaderRow}>
+                  <Text style={styles.cheminVieHeaderLabel}>🌟 Chemin de vie</Text>
+                  <TouchableOpacity onPress={() => setLifePathHelpVisible(true)} style={styles.helpInfoBtn}>
+                    <Text style={styles.helpInfoBtnText}>ℹ️</Text>
+                  </TouchableOpacity>
+                </View>
+                <FeatureIntroCard
+                  introText={`La date de naissance de ${contactFirstName} n'est peut-être pas un hasard 🌟 En numérologie, le chemin de vie est le chiffre le plus puissant de tous — il révèle la mission profonde, les talents naturels et les défis à surmonter dans cette vie 🔢💛✨`}
+                  modeEmploiLines={[
+                    "🌟 La date de naissance complète suffit — le chemin de vie est calculé automatiquement",
+                    "✨ Tous les chiffres de la date sont additionnés jusqu'à obtenir 1-9, sauf 11 et 22 (nombres maîtres)",
+                    `💫 Exemple : né le 23/04/1985 → 2+3+0+4+1+9+8+5 = 32 → 3+2 = 5 — Chemin de vie 5 : Le Libre`,
+                    "🔢 Son chiffre s'affiche avec son nom, sa couleur et sa signification profonde",
+                  ]}
+                  accentColor={cheminProfile.color}
+                  backgroundColor={Colors.white}
+                  borderWidth={4}
+                  containerStyle={{ marginBottom: 10 }}
+                />
               <View style={[styles.numCard, { borderLeftColor: cheminProfile.color }]}>
                 <View style={styles.numCardHeader}>
                   <View style={[styles.numColorDot, { backgroundColor: cheminProfile.color }]} />
@@ -1067,6 +1832,7 @@ export default function ContactDetailScreen() {
                 <Text style={styles.numDescription}>{cheminProfile.description}</Text>
                 <Text style={styles.numNote}>🌟 Le chiffre numérologique le plus important — révèle la mission de vie</Text>
               </View>
+              </>
             )}
           </View>
         )}
@@ -1368,13 +2134,13 @@ export default function ContactDetailScreen() {
           </View>
         )}
 
-        {/* Actions rapides */}
-        <View style={styles.section}>
+        {/* Actions rapides — masquées pour les animaux */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
           <Text style={styles.sectionLabel}>Actions rapides</Text>
           <View style={styles.actionsGrid}>
             <ActionButton emoji="✦" line1="Créer un" line2="message" color={Colors.primary} onPress={handleCreateMessage} />
             <ActionButton emoji="🎁" line1="Lancer une" line2="cagnotte" color="#c97d10" onPress={handleOpenPot} />
-            <ActionButton emoji="💌" line1="Carte" line2="postale" color="#9C27B0" onPress={handleOpenPostcard} />
+            {/* Carte postale — désactivée pour l'instant */}
             <ActionButton emoji="⬛" line1="Générer un" line2="QR code" color="#4dd4c4" onPress={handleOpenQR} />
             <ActionButton
               emoji="📞"
@@ -1396,13 +2162,13 @@ export default function ContactDetailScreen() {
               line1="Livre d'or"
               line2="numérique"
               color="#7B1FA2"
-              onPress={() => router.push({ pathname: '/(app)/guestbook/', params: { contactId: id } } as never)}
+              onPress={() => router.push({ pathname: '/(app)/guestbook', params: { contactId: id } } as never)}
             />
           </View>
-        </View>
+        </View>}
 
-        {/* Liste de souhaits */}
-        <View style={styles.section}>
+        {/* Liste de souhaits — masquée pour les animaux */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionLabel}>🎁 Liste de souhaits</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1484,7 +2250,7 @@ export default function ContactDetailScreen() {
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </View>}
 
         {/* Notes */}
         {(contact.notes || true) && (
@@ -1499,8 +2265,9 @@ export default function ContactDetailScreen() {
           </View>
         )}
 
-        {/* Coordonnées */}
-        <View style={styles.section}>
+
+        {/* Coordonnées — masquées pour les animaux */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
           <Text style={styles.sectionLabel}>Coordonnées</Text>
           <View style={styles.coordsCard}>
             {contact.phone ? (
@@ -1530,10 +2297,10 @@ export default function ContactDetailScreen() {
               </View>
             )}
           </View>
-        </View>
+        </View>}
 
-        {/* Centres d'intérêt */}
-        <View style={styles.section}>
+        {/* Centres d'intérêt — masqués pour les animaux */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionLabel}>Centres d'intérêt</Text>
             <TouchableOpacity onPress={() => setInterestsHelpVisible(true)} style={styles.helpInfoBtn}>
@@ -1567,10 +2334,10 @@ export default function ContactDetailScreen() {
               <Text style={styles.emptyFieldText}>— Aucune caractéristique renseignée</Text>
             </View>
           )}
-        </View>
+        </View>}
 
         {/* Couleur préférée */}
-        {contact.relation !== 'pet' && (
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionLabel}>🎨 Couleur préférée</Text>
@@ -1639,8 +2406,8 @@ export default function ContactDetailScreen() {
           </View>
         )}
 
-        {/* Préférences de communication */}
-        <View style={styles.section}>
+        {/* Préférences de communication — masquées pour les animaux */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
           <Text style={styles.sectionLabel}>Préférences d'envoi</Text>
           <View style={styles.coordsCard}>
             {contact.preferred_channel ? (
@@ -1673,10 +2440,10 @@ export default function ContactDetailScreen() {
               </View>
             )}
           </View>
-        </View>
+        </View>}
 
-        {/* Langue préférée */}
-        <View style={styles.section}>
+        {/* Langue préférée — masquée pour les animaux */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
           <Text style={styles.sectionLabel}>Langue du message IA</Text>
           <View style={styles.coordsCard}>
             <View style={styles.coordRow}>
@@ -1690,104 +2457,7 @@ export default function ContactDetailScreen() {
               )}
             </View>
           </View>
-        </View>
-
-        {/* Animaux de compagnie */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Animaux de compagnie 🐾</Text>
-
-          {/* Intro Message À l'animal */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <Text style={[styles.sectionLabel, { fontSize: 13, color: C.primary }]}>📬 Message à l'animal</Text>
-            <TouchableOpacity onPress={() => setPetToHelpVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={{ fontSize: 16 }}>ℹ️</Text>
-            </TouchableOpacity>
-          </View>
-          <FeatureIntroCard
-            introText={"Parce que les animaux sont des membres de la famille à part entière ! 🐾 Et si cette année tu pensais aussi à eux ? Envoie un message directement à Rex, Minou ou Coco et offre à leur maître une surprise adorable et inattendue — une attention unique et attendrissante qui fera fondre même les plus indifférents aux animaux 💛✨"}
-            modeEmploiLines={[
-              "🐾 Dans la section ci-dessous, appuie sur le bouton 📬 Message à [nom de l'animal]",
-              "💫 Choisis l'occasion — anniversaire, fête, simple bonjour...",
-              "🤖 Claude AI rédige le message comme si le maître s'adressait directement à son animal",
-              "📲 Envoie le message au maître — il sera surpris et attendri à coup sûr 💛✨",
-            ]}
-            backgroundColor={Colors.white}
-            borderWidth={4}
-            containerStyle={{ marginBottom: 10 }}
-          />
-
-          {/* Intro Message DE la part de l'animal */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <Text style={[styles.sectionLabel, { fontSize: 13, color: C.primary }]}>🐾 Message DE l'animal</Text>
-            <TouchableOpacity onPress={() => setPetFromHelpVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={{ fontSize: 16 }}>ℹ️</Text>
-            </TouchableOpacity>
-          </View>
-          <FeatureIntroCard
-            introText={"Parce que certains messages sont encore plus touchants quand ils viennent de celui qui aime inconditionnellement 🐾 Et si c'était Rex qui prenait la plume pour cette fois ? Surprends tes proches avec un message écrit comme si c'était leur animal qui l'avait envoyé — hilarant, attendrissant et totalement inattendu 💛✨"}
-            modeEmploiLines={[
-              "🐾 Dans la section ci-dessous, appuie sur le bouton 🐾 De la part de [nom de l'animal]",
-              "💫 Choisis l'occasion — anniversaire, fête de prénom, simple bonjour...",
-              "🤖 Claude AI rédige le message à la première personne comme si c'était l'animal qui parlait",
-              "✍️ Le message est signé du nom de l'animal avec une patte 🐾",
-              "📲 Ton proche recevra un message signé d'une patte et n'en reviendra pas ! 💛✨",
-            ]}
-            backgroundColor={Colors.white}
-            borderWidth={4}
-            containerStyle={{ marginBottom: 14 }}
-          />
-
-          {pets.length === 0 ? (
-            <TouchableOpacity
-              style={styles.addPetBtn}
-              onPress={openAddPet}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.addPetBtnText}>🐾 Ajouter son animal de compagnie</Text>
-            </TouchableOpacity>
-          ) : (
-            <>
-              {pets.map((pet) => {
-                const petEmoji = ({ chien: '🐶', chat: '🐱', lapin: '🐰', perroquet: '🦜', hamster: '🐹', poisson: '🐠', cheval: '🐴', oiseau: '🐦' } as Record<string, string>)[pet.pet_type ?? ''] ?? '🐾';
-                return (
-                  <View key={pet.id} style={styles.petCard}>
-                    <View style={styles.petCardHeader}>
-                      <Text style={{ fontSize: 24 }}>{petEmoji}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.petMsgTitle}>{pet.name}</Text>
-                        {pet.birthday && (
-                          <Text style={styles.petMsgSub}>né{pet.pet_type === 'chat' ? 'e' : ''} le {pet.birthday.replace(/^0000-/, '').split('-').reverse().join('/')}</Text>
-                        )}
-                      </View>
-                      <TouchableOpacity style={styles.petEditBtn} onPress={() => openEditPet(pet)} activeOpacity={0.75}>
-                        <Text style={styles.petEditBtnText}>✏️</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <View style={styles.petCardBtns}>
-                      <TouchableOpacity
-                        style={styles.petActionBtn}
-                        onPress={() => router.push({ pathname: '/(app)/create/', params: { contactId: pet.id } } as never)}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={styles.petActionBtnText}>📬 Message à {pet.name}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.petActionBtn, styles.petActionBtnSecondary]}
-                        onPress={() => { setSelectedPetId(pet.id); setPetFromAiOccasion('birthday'); setPetFromAiResult(null); setPetFromAiError(null); setPetFromAiModalVisible(true); }}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={[styles.petActionBtnText, { color: C.primary }]}>🐾 De la part de {pet.name}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })}
-              <TouchableOpacity style={styles.addPetBtnSmall} onPress={openAddPet} activeOpacity={0.85}>
-                <Text style={styles.addPetBtnSmallText}>＋ Ajouter un autre animal</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+        </View>}
 
         {/* Timeline messages */}
         <View style={styles.section}>
@@ -1834,6 +2504,94 @@ export default function ContactDetailScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal sélection de mon animal */}
+      <Modal visible={showMyPetPicker} transparent animationType="slide" onRequestClose={() => setShowMyPetPicker(false)}>
+        <TouchableOpacity style={styles.helpModalOverlay} activeOpacity={1} onPress={() => setShowMyPetPicker(false)}>
+          <TouchableOpacity activeOpacity={1} style={[styles.helpModalCard, { gap: 14 }]}>
+            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.onSurface, textAlign: 'center' }}>
+              🐾 Quel animal écrit à {contactFirstName} ?
+            </Text>
+            {myPets.map((pet) => {
+              const petEmoji = ({ chien: '🐶', chat: '🐱', lapin: '🐰', oiseau: '🐦', cheval: '🐴', hamster: '🐹', perroquet: '🦜', cochon_d_inde: '🐾', souris: '🐭', poisson: '🐠', tortue: '🐢' } as Record<string, string>)[pet.pet_type ?? ''] ?? '🐾';
+              return (
+                <TouchableOpacity
+                  key={pet.id}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFF7ED', borderRadius: Radii.lg, padding: Spacing[3], borderWidth: 1.5, borderColor: '#D97706' }}
+                  onPress={() => {
+                    setShowMyPetPicker(false);
+                    router.push({
+                      pathname: '/(app)/animal-message',
+                      params: {
+                        petId: pet.id,
+                        petName: pet.name,
+                        petType: (pet as any).pet_type ?? 'autre',
+                        breed: (pet as any).breed ?? '',
+                        petGender: pet.pet_gender ?? '',
+                        direction: 'from_to_third',
+                        ownerName: myProfile?.full_name ?? '',
+                        ownerId: '',
+                        thirdName: contact.name,
+                        thirdId: contact.id,
+                        personalityTags: JSON.stringify((pet as any).personality_tags ?? []),
+                      },
+                    } as never);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#FED7AA', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 24 }}>{petEmoji}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#92400E' }}>{pet.name}</Text>
+                    {(pet as any).pet_type && <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#92400E', opacity: 0.8 }}>écrit à {contactFirstName}</Text>}
+                  </View>
+                  <Text style={{ color: '#D97706', fontSize: 20 }}>›</Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity onPress={() => setShowMyPetPicker(false)} style={{ alignItems: 'center', paddingVertical: 8 }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurfaceVariant }}>Annuler</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal sélection animal de Sophie */}
+      <Modal visible={showContactPetPicker} transparent animationType="slide" onRequestClose={() => setShowContactPetPicker(false)}>
+        <TouchableOpacity style={styles.helpModalOverlay} activeOpacity={1} onPress={() => setShowContactPetPicker(false)}>
+          <TouchableOpacity activeOpacity={1} style={[styles.helpModalCard, { gap: 14 }]}>
+            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.onSurface, textAlign: 'center' }}>
+              {contactPetPickerDirection === 'to' ? `🐾 À quel animal veux-tu écrire ?` : `🐾 Quel animal écrit ?`}
+            </Text>
+            {pets.map((pet) => {
+              const petEmoji = ({ chien: '🐶', chat: '🐱', lapin: '🐰', oiseau: '🐦', cheval: '🐴', hamster: '🐹', perroquet: '🦜', cochon_d_inde: '🐾', souris: '🐭', poisson: '🐠', tortue: '🐢' } as Record<string, string>)[pet.pet_type ?? ''] ?? '🐾';
+              return (
+                <TouchableOpacity
+                  key={pet.id}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFF7ED', borderRadius: Radii.lg, padding: Spacing[3], borderWidth: 1.5, borderColor: '#D97706' }}
+                  onPress={() => {
+                    setShowContactPetPicker(false);
+                    router.push({ pathname: '/(app)/animal-message', params: { petId: pet.id, petName: pet.name, petType: (pet as any).pet_type ?? 'autre', breed: (pet as any).breed ?? '', petGender: (pet as any).pet_gender ?? '', direction: contactPetPickerDirection, ownerName: contact.name, ownerId: id } } as never);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#FED7AA', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 24 }}>{petEmoji}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#92400E' }}>{pet.name}</Text>
+                  </View>
+                  <Text style={{ color: '#D97706', fontSize: 20 }}>›</Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity onPress={() => setShowContactPetPicker(false)} style={{ alignItems: 'center', paddingVertical: 8 }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurfaceVariant }}>Annuler</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Modal aide — Message À l'animal */}
       <Modal visible={petToHelpVisible} transparent animationType="fade" onRequestClose={() => setPetToHelpVisible(false)}>
@@ -1900,7 +2658,7 @@ export default function ContactDetailScreen() {
               <View style={styles.modalHandle} />
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
-                  {({ chien: '🐶', chat: '🐱', lapin: '🐰', perroquet: '🦜', hamster: '🐹', poisson: '🐠', cheval: '🐴', oiseau: '🐦' } as Record<string, string>)[selectedPet.pet_type ?? ''] ?? '🐾'}{' '}
+                  {({ chien: '🐶', chat: '🐱', lapin: '🐰', oiseau: '🐦', cheval: '🐴', hamster: '🐹', perroquet: '🦜', cochon_d_inde: '🐾', souris: '🐭', poisson: '🐠', tortue: '🐢' } as Record<string, string>)[selectedPet.pet_type ?? ''] ?? '🐾'}{' '}
                   De la part de {selectedPet.name}
                 </Text>
                 <TouchableOpacity onPress={() => setPetMsgModalVisible(false)} style={styles.modalCloseBtn}>
@@ -1911,7 +2669,7 @@ export default function ContactDetailScreen() {
                 <Text style={styles.petMsgModalSub}>
                   Choisis un message — {selectedPet.name} l'envoie à {contact.name} 😄
                 </Text>
-                {getPetMessages(selectedPet.pet_type as PetType, selectedPet.name).map((msg, i) => (
+                {getPetMessages(selectedPet.pet_type as PetType, selectedPet.name, contact.civilite, contact.name).map((msg, i) => (
                   <TouchableOpacity
                     key={i}
                     style={styles.petMsgCard}
@@ -1935,6 +2693,64 @@ export default function ContactDetailScreen() {
         </Modal>
       )}
 
+      {/* Modal messages pour l'animal (human → animal) */}
+      {selectedPet && (
+        <Modal
+          visible={petToMsgModalVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setPetToMsgModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHandle} />
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {({ chien: '🐶', chat: '🐱', lapin: '🐰', oiseau: '🐦', cheval: '🐴', hamster: '🐹', perroquet: '🦜', cochon_d_inde: '🐾', souris: '🐭', poisson: '🐠', tortue: '🐢' } as Record<string, string>)[selectedPet.pet_type ?? ''] ?? '🐾'}{' '}
+                  Pour {selectedPet.name}
+                </Text>
+                <TouchableOpacity onPress={() => setPetToMsgModalVisible(false)} style={styles.modalCloseBtn}>
+                  <Text style={styles.modalCloseText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+                <Text style={styles.petMsgModalSub}>
+                  Choisis un message — tu l'envoies à {selectedPet.name} 🐾
+                </Text>
+                {getPetMessagesTo(selectedPet.pet_type as PetType, selectedPet.name, contact.name).map((msg, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.petMsgCard}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      setPetToMsgModalVisible(false);
+                      router.push({
+                        pathname: '/(app)/create/',
+                        params: { contactId: selectedPet.id, prefillMessage: msg },
+                      } as never);
+                    }}
+                  >
+                    <Text style={styles.petMsgCardText}>{msg}</Text>
+                    <Text style={styles.petMsgCardArrow}>→ Utiliser</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={[styles.addPetSaveBtn, { marginTop: 8, backgroundColor: 'transparent', borderWidth: 1.5, borderColor: C.primary }]}
+                  onPress={() => {
+                    setPetToMsgModalVisible(false);
+                    router.push({ pathname: '/(app)/create/', params: { contactId: selectedPet.id, occasion: 'birthday' } } as never);
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.addPetSaveBtnText, { color: C.primary }]}>✏️ Créer librement</Text>
+                </TouchableOpacity>
+                <View style={{ height: 20 }} />
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {/* Modal génération IA — Message de la part de l'animal */}
       {selectedPet && (
         <Modal
@@ -1948,7 +2764,7 @@ export default function ContactDetailScreen() {
               <View style={styles.modalHandle} />
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
-                  {({ chien: '🐶', chat: '🐱', lapin: '🐰', perroquet: '🦜', hamster: '🐹', poisson: '🐠', cheval: '🐴', oiseau: '🐦' } as Record<string, string>)[selectedPet.pet_type ?? ''] ?? '🐾'}{' '}
+                  {({ chien: '🐶', chat: '🐱', lapin: '🐰', oiseau: '🐦', cheval: '🐴', hamster: '🐹', perroquet: '🦜', cochon_d_inde: '🐾', souris: '🐭', poisson: '🐠', tortue: '🐢' } as Record<string, string>)[selectedPet.pet_type ?? ''] ?? '🐾'}{' '}
                   De la part de {selectedPet.name}
                 </Text>
                 <TouchableOpacity onPress={() => { setPetFromAiModalVisible(false); setPetFromAiResult(null); }} style={styles.modalCloseBtn}>
@@ -2061,16 +2877,20 @@ export default function ContactDetailScreen() {
                   { key: 'chien', emoji: '🐶', label: 'Chien' },
                   { key: 'chat', emoji: '🐱', label: 'Chat' },
                   { key: 'lapin', emoji: '🐰', label: 'Lapin' },
-                  { key: 'perroquet', emoji: '🦜', label: 'Perroquet' },
-                  { key: 'hamster', emoji: '🐹', label: 'Hamster' },
-                  { key: 'poisson', emoji: '🐠', label: 'Poisson' },
+                  { key: 'oiseau', emoji: '🐦', label: 'Oiseau' },
                   { key: 'cheval', emoji: '🐴', label: 'Cheval' },
+                  { key: 'hamster', emoji: '🐹', label: 'Hamster' },
+                  { key: 'perroquet', emoji: '🦜', label: 'Perroquet' },
+                  { key: 'cochon_d_inde', emoji: '🐾', label: 'Cochon d\'Inde' },
+                  { key: 'souris', emoji: '🐭', label: 'Souris' },
+                  { key: 'poisson', emoji: '🐠', label: 'Poisson' },
+                  { key: 'tortue', emoji: '🐢', label: 'Tortue' },
                   { key: 'autre', emoji: '🐾', label: 'Autre' },
                 ] as const).map(({ key, emoji, label }) => (
                   <TouchableOpacity
                     key={key}
                     style={[styles.addPetTypeBtn, newPetType === key && styles.addPetTypeBtnActive]}
-                    onPress={() => setNewPetType(key)}
+                    onPress={() => { setNewPetType(key); setNewPetBreed(''); }}
                     activeOpacity={0.75}
                   >
                     <Text style={{ fontSize: 24 }}>{emoji}</Text>
@@ -2078,7 +2898,46 @@ export default function ContactDetailScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text style={[styles.addPetSectionLabel, { marginTop: 20 }]}>Et il/elle s'appelle ?</Text>
+              <Text style={styles.addPetSectionLabel}>Sexe</Text>
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 4 }}>
+                {([
+                  { value: 'male',   label: '♂ Mâle' },
+                  { value: 'female', label: '♀ Femelle' },
+                ] as const).map((g) => (
+                  <TouchableOpacity
+                    key={g.value}
+                    style={[styles.addPetTypeBtn, newPetGender === g.value && styles.addPetTypeBtnActive, { flex: 1, justifyContent: 'center' }]}
+                    onPress={() => setNewPetGender(g.value)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.addPetTypeBtnLabel, newPetGender === g.value && styles.addPetTypeBtnLabelActive]}>
+                      {g.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {(newPetType === 'chien' || newPetType === 'chat') && (
+                <>
+                  <Text style={styles.addPetSectionLabel}>{newPetType === 'chien' ? 'Race 🐶' : 'Race 🐱'}</Text>
+                  <View style={styles.breedGrid}>
+                    {(newPetType === 'chien' ? DOG_BREEDS : CAT_BREEDS).map((b) => (
+                      <TouchableOpacity
+                        key={b}
+                        style={[styles.breedChip, newPetBreed === b && { borderColor: C.primary, backgroundColor: C.primaryContainer }]}
+                        onPress={() => setNewPetBreed(newPetBreed === b ? '' : b)}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[styles.breedChipLabel, newPetBreed === b && { color: C.primary, fontFamily: 'BeVietnamPro_700Bold' }]}>
+                          {b}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+
+              <Text style={styles.addPetSectionLabel}>Nom</Text>
               <TextInput
                 style={styles.addPetInput}
                 placeholder="Ex : Médor, Felix, Noisette…"
@@ -2088,7 +2947,7 @@ export default function ContactDetailScreen() {
                 autoCapitalize="words"
                 returnKeyType="next"
               />
-              <Text style={[styles.addPetSectionLabel, { marginTop: 16 }]}>Date de naissance (optionnel)</Text>
+              <Text style={styles.addPetSectionLabel}>Date de naissance</Text>
               <TextInput
                 style={styles.addPetInput}
                 placeholder="JJ/MM/AAAA ou JJ/MM"
@@ -2099,12 +2958,10 @@ export default function ContactDetailScreen() {
                 returnKeyType="done"
                 onSubmitEditing={handleSavePet}
               />
-              <Text style={styles.addPetHint}>
-                💡 La date de naissance permet de célébrer l'anniversaire de {newPetName || 'ton animal'} !
-              </Text>
+              <Text style={styles.addPetHint}>Pour ne pas oublier, par exemple, de célébrer son anniversaire.</Text>
 
               {/* ── Caractère ─────────────────────────────────── */}
-              <Text style={[styles.addPetSectionLabel, { marginTop: 20 }]}>
+              <Text style={styles.addPetSectionLabel}>
                 {newPetType === 'chien' ? '🐶 Caractère du chien' : newPetType === 'chat' ? '🐱 Caractère du chat' : '🐾 Caractère (optionnel)'}
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
@@ -2139,14 +2996,200 @@ export default function ContactDetailScreen() {
               </View>
 
               <TouchableOpacity
-                style={[styles.addPetSaveBtn, (!newPetType || !newPetName.trim()) && { opacity: 0.4 }]}
+                style={[styles.addPetSaveBtn, (!newPetType || !newPetName.trim() || !newPetGender) && { opacity: 0.4 }]}
                 onPress={handleSavePet}
-                disabled={!newPetType || !newPetName.trim() || isSavingPet}
+                disabled={!newPetType || !newPetName.trim() || !newPetGender || isSavingPet}
                 activeOpacity={0.85}
               >
                 {isSavingPet
                   ? <ActivityIndicator color="#fff" />
                   : <Text style={styles.addPetSaveBtnText}>{editingPetId ? 'Enregistrer' : 'Ajouter'}</Text>
+                }
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal sélection partenaire */}
+      <Modal visible={partnerPickerVisible} animationType="slide" transparent onRequestClose={() => setPartnerPickerVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>💑 Lier un partenaire</Text>
+              <TouchableOpacity onPress={() => setPartnerPickerVisible(false)} style={styles.modalCloseBtn}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 }}>
+              <TextInput
+                style={styles.addPetInput}
+                placeholder="Rechercher un contact…"
+                placeholderTextColor="#aaa"
+                value={partnerSearch}
+                onChangeText={setPartnerSearch}
+                autoCapitalize="words"
+              />
+            </View>
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
+              {allContacts
+                .filter((c) => c.id !== contact?.id && c.relation !== 'pet' && c.relation !== 'child_of' && (!partnerSearch.trim() || c.name.toLowerCase().includes(partnerSearch.toLowerCase())))
+                .map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={{ paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: Colors.surfaceContainerHighest, flexDirection: 'row', alignItems: 'center', gap: 12 }}
+                    onPress={async () => {
+                      await updateContact({ id: contact!.id, updates: { partner_contact_id: c.id } as any });
+                      setPartnerPickerVisible(false);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 15, color: Colors.onSurface, flex: 1 }}>{c.name}</Text>
+                    <Text style={{ color: C.primary, fontSize: 13 }}>Sélectionner</Text>
+                  </TouchableOpacity>
+                ))
+              }
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal ajout/édition enfant */}
+      <Modal
+        visible={addChildModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAddChildModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingChildId ? '✏️ Modifier l\'enfant' : '👶 Ajouter un enfant'}
+              </Text>
+              <TouchableOpacity onPress={() => setAddChildModalVisible(false)} style={styles.modalCloseBtn}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              style={{ paddingHorizontal: 20, paddingTop: 16 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 200 }}
+            >
+              <Text style={styles.addPetSectionLabel}>Fille ou garçon ?</Text>
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+                {([
+                  { value: 'female', label: '👧 Fille' },
+                  { value: 'male',   label: '👦 Garçon' },
+                ] as const).map((g) => (
+                  <TouchableOpacity
+                    key={g.value}
+                    style={[styles.addPetTypeBtn, newChildGender === g.value && styles.addPetTypeBtnActive, { flex: 1, justifyContent: 'center' }]}
+                    onPress={() => setNewChildGender(g.value)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.addPetTypeBtnLabel, newChildGender === g.value && styles.addPetTypeBtnLabelActive]}>
+                      {g.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.addPetSectionLabel}>Prénom</Text>
+              <TextInput
+                style={styles.addPetInput}
+                placeholder="Ex : Lucas, Emma, Théo…"
+                placeholderTextColor="#aaa"
+                value={newChildName}
+                onChangeText={setNewChildName}
+                autoCapitalize="words"
+                returnKeyType="next"
+              />
+
+              <Text style={styles.addPetSectionLabel}>Date de naissance</Text>
+              <TouchableOpacity
+                style={[styles.addPetInput, { justifyContent: 'center' }]}
+                onPress={() => setShowChildBirthdayPicker(true)}
+                activeOpacity={0.75}
+              >
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 15, color: newChildBirthdayDate ? Colors.onSurface : '#aaa' }}>
+                  {newChildBirthdayDate
+                    ? newChildBirthdayDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+                    : 'Choisir une date 📅'}
+                </Text>
+              </TouchableOpacity>
+              {showChildBirthdayPicker && Platform.OS === 'ios' && (
+                <Modal transparent animationType="slide" visible={showChildBirthdayPicker} onRequestClose={() => setShowChildBirthdayPicker(false)}>
+                  <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }} activeOpacity={1} onPress={() => setShowChildBirthdayPicker(false)}>
+                    <View style={{ backgroundColor: Colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 16, color: Colors.onSurface }}>Date de naissance</Text>
+                        <TouchableOpacity onPress={() => setShowChildBirthdayPicker(false)}>
+                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 15, color: C.primary }}>OK ✓</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <DateTimePicker
+                        value={newChildBirthdayDate ?? new Date(2015, 0, 1)}
+                        mode="date"
+                        display="spinner"
+                        minimumDate={new Date(new Date().getFullYear() - 30, 0, 1)}
+                        maximumDate={new Date()}
+                        textColor={C.primary}
+                        accentColor={C.primary}
+                        style={{ width: '100%', height: 215 }}
+                        onChange={(_e: unknown, date?: Date) => {
+                          if (date) {
+                            setNewChildBirthdayDate(date);
+                            setNewChildBirthday(`${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`);
+                          }
+                        }}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
+              )}
+              {showChildBirthdayPicker && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={newChildBirthdayDate ?? new Date(2015, 0, 1)}
+                  mode="date"
+                  display="spinner"
+                  minimumDate={new Date(new Date().getFullYear() - 30, 0, 1)}
+                  maximumDate={new Date()}
+                  onChange={(_e: unknown, date?: Date) => {
+                    setShowChildBirthdayPicker(false);
+                    if (date) {
+                      setNewChildBirthdayDate(date);
+                      setNewChildBirthday(`${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`);
+                    }
+                  }}
+                />
+              )}
+
+              <Text style={styles.addPetSectionLabel}>Fête (optionnel)</Text>
+              <TextInput
+                style={styles.addPetInput}
+                placeholder="JJ/MM — ex : 25/06"
+                placeholderTextColor="#aaa"
+                value={newChildNameDay}
+                onChangeText={setNewChildNameDay}
+                keyboardType="numbers-and-punctuation"
+                returnKeyType="done"
+                onSubmitEditing={handleSaveChild}
+              />
+              <Text style={styles.addPetHint}>Pour recevoir un rappel le jour J et envoyer un message à {contactFirstName}.</Text>
+
+              <TouchableOpacity
+                style={[styles.addPetSaveBtn, (!newChildName.trim() || !newChildGender) && { opacity: 0.4 }]}
+                onPress={handleSaveChild}
+                disabled={!newChildName.trim() || !newChildGender || isSavingChild}
+                activeOpacity={0.85}
+              >
+                {isSavingChild
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.addPetSaveBtnText}>{editingChildId ? 'Enregistrer' : 'Ajouter'}</Text>
                 }
               </TouchableOpacity>
             </ScrollView>
@@ -2787,8 +3830,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   topbarTitle: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
     fontSize: Typography['2xl'],
@@ -2879,23 +3922,37 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_400Regular',
     color: Colors.error,
   },
+  heroCivilite: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: 'rgba(255,255,255,0.75)',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   heroName: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
     fontSize: Typography['3xl'],
     color: Colors.white,
     marginBottom: 8,
+    textAlign: 'center',
+  },
+  heroNameAge: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xl,
+    color: 'rgba(255,255,255,0.75)',
   },
   heroBirthday: {
-    fontFamily: 'BeVietnamPro_600SemiBold',
-    fontSize: Typography.md,
-    color: 'rgba(255,255,255,0.85)',
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.xl,
+    color: 'rgba(255,255,255,0.95)',
     marginBottom: 10,
     marginTop: -4,
   },
   heroBirthdayEmpty: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.sm,
-    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.md,
+    color: 'rgba(255,255,255,0.65)',
     fontStyle: 'italic',
   },
   heroNameDay: {
@@ -2908,16 +3965,53 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   heroBadges: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   heroBadge: {
     backgroundColor: 'rgba(255,255,255,0.22)',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingVertical: 9,
+    paddingHorizontal: 18,
     borderRadius: Radii.full,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
   },
   heroBadgeYellow: { backgroundColor: 'rgba(253,211,77,0.28)', borderColor: 'rgba(253,211,77,0.5)' },
+  transitionBanner: {
+    marginHorizontal: Spacing[4],
+    marginVertical: Spacing[3],
+    paddingVertical: 12,
+    paddingHorizontal: Spacing[4],
+    borderRadius: Radii.lg,
+    backgroundColor: C.primaryContainer,
+    alignItems: 'center',
+  },
+  transitionBannerText: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.base,
+    color: C.primary,
+    letterSpacing: 0.3,
+  },
+  heroPetsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 12,
+    justifyContent: 'center',
+  },
+  heroPetChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+    borderRadius: Radii.full,
+    paddingVertical: 9,
+    paddingHorizontal: 18,
+  },
+  heroPetChipText: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.md,
+    color: Colors.white,
+  },
   heroBadgeText: {
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.sm,
+    fontSize: Typography.md,
     color: Colors.white,
   },
   alertBox: {
@@ -2962,6 +4056,18 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     gap: 8,
     padding: Spacing[4],
   },
+  sendMessageBtn: {
+    marginHorizontal: Spacing[4],
+    marginBottom: Spacing[4],
+    borderRadius: Radii.full,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  sendMessageBtnText: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.base,
+    color: Colors.white,
+  },
   dateCard: {
     flex: 1,
     flexDirection: 'row',
@@ -3003,13 +4109,16 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   // Section
   section: { paddingHorizontal: Spacing[4], paddingBottom: Spacing[3] },
   sectionLabel: {
+    borderLeftWidth: 3,
+    borderLeftColor: C.primary,
+    paddingLeft: 10,
+    paddingVertical: 6,
+    backgroundColor: Colors.surfaceContainerLow,
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: 9,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    color: Colors.onSurfaceVariant,
-    marginBottom: 8,
-    marginTop: Spacing[1],
+    fontSize: Typography.md,
+    color: Colors.onSurface,
+    marginBottom: Spacing[2],
+    marginTop: Spacing[4],
   },
 
   tagsRow: {
@@ -3135,12 +4244,15 @@ function makeStyles(C: ReturnType<typeof useColors>) {
 
   // Modal ajout animal
   addPetSectionLabel: {
-    fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: 9,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    color: Colors.onSurfaceVariant,
-    marginBottom: 10,
+    borderLeftWidth: 2,
+    borderLeftColor: C.primary,
+    paddingLeft: 8,
+    paddingVertical: 4,
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: C.primary,
+    marginTop: Spacing[4],
+    marginBottom: Spacing[2],
   },
   addPetTypesRow: {
     flexDirection: 'row',
@@ -3169,6 +4281,18 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   addPetTypeBtnLabelActive: {
     color: Colors.primary,
+  },
+  breedGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  breedChip: {
+    paddingVertical: 7, paddingHorizontal: 12,
+    borderRadius: Radii.full, borderWidth: 1.5,
+    borderColor: Colors.surfaceContainerHighest,
+    backgroundColor: Colors.white,
+  },
+  breedChipLabel: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
   },
   addPetInput: {
     borderWidth: 1,
@@ -3245,6 +4369,35 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
 
   // Nouvelle carte pet avec 2 boutons
+  ownerPetCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.white,
+    borderRadius: Radii.lg,
+    padding: Spacing[3],
+    marginBottom: Spacing[3],
+    ...Shadows.sm,
+  },
+  ownerPetAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.full,
+    backgroundColor: C.primaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerPetName: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.base,
+    color: Colors.onSurface,
+  },
+  ownerPetSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
+  },
+  petArrow: { fontSize: 22, fontFamily: 'BeVietnamPro_700Bold' },
   petCard: {
     backgroundColor: Colors.white,
     borderRadius: Radii.xl,
@@ -3619,12 +4772,12 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     lineHeight: 22,
   },
   zodiacSectionLabel: {
-    fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.xs,
-    color: Colors.onSurfaceVariant,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginTop: Spacing[1],
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.sm,
+    color: Colors.onSurface,
+    letterSpacing: 0.2,
+    marginTop: Spacing[2],
+    marginBottom: 4,
   },
   zodiacSubText: {
     fontFamily: 'BeVietnamPro_400Regular',
@@ -3760,6 +4913,18 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     justifyContent: 'space-between',
     marginBottom: 8,
     marginTop: Spacing[1],
+  },
+  cheminVieHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    marginTop: Spacing[2],
+  },
+  cheminVieHeaderLabel: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.base,
+    color: Colors.onSurface,
   },
 
   // Intro card partagée (centres d'intérêt, signe chinois…)
@@ -4157,6 +5322,27 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   compatFullBtnArrow: {
     fontSize: 26,
     lineHeight: 30,
+  },
+  compatFreeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: Radii.lg,
+    borderWidth: 1.5,
+    padding: 14,
+    gap: 10,
+    marginBottom: Spacing[3],
+  },
+  compatFreeBtnEmoji: { fontSize: 22 },
+  compatFreeBtnTitle: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.sm,
+  },
+  compatFreeBtnSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
+    marginTop: 2,
   },
 
   // ── Âge en chiffres fun ──────────────────────────────────────────────────────

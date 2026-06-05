@@ -10,11 +10,13 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { format, addMonths, subMonths, getDaysInMonth, startOfMonth, getDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useContacts, useUpcomingEvents } from '../../src/hooks/useContacts';
 import { scheduleAllReminders } from '../../src/services/notifications.service';
+import { loadNotifSchedule, getActiveDays } from '../../src/hooks/useNotifSchedule';
+import Constants from 'expo-constants';
 import { useUpcomingCustomEvents, useDeleteCustomEvent } from '../../src/hooks/useCustomEvents';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { supabase } from '../../src/services/supabase';
@@ -24,10 +26,13 @@ import { humanDaysUntil, isUrgent, formatDate } from '../../src/utils/dateHelper
 import { getZodiacSign } from '../../src/utils/zodiac';
 import { getNameDayForName } from '../../src/utils/namedays';
 import { getUpcomingHolidays } from '../../src/utils/generalHolidays';
+import { getPublicHolidayDays, getPublicHolidaysForMonth, COUNTRY_LABELS } from '../../src/constants/publicHolidays';
+import { useCountry } from '../../src/hooks/useCountry';
 import { useCreateStore } from '../../src/stores/createStore';
 import type { Occasion } from '../../src/stores/createStore';
 import type { UpcomingEvent } from '../../src/types/models';
 import { FeatureIntroCard } from '../../src/components/ui/FeatureIntroCard';
+import { BackHeader } from '../../src/components/ui/BackHeader';
 
 export default function CalendarScreen() {
   const router = useRouter();
@@ -35,8 +40,10 @@ export default function CalendarScreen() {
   const { type } = useLocalSearchParams<{ type?: string }>();
   const isCustom = type === 'custom';
   const isHolidays = type === 'holidays';
+  const isAll = !type || type === 'all';
   const eventType = type === 'name_day' ? 'name_day' : 'birthday';
   const { isLoading } = useContacts();
+  const { country } = useCountry();
   const allEvents = useUpcomingEvents(365);
   const customEvents = useUpcomingCustomEvents(365);
   const { mutateAsync: deleteEvent } = useDeleteCustomEvent();
@@ -77,19 +84,23 @@ export default function CalendarScreen() {
       setNameMeaningModal((s) => ({ ...s, meaning: 'Impossible de charger la signification pour le moment.', loading: false }));
     }
   }, []);
-  useFocusEffect(useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []));
 
-  // Filtrer les événements par type (anniversaires OU fêtes, jamais mélangés)
+  // Filtrer les événements par type — si pas de type, afficher anniversaires ET fêtes
   const filteredEvents = useMemo(
-    () => allEvents.filter((e) => e.eventType === eventType),
-    [allEvents, eventType],
+    () => isAll
+      ? allEvents.filter((e) => e.eventType === 'birthday' || e.eventType === 'name_day')
+      : allEvents.filter((e) => e.eventType === eventType),
+    [allEvents, eventType, isAll],
   );
 
-  // Planifier les rappels dès que les contacts sont chargés
+  // Planifier les rappels dès que les contacts sont chargés (build natif uniquement)
   useEffect(() => {
-    if (allEvents.length > 0) {
-      scheduleAllReminders(allEvents).catch(() => {});
-    }
+    if (Constants.appOwnership === 'expo') return;
+    if (allEvents.length === 0) return;
+    loadNotifSchedule().then(({ preset, customDays }) => {
+      const days = getActiveDays(preset, customDays);
+      scheduleAllReminders(allEvents, days).catch(() => {});
+    });
   }, [allEvents.length]);
 
   // Événements du mois affiché (type filtré)
@@ -118,6 +129,16 @@ export default function CalendarScreen() {
     }
     return days;
   }, [viewDate, eventsThisMonth]);
+
+  const publicHolidayDays = useMemo(
+    () => getPublicHolidayDays(country, viewDate.getFullYear(), viewDate.getMonth() + 1),
+    [country, viewDate],
+  );
+
+  const publicHolidaysThisMonth = useMemo(
+    () => getPublicHolidaysForMonth(country, viewDate.getFullYear(), viewDate.getMonth() + 1),
+    [country, viewDate],
+  );
 
   const monthLabel = format(viewDate, 'MMMM yyyy', { locale: fr });
   const monthLabelCapitalized = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
@@ -500,9 +521,7 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backBtnText}>‹</Text>
-      </TouchableOpacity>
+      <BackHeader title="📅 Mon calendrier" />
 
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
 
@@ -611,6 +630,7 @@ export default function CalendarScreen() {
                 viewDate.getFullYear() === new Date().getFullYear();
               const hasEvent = cell.events.length > 0;
               const hasUrgent = cell.events.some((e) => isUrgent(e.daysUntil));
+              const isPublicHol = cell.day !== null && publicHolidayDays.has(cell.day);
 
               return (
                 <View key={i} style={styles.calCell}>
@@ -619,6 +639,7 @@ export default function CalendarScreen() {
                       style={[
                         styles.calDayWrap,
                         isToday && styles.calDayToday,
+                        isPublicHol && !isToday && styles.calDayPublicHol,
                       ]}
                     >
                       <Text
@@ -626,6 +647,7 @@ export default function CalendarScreen() {
                           styles.calDayText,
                           isToday && styles.calDayTextToday,
                           hasUrgent && styles.calDayTextUrgent,
+                          isPublicHol && !isToday && styles.calDayTextPublicHol,
                         ]}
                       >
                         {cell.day}
@@ -635,6 +657,9 @@ export default function CalendarScreen() {
                           {eventType === 'birthday' ? '🎁' : '🌸'}
                         </Text>
                       )}
+                      {isPublicHol && !hasEvent && (
+                        <View style={styles.calPublicHolDot} />
+                      )}
                     </View>
                   )}
                 </View>
@@ -642,6 +667,24 @@ export default function CalendarScreen() {
             })}
           </View>
         </View>
+
+        {/* ── Jours fériés du mois ── */}
+        {publicHolidaysThisMonth.length > 0 && (
+          <View style={styles.publicHolSection}>
+            <Text style={styles.publicHolTitle}>
+              {COUNTRY_LABELS[country].flag} Jours fériés — {COUNTRY_LABELS[country].label}
+            </Text>
+            {publicHolidaysThisMonth.map((h) => (
+              <View key={h.id} style={styles.publicHolRow}>
+                <Text style={styles.publicHolEmoji}>{h.emoji}</Text>
+                <Text style={styles.publicHolName}>{h.name}</Text>
+                <Text style={styles.publicHolDate}>
+                  {h.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Liste des événements */}
         {eventsThisMonth.length > 0 && (
@@ -743,7 +786,7 @@ export default function CalendarScreen() {
         }).length > 0 && (
           <>
             <Text style={[styles.listTitle, { marginTop: Spacing[5] }]}>
-              {eventType === 'birthday' ? 'Anniversaires des mois suivants :' : 'Fêtes des prénoms des mois suivants :'}
+              {isAll ? 'Anniversaires & fêtes des mois suivants :' : eventType === 'birthday' ? 'Anniversaires des mois suivants :' : 'Fêtes des prénoms des mois suivants :'}
             </Text>
             <View style={styles.eventsList}>
               {filteredEvents
@@ -867,7 +910,8 @@ export default function CalendarScreen() {
         onRequestClose={() => setNameMeaningModal((s) => ({ ...s, visible: false }))}
       >
         <View style={styles.meaningOverlay}>
-          <SafeAreaView style={styles.meaningSheet} edges={['top']}>
+          <SafeAreaView style={styles.meaningSheet} edges={['bottom']}>
+            <View style={styles.meaningHandle} />
             <View style={styles.meaningHeader}>
               <View>
                 <Text style={styles.meaningEyebrow}>✨ En savoir plus sur {nameMeaningModal.name}</Text>
@@ -1000,8 +1044,8 @@ function EventCard({
 function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  backBtn: { paddingHorizontal: Spacing[4], paddingTop: 8, paddingBottom: 4 },
-  backBtnText: { fontSize: 34, color: Colors.primary, lineHeight: 38 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
+  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: Spacing[5], paddingBottom: 100 },
 
@@ -1130,11 +1174,58 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_700Bold',
     color: C.primary,
   },
+  calDayPublicHol: {
+    backgroundColor: '#FEF3C7',
+  },
+  calDayTextPublicHol: {
+    color: '#D97706',
+    fontFamily: 'BeVietnamPro_700Bold',
+  },
+  calPublicHolDot: {
+    position: 'absolute',
+    bottom: 1,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D97706',
+  },
   calEventEmoji: {
     position: 'absolute',
     bottom: 0,
     fontSize: 13,
     lineHeight: 14,
+  },
+  publicHolSection: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    padding: Spacing[4],
+    marginBottom: Spacing[4],
+    gap: 8,
+  },
+  publicHolTitle: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.sm,
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  publicHolRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  publicHolEmoji: { fontSize: 14, width: 20 },
+  publicHolName: {
+    flex: 1,
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: Typography.sm,
+    color: '#78350F',
+  },
+  publicHolDate: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xs,
+    color: '#B45309',
   },
 
   // Liste
@@ -1252,14 +1343,14 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   meaningOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-start',
+    justifyContent: 'flex-end',
   },
   meaningSheet: {
     backgroundColor: Colors.background,
-    borderBottomLeftRadius: Radii['2xl'],
-    borderBottomRightRadius: Radii['2xl'],
+    borderTopLeftRadius: Radii['2xl'],
+    borderTopRightRadius: Radii['2xl'],
     paddingBottom: 24,
-    maxHeight: '80%',
+    maxHeight: '85%',
   },
   meaningHandle: {
     width: 36, height: 4, borderRadius: 2,

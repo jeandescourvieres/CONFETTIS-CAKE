@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Share, ScrollView,
   Modal, TextInput, KeyboardAvoidingView, Platform, Linking,
@@ -14,7 +14,6 @@ import { useUIStore } from '../../../src/stores/uiStore';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { BackHeader } from '../../../src/components/ui/BackHeader';
 import { HelpModal } from '../../../src/components/ui/HelpModal';
-import { useFocusEffect } from 'expo-router';
 import { useColors } from '../../../src/hooks/useColors';
 import { getSignatureLabels } from '../../../src/utils/signature';
 
@@ -87,7 +86,6 @@ export default function ReferralScreen() {
 
   const styles = useMemo(() => makeStyles(C), [C]);
   const scrollRef = useRef<ScrollView>(null);
-  useFocusEffect(useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

@@ -34,6 +34,7 @@ import { useAIGenerate } from '../../../src/hooks/useAIGenerate';
 import { useWritingAssistant } from '../../../src/hooks/useWritingAssistant';
 import { markMessageSent, updateMessageContent, updateMessageStyle, updateMessagePhoto, deleteMessage } from '../../../src/services/messages.service';
 import { buildSignatureText, getSignatureLabels } from '../../../src/utils/signature';
+import { extractFirstName } from '../../../src/utils/nameHelpers';
 import { useCreateGroupMessage, useGroupMessage, formatSigners, groupShareUrl } from '../../../src/hooks/useGroupMessages';
 import { fetchMusicStatus } from '../../../src/services/music.service';
 import { useMusicGeneration } from '../../../src/hooks/useMusicGeneration';
@@ -1306,10 +1307,7 @@ export default function PreviewScreen() {
           setMultiSendProgress({ current: i + 1, total });
 
           // Reconstruire le titre pour ce contact
-          const extraNameParts = extra.name.trim().split(' ');
-          const extraDisplayName = extraNameParts.length > 1
-            ? `${extraNameParts.slice(1).join(' ')} ${extraNameParts[0]}`
-            : extraNameParts[0];
+          const extraDisplayName = extractFirstName(extra.name);
           const extraTitle = `Pour ${extraDisplayName}`;
           const extraBodyText = `${generatedContent}${formuleLine}${closing}`;
           const extraFullText = `${emoji} ${extraTitle}\n\n${extraBodyText}`;

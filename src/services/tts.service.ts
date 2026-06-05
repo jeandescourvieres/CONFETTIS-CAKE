@@ -17,8 +17,24 @@ export async function triggerTTSGeneration(params: {
     body: params,
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Essaie d'extraire le vrai message d'erreur depuis le corps JSON
+    let msg = error.message ?? 'Erreur de génération vocale';
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const body = await (error as any).context?.json?.();
+      if (body?.error) msg = body.error;
+    } catch { /* ignore */ }
+    throw new Error(msg);
+  }
   return data;
+}
+
+// Sauvegarde le choix de musique de fond pour le lecteur vocal
+export async function saveTTSBgMusic(messageId: string, bgMusic: string): Promise<void> {
+  await (supabase.from('messages') as any)
+    .update({ tts_bg_music: bgMusic })
+    .eq('id', messageId);
 }
 
 // Récupère l'état TTS actuel pour un message

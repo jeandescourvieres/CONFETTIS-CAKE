@@ -118,7 +118,7 @@ export default function AgendaScreen() {
     if (item.contactId && item.contactName) {
       setContact(item.contactId, item.contactName, (item.contactRelation ?? 'friend') as any);
       if (item.holidayOccasion) setOccasion(item.holidayOccasion);
-      router.push('/(app)/create/index' as never);
+      router.push('/(app)/create' as never);
     }
   };
 
@@ -248,13 +248,14 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       paddingVertical: Spacing[3],
       gap: 8,
     },
-    backBtn: { padding: 4 },
-    backBtnText: { fontSize: 28, color: C.primary, fontFamily: 'BeVietnamPro_700Bold', lineHeight: 32 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
+    backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
     headerTitle: {
       flex: 1,
-      fontFamily: 'BeVietnamPro_700Bold',
-      fontSize: Typography.xl,
+      fontFamily: 'PlusJakartaSans_800ExtraBold',
+      fontSize: Typography['2xl'],
       color: Colors.onSurface,
+      textAlign: 'center',
     },
     calBtn: { padding: 4 },
     calBtnText: { fontSize: 22 },
@@ -294,17 +295,18 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     introBar: {
       marginHorizontal: Spacing[4],
       marginBottom: Spacing[3],
-      backgroundColor: Colors.surfaceContainerLow,
-      borderRadius: Radii.lg,
+      backgroundColor: C.primaryContainer,
+      borderRadius: Radii.xl,
       paddingHorizontal: Spacing[4],
-      paddingVertical: Spacing[3],
+      paddingVertical: Spacing[4],
+      borderLeftWidth: 4,
+      borderLeftColor: C.primary,
     },
     introText: {
       fontFamily: 'BeVietnamPro_400Regular',
-      fontSize: Typography.sm,
-      color: Colors.onSurfaceVariant,
-      lineHeight: 20,
-      fontStyle: 'italic',
+      fontSize: Typography.md,
+      color: Colors.onSurface,
+      lineHeight: 22,
     },
 
     list: { flex: 1 },

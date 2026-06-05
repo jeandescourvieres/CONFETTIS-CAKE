@@ -192,10 +192,15 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
 
       {/* Topbar */}
-      <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
-        </TouchableOpacity>
+      <View style={styles.topbarWrap}>
+        <View style={styles.topbarTitleRow}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.topbarTitle}>🔍 Recherche</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.topbar}>
         <View style={styles.searchBarWrap}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
@@ -218,6 +223,7 @@ export default function SearchScreen() {
         <TouchableOpacity onPress={() => setHelpVisible(true)} style={styles.helpBtn}>
           <Text style={styles.helpBtnText}>ℹ️</Text>
         </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -353,14 +359,25 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
 
-    topbar: {
-      flexDirection: 'row', alignItems: 'center', gap: 10,
-      paddingHorizontal: Spacing[3], paddingVertical: 10,
+    topbarWrap: {
       borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
       backgroundColor: Colors.surfaceContainerLow,
     },
-    backBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-    backBtnText: { fontSize: 30, color: C.primary, lineHeight: 34 },
+    topbarTitleRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: Spacing[3], paddingTop: 10, paddingBottom: 4,
+    },
+    topbarTitle: {
+      fontFamily: 'PlusJakartaSans_800ExtraBold',
+      fontSize: Typography['2xl'],
+      color: Colors.onSurface,
+    },
+    topbar: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      paddingHorizontal: Spacing[3], paddingBottom: 10,
+    },
+    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
+    backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
     searchBarWrap: {
       flex: 1, flexDirection: 'row', alignItems: 'center',
       backgroundColor: Colors.white, borderRadius: Radii.full,

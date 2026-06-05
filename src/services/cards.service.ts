@@ -59,6 +59,7 @@ export interface CardTemplate {
   occasion: string;
   mood: string;
   mode: CardMode;
+  gender: 'neutral' | 'female' | 'male' | 'child';
   tier: 'free' | 'pro';
   tags: string[];
   sort_order: number;
@@ -81,6 +82,7 @@ export async function fetchCardTemplates(
   occasion?: string | null,
   mood?: string | null,
   mode?: CardMode | null,
+  gender?: string | null,
 ): Promise<CardTemplate[]> {
   let query = supabase
     .from('card_templates')
@@ -91,6 +93,7 @@ export async function fetchCardTemplates(
   if (occasion && occasion !== 'all') query = query.eq('occasion', occasion);
   if (mood)                           query = query.eq('mood', mood);
   if (mode)                           query = query.eq('mode', mode);
+  if (gender && gender !== 'all')     query = query.or(`gender.eq.${gender},gender.eq.neutral`);
 
   const { data, error } = await query;
   if (error) throw error;

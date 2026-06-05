@@ -18,7 +18,8 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
 import Svg, { Polyline, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { supabase } from '../../../src/services/supabase';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
@@ -31,8 +32,18 @@ const SCREEN_W = Dimensions.get('window').width;
 
 const SUGGESTIONS = ['Emma', 'Lucas', 'Jade', 'Léo', 'Anaïs', 'Théo', 'Chloé', 'Noah'];
 
+function withTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), ms)
+    ),
+  ]);
+}
+
 export default function ExplorePrenoms() {
   const router = useRouter();
+  const { initialPrenom } = useLocalSearchParams<{ initialPrenom?: string }>();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
 
@@ -49,6 +60,7 @@ export default function ExplorePrenoms() {
   const [isLoadingInsee, setIsLoadingInsee] = useState(false);
   const [inseeNotFound, setInseeNotFound] = useState(false);
   const [inseeHelpVisible, setInseeHelpVisible] = useState(false);
+  const [numHelpVisible, setNumHelpVisible] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<InseePoint | null>(null);
   const [inseePeakYear, setInseePeakYear] = useState<number | null>(null);
   const [inseePeakCount, setInseePeakCount] = useState<number | null>(null);
@@ -60,7 +72,7 @@ export default function ExplorePrenoms() {
     setSelectedPoint(null);
     setIsLoadingInsee(true);
     try {
-      const { data } = await supabase.functions.invoke('insee-prenoms', { body: { name } });
+      const { data } = await withTimeout(supabase.functions.invoke('insee-prenoms', { body: { name } }));
       if (data?.not_found || !data?.data?.length) {
         setInseeNotFound(true);
       } else {
@@ -99,14 +111,23 @@ export default function ExplorePrenoms() {
     }
 
     try {
-      const { data } = await supabase.functions.invoke('name-meaning', { body: { name: trimmed, type: 'prénom' } });
+      const { data } = await withTimeout(supabase.functions.invoke('name-meaning', { body: { name: trimmed, type: 'prénom' } }));
       setMeaning(data?.meaning ?? 'Signification introuvable pour ce prénom.');
-    } catch {
-      setError('Impossible de charger la signification pour le moment.');
+    } catch (e: any) {
+      if (e?.message === 'timeout') {
+        setError('Service temporairement indisponible — réessaie dans quelques secondes 🔄');
+      } else {
+        setError('Impossible de charger la signification pour le moment.');
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (initialPrenom) handleSearch(initialPrenom);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrenom]);
 
   const handleShare = async () => {
     if (!currentName || !meaning) return;
@@ -123,8 +144,8 @@ export default function ExplorePrenoms() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         {/* Topbar */}
         <View style={styles.topbar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>‹</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+            <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
           </TouchableOpacity>
           <Text style={styles.topbarTitle}>Explorer les prénoms</Text>
           <TouchableOpacity onPress={() => setHelpVisible(true)} style={styles.helpBtn}>
@@ -231,7 +252,12 @@ export default function ExplorePrenoms() {
               {/* Numérologie */}
               {numProfile && (
                 <View style={[styles.numCard, { borderLeftColor: numProfile.color }]}>
-                  <Text style={styles.numTitle}>🔢 Numérologie du prénom</Text>
+                  <View style={styles.numTitleRow}>
+                    <Text style={styles.numTitle}>🔢 Numérologie du prénom</Text>
+                    <TouchableOpacity onPress={() => setNumHelpVisible(true)} style={styles.inseeHelpBtn}>
+                      <Text style={styles.inseeHelpBtnText}>ℹ️</Text>
+                    </TouchableOpacity>
+                  </View>
                   <View style={styles.numHeader}>
                     <View style={[styles.numCircle, { backgroundColor: numProfile.color }]}>
                       <Text style={styles.numCircleText}>{numProfile.number}</Text>
@@ -469,6 +495,30 @@ export default function ExplorePrenoms() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Modal aide — Numérologie */}
+      <Modal visible={numHelpVisible} transparent animationType="fade" onRequestClose={() => setNumHelpVisible(false)}>
+        <TouchableOpacity style={styles.helpModalOverlay} activeOpacity={1} onPress={() => setNumHelpVisible(false)}>
+          <View style={styles.helpModalCard}>
+            <View style={styles.helpModalHeader}>
+              <Text style={styles.helpModalTitle}>Comment fonctionne la numérologie d'un prénom ? 🔢</Text>
+              <TouchableOpacity onPress={() => setNumHelpVisible(false)}><Text style={styles.helpModalClose}>Fermer ✕</Text></TouchableOpacity>
+            </View>
+            {[
+              { title: 'Le calcul', body: "Chaque lettre est convertie en chiffre. Les chiffres sont additionnés jusqu'à obtenir 1-9, sauf 11 et 22 (nombres maîtres)." },
+              { title: 'Exemple JEAN', body: "J=1, E=5, A=1, N=5 → 1+5+1+5 = 12 → 1+2 = 3 — Le Créatif" },
+              { title: 'Le chiffre vibratoire', body: "Révèle la personnalité profonde. Chaque chiffre a un nom et une couleur associés." },
+              { title: 'Le chiffre d\'expression', body: "Ajoute le nom de famille pour calculer le chiffre d'expression — révèle la mission de vie et le potentiel global." },
+              { title: 'Bon à savoir 💡', body: "Les accents sont ignorés (José = JOSE). Les prénoms composés sont calculés comme un seul prénom en ignorant le trait d'union !" },
+            ].map((s) => (
+              <View key={s.title} style={styles.helpModalSection}>
+                <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
+                <Text style={styles.helpModalSectionBody}>{s.body}</Text>
+              </View>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Modal aide — INSEE */}
       <Modal visible={inseeHelpVisible} transparent animationType="fade" onRequestClose={() => setInseeHelpVisible(false)}>
         <TouchableOpacity style={styles.helpModalOverlay} activeOpacity={1} onPress={() => setInseeHelpVisible(false)}>
@@ -541,8 +591,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   topbarTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface },
   helpBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
   helpBtnText: { fontSize: 18 },
@@ -679,6 +729,12 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderColor: Colors.surfaceContainerHighest,
     padding: 14,
     gap: 10,
+  },
+  numTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   numTitle: {
     fontFamily: 'PlusJakartaSans_700Bold',

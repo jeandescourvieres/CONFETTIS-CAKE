@@ -1,12 +1,19 @@
-import React, { useMemo, useState, useEffect } from 'react';
+﻿import React, { useMemo, useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Alert, Share, Modal, TextInput, ActivityIndicator,
 } from 'react-native';
+import { useCountry } from '../../src/hooks/useCountry';
+import { COUNTRY_LABELS, type Country } from '../../src/constants/publicHolidays';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Linking } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../../src/stores/authStore';
+import {
+  useNotifSchedule, NOTIF_PRESETS, CUSTOM_DAY_OPTIONS,
+  type NotifPreset,
+} from '../../src/hooks/useNotifSchedule';
 import { useContacts } from '../../src/hooks/useContacts';
 import { useMessages } from '../../src/hooks/useAIGenerate';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
@@ -14,12 +21,17 @@ import { useColors } from '../../src/hooks/useColors';
 import { supabase } from '../../src/services/supabase';
 
 const LAST_BACKUP_KEY = 'cc_last_backup_at';
+const HOME_MODE_KEY      = 'cc_home_mode';
+const FEATURES_INTRO_KEY = 'cc_features_intro_v1_seen';
 
 // ── Section card ─────────────────────────────────────────────────────────────
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  const C = useColors();
   return (
     <View style={sectionStyles.card}>
-      <Text style={sectionStyles.title}>{title}</Text>
+      <Text style={[sectionStyles.title, {
+        borderLeftColor: C.primary,        color: C.primary,
+      }]}>{title}</Text>
       {children}
     </View>
   );
@@ -33,10 +45,14 @@ const sectionStyles = StyleSheet.create({
     ...Shadows.sm,
   },
   title: {
+    borderLeftWidth: 3,
+    paddingLeft: 8,
+    paddingVertical: 4,
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.base,
-    color: Colors.onSurface,
-    marginBottom: 4,
+    fontSize: Typography.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Spacing[2],
   },
 });
 
@@ -129,29 +145,25 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleExport = async () => {
-    try {
-      const exportData = {
-        version: 1,
-        exported_at: new Date().toISOString(),
-        contacts,
-        messages,
-        profile,
-      };
-      await Share.share({
-        message: JSON.stringify(exportData, null, 2),
-        title: 'Export Confetticake',
-      });
-    } catch { /* cancelled */ }
+  const handleExport = () => {
+    Alert.alert(
+      '📥 Exporter mes données',
+      'Cette fonction est actuellement indisponible.',
+      [{ text: 'OK' }],
+    );
   };
 
   const handleImport = () => {
     Alert.alert(
-      '📤 Importer des données',
-      "L'importation depuis un fichier sera disponible dans la prochaine mise à jour de l'appli 💛",
+      '📤 Importer mes données',
+      'Cette fonction est actuellement indisponible.',
       [{ text: 'OK' }],
     );
   };
+
+  // ── Pays ────────────────────────────────────────────────────────────────────
+  const { country, setCountry } = useCountry();
+  const [countryModalVisible, setCountryModalVisible] = useState(false);
 
   // ── Suppression du compte ────────────────────────────────────────────────────
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0); // 0=hidden 1=warning 2=confirm
@@ -175,8 +187,33 @@ export default function SettingsScreen() {
     }
   };
 
-  // ── Notifications (stubs) ────────────────────────────────────────────────────
-  const handleNotifications = () => router.push('/(app)/notifications/index' as never);
+  // ── Notifications ────────────────────────────────────────────────────────────
+  const handleNotifications = () => router.push('/(app)/notifications' as never);
+  const { preset, customDays, activeDays, save: saveSchedule } = useNotifSchedule();
+  const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
+  const [draftPreset, setDraftPreset] = useState<NotifPreset>('max');
+  const [draftCustomDays, setDraftCustomDays] = useState<number[]>([7, 0]);
+
+  const openScheduleModal = () => {
+    setDraftPreset(preset);
+    setDraftCustomDays(customDays);
+    setScheduleModalVisible(true);
+  };
+
+  const confirmSchedule = async () => {
+    await saveSchedule(draftPreset, draftCustomDays);
+    setScheduleModalVisible(false);
+  };
+
+  const toggleCustomDay = (day: number) => {
+    setDraftCustomDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  };
+
+  const scheduleSubLabel = preset === 'custom'
+    ? activeDays.length === 0 ? 'Aucun rappel' : activeDays.map((d) => d === 0 ? 'Jour J' : `J-${d}`).join(', ')
+    : NOTIF_PRESETS[preset].sub;
 
   const authMethod = user?.app_metadata?.provider === 'google'
     ? 'Google'
@@ -207,6 +244,9 @@ export default function SettingsScreen() {
                : '☁️ Serveurs Confetticake'}
             </Text>
           </View>
+          <Text style={styles.backupExplainText}>
+            Appuie sur le bouton ci-dessous pour exporter tes contacts, messages et profil en JSON. La feuille de partage s'ouvre : envoie-toi le fichier par email, enregistre-le dans Fichiers ou sauvegarde-le où tu veux.
+          </Text>
           {lastBackup && (
             <Text style={styles.lastBackupText}>Dernière sauvegarde : {lastBackup}</Text>
           )}
@@ -238,8 +278,8 @@ export default function SettingsScreen() {
           <RowBtn
             emoji="📅"
             label="Fréquence des rappels"
-            sub="Quotidien, hebdo, mensuel…"
-            onPress={handleNotifications}
+            sub={scheduleSubLabel}
+            onPress={openScheduleModal}
           />
           <Divider />
           <RowBtn
@@ -283,13 +323,36 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </SectionCard>
 
+        {/* ── Mon pays ─────────────────────────────────────── */}
+        <SectionCard title="🌍 Mon pays">
+          <RowBtn
+            emoji={COUNTRY_LABELS[country].flag}
+            label={COUNTRY_LABELS[country].label}
+            sub="Jours fériés affichés dans le calendrier"
+            onPress={() => setCountryModalVisible(true)}
+          />
+        </SectionCard>
+
+        {/* ── Mode d'affichage ─────────────────────────────── */}
+        <SectionCard title="🎛️ Mode d'affichage">
+          <RowBtn
+            emoji="🔄"
+            label="Changer de mode"
+            sub="Passer de Mode Apprentissage à Mode Complet (ou inversement)"
+            onPress={async () => {
+              await SecureStore.deleteItemAsync(HOME_MODE_KEY);
+              router.push('/(app)/features-intro' as never);
+            }}
+          />
+        </SectionCard>
+
         {/* ── Parrainage ───────────────────────────────────── */}
         <SectionCard title="🌟 Parrainage">
           <RowBtn
             emoji="🎁"
             label="Parrainer des amis"
             sub="Gagne des crédits en invitant"
-            onPress={() => router.push('/(app)/referral/index' as never)}
+            onPress={() => router.push('/(app)/referral' as never)}
           />
         </SectionCard>
 
@@ -304,8 +367,163 @@ export default function SettingsScreen() {
           />
         </SectionCard>
 
+        {/* ── Zone développeur (invisible en production) ── */}
+        {__DEV__ && (
+          <SectionCard title="🛠️ Zone développeur">
+            <RowBtn
+              emoji="🔄"
+              label="Simuler premier lancement"
+              sub="Efface les préférences d'onboarding — tes données restent intactes"
+              onPress={async () => {
+                await Promise.all([
+                  SecureStore.deleteItemAsync(HOME_MODE_KEY),
+                  SecureStore.deleteItemAsync(FEATURES_INTRO_KEY),
+                ]);
+                router.replace('/welcome' as never);
+              }}
+            />
+          </SectionCard>
+        )}
+
+        <SectionCard title="⚖️ Légal">
+          <RowBtn
+            emoji="📄"
+            label="Conditions générales d'utilisation"
+            sub="Propriété intellectuelle, droits, règles d'usage"
+            onPress={() => Linking.openURL('https://confetticake.fr/cgu')}
+          />
+          <Divider />
+          <RowBtn
+            emoji="🔒"
+            label="Politique de confidentialité"
+            sub="Données personnelles, RGPD"
+            onPress={() => Linking.openURL('https://confetticake.fr/confidentialite')}
+          />
+        </SectionCard>
+
+        {/* ── Tip : appli qui tourne en rond ── */}
+        <TouchableOpacity
+          style={styles.tipBox}
+          activeOpacity={0.75}
+          onPress={() => Alert.alert(
+            '🔄 L\'appli tourne en rond ?',
+            'Voici comment résoudre le problème :\n\n1. Ferme complètement l\'appli et rouvre-la.\n\n2. Si ça ne suffit pas :\nParamètres du téléphone\n→ Applications → ConfettiCake\n→ Vider le cache\n\n3. En dernier recours : désinstalle et réinstalle l\'appli (tes données sont sauvegardées sur le serveur).',
+            [{ text: 'OK', style: 'default' }]
+          )}
+        >
+          <Text style={styles.tipTitle}>🔄 L'appli tourne en rond ?</Text>
+          <Text style={styles.tipText}>Clique ici pour voir comment résoudre le problème →</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      {/* ── Modal pays ──────────────────────────────────────── */}
+      <Modal visible={countryModalVisible} transparent animationType="slide" onRequestClose={() => setCountryModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>🌍 Choisir mon pays</Text>
+            <Text style={styles.modalBody}>
+              Les jours fériés de ton pays s'afficheront dans le calendrier.
+            </Text>
+            {(Object.keys(COUNTRY_LABELS) as Country[]).map((c) => (
+              <TouchableOpacity
+                key={c}
+                style={[
+                  styles.countryOption,
+                  country === c && { borderColor: C.primary, backgroundColor: C.primaryContainer + '30' },
+                ]}
+                onPress={async () => { await setCountry(c); setCountryModalVisible(false); }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.countryFlag}>{COUNTRY_LABELS[c].flag}</Text>
+                <Text style={[styles.countryLabel, country === c && { color: C.primary }]}>
+                  {COUNTRY_LABELS[c].label}
+                </Text>
+                {country === c && <Text style={{ fontSize: 16, color: C.primary }}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel, { marginTop: 4 }]} onPress={() => setCountryModalVisible(false)}>
+              <Text style={styles.modalBtnCancelText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Modal fréquence rappels ─────────────────────────── */}
+      <Modal visible={scheduleModalVisible} transparent animationType="slide" onRequestClose={() => setScheduleModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>🔔 Fréquence des rappels</Text>
+            <Text style={styles.modalBody}>
+              Choisis quand recevoir tes notifications avant un anniversaire ou une fête.
+            </Text>
+
+            {(Object.keys(NOTIF_PRESETS) as NotifPreset[]).map((p) => (
+              <TouchableOpacity
+                key={p}
+                style={[
+                  styles.countryOption,
+                  draftPreset === p && { borderColor: C.primary, backgroundColor: C.primaryContainer + '30' },
+                ]}
+                onPress={() => setDraftPreset(p)}
+                activeOpacity={0.8}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.countryLabel, draftPreset === p && { color: C.primary }]}>
+                    {NOTIF_PRESETS[p].label}
+                  </Text>
+                  {p !== 'custom' && (
+                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant }}>
+                      {NOTIF_PRESETS[p].sub}
+                    </Text>
+                  )}
+                </View>
+                {draftPreset === p && <Text style={{ fontSize: 16, color: C.primary }}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+
+            {draftPreset === 'custom' && (
+              <View style={{ gap: 8, marginTop: 4 }}>
+                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurface }}>
+                  Sélectionne tes jours de rappel :
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {CUSTOM_DAY_OPTIONS.map((day) => {
+                    const active = draftCustomDays.includes(day);
+                    return (
+                      <TouchableOpacity
+                        key={day}
+                        style={[
+                          { paddingVertical: 8, paddingHorizontal: 14, borderRadius: Radii.full, borderWidth: 1.5 },
+                          active
+                            ? { backgroundColor: C.primary, borderColor: C.primary }
+                            : { backgroundColor: Colors.surfaceContainerLow, borderColor: Colors.outlineVariant },
+                        ]}
+                        onPress={() => toggleCustomDay(day)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: active ? Colors.white : Colors.onSurface }}>
+                          {day === 0 ? 'Jour J' : `J-${day}`}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            <View style={styles.modalBtns}>
+              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setScheduleModalVisible(false)}>
+                <Text style={styles.modalBtnCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: C.primary, flex: 1 }]} onPress={confirmSchedule}>
+                <Text style={[styles.modalBtnDangerText, { color: Colors.white }]}>Confirmer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── Modal suppression — Étape 1 : Avertissement ───── */}
       <Modal visible={deleteStep === 1} transparent animationType="slide" onRequestClose={() => setDeleteStep(0)}>
@@ -376,8 +594,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       flexDirection: 'row', alignItems: 'center',
       paddingHorizontal: Spacing[4], paddingVertical: Spacing[3], gap: 8,
     },
-    backBtn: { padding: 4 },
-    backBtnText: { fontSize: 28, color: C.primary, fontFamily: 'BeVietnamPro_700Bold', lineHeight: 32 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
+    backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
     headerTitle: {
       flex: 1, fontFamily: 'BeVietnamPro_700Bold',
       fontSize: Typography.xl, color: Colors.onSurface, textAlign: 'center',
@@ -387,6 +605,10 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     backupInfo: { gap: 2 },
     backupInfoLabel: { fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.sm, color: Colors.onSurfaceVariant },
     backupInfoValue: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.onSurface },
+    backupExplainText: {
+      fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm,
+      color: Colors.onSurfaceVariant, lineHeight: 20,
+    },
     lastBackupText: {
       fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs,
       color: Colors.onSurfaceVariant,
@@ -437,6 +659,39 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       borderWidth: 1.5, borderColor: Colors.surfaceContainerHighest, borderRadius: Radii.lg,
       paddingHorizontal: Spacing[4], paddingVertical: 12,
       fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: Colors.onSurface,
+    },
+    countryOption: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      paddingVertical: 12, paddingHorizontal: 16,
+      borderRadius: Radii.lg, borderWidth: 1.5,
+      borderColor: Colors.surfaceContainerHighest,
+      marginBottom: 8,
+    },
+    countryFlag: { fontSize: 24 },
+    countryLabel: {
+      flex: 1, fontFamily: 'BeVietnamPro_600SemiBold',
+      fontSize: Typography.base, color: Colors.onSurface,
+    },
+    tipBox: {
+      marginHorizontal: Spacing[4],
+      marginTop: Spacing[4],
+      backgroundColor: C.primaryContainer,
+      borderRadius: Radii.xl,
+      borderLeftWidth: 4,
+      borderLeftColor: C.primary,
+      padding: Spacing[4],
+    },
+    tipTitle: {
+      fontFamily: 'BeVietnamPro_700Bold',
+      fontSize: Typography.base,
+      color: C.primary,
+      marginBottom: 8,
+    },
+    tipText: {
+      fontFamily: 'BeVietnamPro_400Regular',
+      fontSize: Typography.sm,
+      color: Colors.onSurface,
+      lineHeight: 20,
     },
   });
 }

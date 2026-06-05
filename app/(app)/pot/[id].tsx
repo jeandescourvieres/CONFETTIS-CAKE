@@ -124,7 +124,7 @@ function OrganizerView({
   const total = pot.current_amount;
   const target = pot.target_amount;
   const pct = Math.min(Math.round((total / target) * 100), 100);
-  const shareUrl = `https://confettis-cake.app/pot/${pot.share_token}`;
+  const shareUrl = `https://rlwxcbnsqokpirhzzurj.supabase.co/functions/v1/pot-page?token=${pot.share_token}`;
   const contact = pot.contact as { name?: string } | undefined;
 
   return (
@@ -439,8 +439,8 @@ export default function PotDetailScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Topbar */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle} numberOfLines={1}>{pot.title}</Text>
         <HelpModal
@@ -536,8 +536,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   topbarTitle: { flex: 1, fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface, textAlign: 'center' },
 
   hero: {
@@ -558,9 +558,15 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   scrollContent: { paddingBottom: 80 },
   bodySection: { paddingHorizontal: Spacing[4] },
   sectionLabel: {
-    fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs,
-    textTransform: 'uppercase', letterSpacing: 0.8, color: Colors.onSurfaceVariant,
-    marginTop: Spacing[6], marginBottom: Spacing[3],
+    borderLeftWidth: 2,
+    borderLeftColor: C.primary,
+    paddingLeft: 8,
+    paddingVertical: 4,
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: C.primary,
+    marginTop: Spacing[4],
+    marginBottom: Spacing[2],
   },
 
   // Stats (organizer)

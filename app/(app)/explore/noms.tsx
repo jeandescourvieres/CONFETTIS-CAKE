@@ -26,6 +26,15 @@ import { FeatureIntroCard } from '../../../src/components/ui/FeatureIntroCard';
 
 const SUGGESTIONS = ['Martin', 'Dupont', 'Bernard', 'Moreau', 'Petit', 'Durand', 'Leroy', 'Simon'];
 
+function withTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), ms)
+    ),
+  ]);
+}
+
 export default function ExploreNoms() {
   const router = useRouter();
   const C = useColors();
@@ -36,6 +45,7 @@ export default function ExploreNoms() {
   const [meaning, setMeaning] = useState<string | null>(null);
   const [currentName, setCurrentName] = useState<string | null>(null);
   const [helpVisible, setHelpVisible] = useState(false);
+  const [numHelpVisible, setNumHelpVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async (name: string) => {
@@ -48,12 +58,16 @@ export default function ExploreNoms() {
     setIsLoading(true);
 
     try {
-      const { data } = await supabase.functions.invoke('name-meaning', {
+      const { data } = await withTimeout(supabase.functions.invoke('name-meaning', {
         body: { name: trimmed, type: 'nom de famille' },
-      });
+      }));
       setMeaning(data?.meaning ?? 'Signification introuvable pour ce nom de famille.');
-    } catch {
-      setError('Impossible de charger la signification pour le moment.');
+    } catch (e: any) {
+      if (e?.message === 'timeout') {
+        setError('Service temporairement indisponible — réessaie dans quelques secondes 🔄');
+      } else {
+        setError('Impossible de charger la signification pour le moment.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -74,8 +88,8 @@ export default function ExploreNoms() {
 
         {/* Topbar */}
         <View style={styles.topbar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>‹</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+            <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
           </TouchableOpacity>
           <Text style={styles.topbarTitle}>Explorer les noms</Text>
           <TouchableOpacity onPress={() => setHelpVisible(true)} style={styles.helpBtn}>
@@ -181,7 +195,12 @@ export default function ExploreNoms() {
               {/* Numérologie */}
               {numProfile && (
                 <View style={[styles.numCard, { borderLeftColor: numProfile.color }]}>
-                  <Text style={styles.numTitle}>🔢 Numérologie du nom</Text>
+                  <View style={styles.numTitleRow}>
+                    <Text style={styles.numTitle}>🔢 Numérologie du nom</Text>
+                    <TouchableOpacity onPress={() => setNumHelpVisible(true)} style={styles.numHelpBtn}>
+                      <Text style={styles.numHelpBtnText}>ℹ️</Text>
+                    </TouchableOpacity>
+                  </View>
                   <View style={styles.numHeader}>
                     <View style={[styles.numCircle, { backgroundColor: numProfile.color }]}>
                       <Text style={styles.numCircleText}>{numProfile.number}</Text>
@@ -247,6 +266,30 @@ export default function ExploreNoms() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Modal aide — Numérologie */}
+      <Modal visible={numHelpVisible} transparent animationType="fade" onRequestClose={() => setNumHelpVisible(false)}>
+        <TouchableOpacity style={styles.helpModalOverlay} activeOpacity={1} onPress={() => setNumHelpVisible(false)}>
+          <View style={styles.helpModalCard}>
+            <View style={styles.helpModalHeader}>
+              <Text style={styles.helpModalTitle}>Comment fonctionne la numérologie d'un nom ? 🔢</Text>
+              <TouchableOpacity onPress={() => setNumHelpVisible(false)}><Text style={styles.helpModalClose}>Fermer ✕</Text></TouchableOpacity>
+            </View>
+            {[
+              { title: 'Le calcul', body: "Chaque lettre est convertie en chiffre. Les chiffres sont additionnés jusqu'à obtenir 1-9, sauf 11 et 22 (nombres maîtres)." },
+              { title: 'Exemple DUPONT', body: "D=4, U=3, P=7, O=6, N=5, T=2 → 4+3+7+6+5+2 = 27 → 2+7 = 9 — L'Humaniste" },
+              { title: 'Le chiffre du nom', body: "Révèle l'héritage familial et les influences inconscientes transmises de génération en génération." },
+              { title: "Le chiffre d'expression", body: "Ajoute le prénom pour calculer la combinaison prénom+nom — révèle la mission de vie et le potentiel global." },
+              { title: 'Bon à savoir 💡', body: "Les accents sont ignorés. Les noms composés avec trait d'union sont calculés comme un seul nom en ignorant le trait d'union !" },
+            ].map((s) => (
+              <View key={s.title} style={styles.helpModalSection}>
+                <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
+                <Text style={styles.helpModalSectionBody}>{s.body}</Text>
+              </View>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Modal aide */}
       <Modal visible={helpVisible} transparent animationType="fade" onRequestClose={() => setHelpVisible(false)}>
         <TouchableOpacity
@@ -290,8 +333,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   topbarTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface },
   helpBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
   helpBtnText: { fontSize: 18 },
@@ -368,7 +411,10 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderWidth: 0.5, borderColor: C.primaryContainer,
     gap: 12,
   },
+  numTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   numTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.onSurface },
+  numHelpBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
+  numHelpBtnText: { fontSize: 16 },
   numHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   numCircle: {
     width: 52, height: 52, borderRadius: 26,

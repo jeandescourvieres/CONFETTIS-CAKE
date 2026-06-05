@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useColors } from '../../src/hooks/useColors';
 import {
   View,
@@ -9,7 +9,8 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMessages } from '../../src/hooks/useAIGenerate';
 import { deleteMessage, deleteMessages } from '../../src/services/messages.service';
@@ -173,7 +174,7 @@ export default function CreationsScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const scrollRef = useRef<FlatList>(null);
-  useFocusEffect(useCallback(() => { scrollRef.current?.scrollToOffset({ offset: 0, animated: false }); }, []));
+  useTabScrollToTop('creations', () => scrollRef.current?.scrollToOffset({ offset: 0, animated: false }));
 
   const deleteMutation = useMutation({
     mutationFn: deleteMessage,
@@ -288,8 +289,8 @@ export default function CreationsScreen() {
           </>
         ) : (
           <>
-            <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-              <Text style={{ fontSize: 28, color: Colors.primary, lineHeight: 32 }}>‹</Text>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <Text style={styles.backBtnText}>‹</Text>
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mes messages</Text>
             <View style={styles.headerRight}>
@@ -390,6 +391,9 @@ export default function CreationsScreen() {
 function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
+  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
 
   header: {
     flexDirection: 'row',

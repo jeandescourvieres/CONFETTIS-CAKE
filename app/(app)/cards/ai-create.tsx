@@ -1,13 +1,16 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, ActivityIndicator, Share, Alert, Linking,
+  StyleSheet, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useContacts } from '../../../src/hooks/useContacts';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { generateMessageContent } from '../../../src/services/messages.service';
+import { fetchCardTemplates } from '../../../src/services/cards.service';
+import type { CardMode } from '../../../src/services/cards.service';
+import { useCreateStore } from '../../../src/stores/createStore';
 import { Avatar } from '../../../src/components/ui/Avatar';
 import { HelpModal } from '../../../src/components/ui/HelpModal';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
@@ -16,195 +19,216 @@ import type { Contact } from '../../../src/types/models';
 import type { Occasion } from '../../../src/stores/createStore';
 
 // ── Occasions ─────────────────────────────────────────────────────────────────
-const CARD_OCCASIONS: { value: Occasion; label: string; emoji: string }[] = [
-  { value: 'birthday',   label: 'Anniversaire',   emoji: '🎂' },
-  { value: 'nameday',    label: 'Fête de prénom', emoji: '🌸' },
-  { value: 'birth',      label: 'Naissance',      emoji: '👶' },
-  { value: 'baptism',    label: 'Baptême',        emoji: '🕊️' },
-  { value: 'communion',  label: 'Communion',      emoji: '🙏' },
-  { value: 'engagement', label: 'Fiançailles',    emoji: '💍' },
-  { value: 'wedding',    label: 'Mariage',        emoji: '💒' },
-  { value: 'graduation', label: 'Diplôme',        emoji: '🎓' },
-  { value: 'promotion',  label: 'Promotion',      emoji: '🎉' },
-  { value: 'retirement', label: 'Retraite',       emoji: '🌅' },
-  { value: 'newyear',    label: 'Nouvel An',      emoji: '🎆' },
-  { value: 'christmas',  label: 'Noël',           emoji: '🎄' },
-  { value: 'easter',     label: 'Pâques',         emoji: '🐣' },
-  { value: 'valentines', label: 'Saint-Valentin', emoji: '💝' },
-  { value: 'mothersday', label: 'Fête des mères', emoji: '👩' },
-  { value: 'fathersday', label: 'Fête des pères', emoji: '👨' },
-  { value: 'halloween',  label: 'Halloween',      emoji: '🎃' },
-  { value: 'support',    label: 'Soutien',        emoji: '🤍' },
+type CardOccasion = Occasion | 'birthday_late' | 'weekend' | 'courage';
+
+const CARD_OCCASIONS: { value: CardOccasion; label: string; emoji: string }[] = [
+  { value: 'birthday',      label: 'Anniversaire',        emoji: '🎂' },
+  { value: 'birthday_late', label: 'Anniv en retard 😅',  emoji: '⏰' },
+  { value: 'nameday',       label: 'Fête de prénom',      emoji: '🌸' },
+  { value: 'birth',         label: 'Naissance',           emoji: '👶' },
+  { value: 'baptism',       label: 'Baptême',             emoji: '🕊️' },
+  { value: 'communion',     label: 'Communion',           emoji: '🙏' },
+  { value: 'engagement',    label: 'Fiançailles',         emoji: '💍' },
+  { value: 'wedding',       label: 'Mariage',             emoji: '💒' },
+  { value: 'graduation',    label: 'Diplôme',             emoji: '🎓' },
+  { value: 'promotion',     label: 'Promotion',           emoji: '🎉' },
+  { value: 'retirement',    label: 'Retraite',            emoji: '🌅' },
+  { value: 'newyear',       label: 'Nouvel An',           emoji: '🎆' },
+  { value: 'christmas',     label: 'Noël',                emoji: '🎄' },
+  { value: 'easter',        label: 'Pâques',              emoji: '🐣' },
+  { value: 'valentines',    label: 'Saint-Valentin',      emoji: '💝' },
+  { value: 'mothersday',    label: 'Fête des mères',      emoji: '👩' },
+  { value: 'fathersday',    label: 'Fête des pères',      emoji: '👨' },
+  { value: 'halloween',     label: 'Halloween',           emoji: '🎃' },
+  { value: 'support',       label: 'Soutien',             emoji: '🤍' },
+  { value: 'weekend',       label: 'Bon weekend',         emoji: '🌞' },
+  { value: 'courage',       label: 'Bon courage',         emoji: '💪' },
 ];
 
-// ── Styles visuels par occasion ───────────────────────────────────────────────
-const AI_CARD_STYLES: Partial<Record<Occasion, { emoji: string; label: string }[]>> = {
+// ── Styles visuels par occasion (avec mood pour filtrer les templates) ─────────
+type CardStyle = { emoji: string; label: string; mood: string };
+const AI_CARD_STYLES: Partial<Record<CardOccasion, CardStyle[]>> = {
   birthday: [
-    { emoji: '🎉', label: 'Festif & coloré' },
-    { emoji: '🌸', label: 'Floral & élégant' },
-    { emoji: '✨', label: 'Magique & féerique' },
-    { emoji: '😄', label: 'Humoristique & cartoon' },
-    { emoji: '🎨', label: 'Aquarelle & doux' },
-    { emoji: '🎂', label: 'Gourmand & sucré' },
-    { emoji: '🌿', label: 'Nature & bohème' },
-    { emoji: '🌙', label: 'Nocturne & chic' },
+    { emoji: '🎉', label: 'Festif & coloré',           mood: 'joyful'   },
+    { emoji: '🌸', label: 'Floral & élégant',           mood: 'elegant'  },
+    { emoji: '✨', label: 'Magique & féerique',          mood: 'elegant'  },
+    { emoji: '😄', label: 'Humoristique & cartoon',     mood: 'funny'    },
+    { emoji: '🎨', label: 'Aquarelle & doux',            mood: 'tender'   },
+    { emoji: '🎂', label: 'Gourmand & sucré',            mood: 'joyful'   },
+    { emoji: '🌿', label: 'Nature & bohème',             mood: 'tender'   },
+    { emoji: '🌙', label: 'Nocturne & chic',             mood: 'elegant'  },
   ],
   nameday: [
-    { emoji: '🌸', label: 'Floral & délicat' },
-    { emoji: '✨', label: 'Doré & élégant' },
-    { emoji: '🎨', label: 'Aquarelle & poétique' },
-    { emoji: '🌿', label: 'Nature & bohème' },
-    { emoji: '💫', label: 'Étoilé & magique' },
-    { emoji: '🕯️', label: 'Chaleureux & intime' },
+    { emoji: '🌸', label: 'Floral & délicat',           mood: 'tender'   },
+    { emoji: '✨', label: 'Doré & élégant',              mood: 'elegant'  },
+    { emoji: '🎨', label: 'Aquarelle & poétique',        mood: 'tender'   },
+    { emoji: '🌿', label: 'Nature & bohème',             mood: 'tender'   },
+    { emoji: '💫', label: 'Étoilé & magique',            mood: 'elegant'  },
+    { emoji: '🕯️', label: 'Chaleureux & intime',        mood: 'tender'   },
   ],
   birth: [
-    { emoji: '👶', label: 'Doux & pastel' },
-    { emoji: '🌸', label: 'Floral & délicat' },
-    { emoji: '⭐', label: 'Étoilé & féerique' },
-    { emoji: '🐻', label: 'Animaux & mignon' },
-    { emoji: '🌈', label: 'Arc-en-ciel & coloré' },
-    { emoji: '🌿', label: 'Nature & bohème' },
+    { emoji: '👶', label: 'Doux & pastel',               mood: 'tender'   },
+    { emoji: '🌸', label: 'Floral & délicat',            mood: 'tender'   },
+    { emoji: '⭐', label: 'Étoilé & féerique',           mood: 'elegant'  },
+    { emoji: '🐻', label: 'Animaux & mignon',            mood: 'joyful'   },
+    { emoji: '🌈', label: 'Arc-en-ciel & coloré',        mood: 'joyful'   },
+    { emoji: '🌿', label: 'Nature & bohème',             mood: 'tender'   },
   ],
   baptism: [
-    { emoji: '🕊️', label: 'Doux & spirituel' },
-    { emoji: '🌸', label: 'Floral & délicat' },
-    { emoji: '✨', label: 'Doré & solennel' },
-    { emoji: '🌿', label: 'Nature & épuré' },
-    { emoji: '💫', label: 'Céleste & lumineux' },
-    { emoji: '🎨', label: 'Aquarelle & poétique' },
+    { emoji: '🕊️', label: 'Doux & spirituel',           mood: 'tender'   },
+    { emoji: '🌸', label: 'Floral & délicat',            mood: 'tender'   },
+    { emoji: '✨', label: 'Doré & solennel',             mood: 'elegant'  },
+    { emoji: '🌿', label: 'Nature & épuré',              mood: 'tender'   },
+    { emoji: '💫', label: 'Céleste & lumineux',          mood: 'elegant'  },
+    { emoji: '🎨', label: 'Aquarelle & poétique',        mood: 'tender'   },
   ],
   communion: [
-    { emoji: '🕊️', label: 'Spirituel & solennel' },
-    { emoji: '✨', label: 'Doré & élégant' },
-    { emoji: '🌸', label: 'Floral & délicat' },
-    { emoji: '🌿', label: 'Nature & épuré' },
-    { emoji: '💫', label: 'Céleste & lumineux' },
-    { emoji: '🎨', label: 'Aquarelle & doux' },
+    { emoji: '🕊️', label: 'Spirituel & solennel',       mood: 'elegant'  },
+    { emoji: '✨', label: 'Doré & élégant',              mood: 'elegant'  },
+    { emoji: '🌸', label: 'Floral & délicat',            mood: 'tender'   },
+    { emoji: '🌿', label: 'Nature & épuré',              mood: 'tender'   },
+    { emoji: '💫', label: 'Céleste & lumineux',          mood: 'elegant'  },
+    { emoji: '🎨', label: 'Aquarelle & doux',            mood: 'tender'   },
   ],
   engagement: [
-    { emoji: '💍', label: 'Romantique & élégant' },
-    { emoji: '🌸', label: 'Floral & délicat' },
-    { emoji: '✨', label: 'Doré & chic' },
-    { emoji: '💫', label: 'Étoilé & magique' },
-    { emoji: '🎨', label: 'Aquarelle & poétique' },
-    { emoji: '🌙', label: 'Nocturne & romantique' },
+    { emoji: '💍', label: 'Romantique & élégant',        mood: 'romantic' },
+    { emoji: '🌸', label: 'Floral & délicat',            mood: 'tender'   },
+    { emoji: '✨', label: 'Doré & chic',                 mood: 'elegant'  },
+    { emoji: '💫', label: 'Étoilé & magique',            mood: 'elegant'  },
+    { emoji: '🎨', label: 'Aquarelle & poétique',        mood: 'tender'   },
+    { emoji: '🌙', label: 'Nocturne & romantique',       mood: 'romantic' },
   ],
   wedding: [
-    { emoji: '💍', label: 'Romantique & élégant' },
-    { emoji: '🌸', label: 'Floral & bohème' },
-    { emoji: '✨', label: 'Doré & luxueux' },
-    { emoji: '🕊️', label: 'Blanc & solennel' },
-    { emoji: '🎨', label: 'Aquarelle & poétique' },
-    { emoji: '🌙', label: 'Nocturne & chic' },
-    { emoji: '🌿', label: 'Nature & champêtre' },
-    { emoji: '💫', label: 'Étoilé & féerique' },
+    { emoji: '💍', label: 'Romantique & élégant',        mood: 'romantic' },
+    { emoji: '🌸', label: 'Floral & bohème',             mood: 'tender'   },
+    { emoji: '✨', label: 'Doré & luxueux',              mood: 'elegant'  },
+    { emoji: '🕊️', label: 'Blanc & solennel',           mood: 'elegant'  },
+    { emoji: '🎨', label: 'Aquarelle & poétique',        mood: 'tender'   },
+    { emoji: '🌙', label: 'Nocturne & chic',             mood: 'elegant'  },
+    { emoji: '🌿', label: 'Nature & champêtre',          mood: 'tender'   },
+    { emoji: '💫', label: 'Étoilé & féerique',           mood: 'elegant'  },
   ],
   graduation: [
-    { emoji: '🎓', label: 'Académique & solennel' },
-    { emoji: '✨', label: 'Doré & élégant' },
-    { emoji: '🌟', label: 'Étoilé & brillant' },
-    { emoji: '🎉', label: 'Festif & coloré' },
-    { emoji: '🚀', label: 'Moderne & dynamique' },
-    { emoji: '🌿', label: 'Nature & épuré' },
+    { emoji: '🎓', label: 'Académique & solennel',       mood: 'elegant'  },
+    { emoji: '✨', label: 'Doré & élégant',              mood: 'elegant'  },
+    { emoji: '🌟', label: 'Étoilé & brillant',           mood: 'epic'     },
+    { emoji: '🎉', label: 'Festif & coloré',             mood: 'joyful'   },
+    { emoji: '🚀', label: 'Moderne & dynamique',         mood: 'epic'     },
+    { emoji: '🌿', label: 'Nature & épuré',              mood: 'tender'   },
   ],
   promotion: [
-    { emoji: '🚀', label: 'Moderne & dynamique' },
-    { emoji: '✨', label: 'Doré & élégant' },
-    { emoji: '🌟', label: 'Étoilé & brillant' },
-    { emoji: '🎉', label: 'Festif & coloré' },
-    { emoji: '💼', label: 'Professionnel & sobre' },
-    { emoji: '🏆', label: 'Trophée & victoire' },
+    { emoji: '🚀', label: 'Moderne & dynamique',         mood: 'epic'     },
+    { emoji: '✨', label: 'Doré & élégant',              mood: 'elegant'  },
+    { emoji: '🌟', label: 'Étoilé & brillant',           mood: 'epic'     },
+    { emoji: '🎉', label: 'Festif & coloré',             mood: 'joyful'   },
+    { emoji: '💼', label: 'Professionnel & sobre',       mood: 'elegant'  },
+    { emoji: '🏆', label: 'Trophée & victoire',          mood: 'epic'     },
   ],
   retirement: [
-    { emoji: '🌅', label: 'Coucher de soleil & chaleureux' },
-    { emoji: '🌿', label: 'Nature & sérénité' },
-    { emoji: '✈️', label: 'Voyage & aventure' },
-    { emoji: '🎉', label: 'Festif & coloré' },
-    { emoji: '🌸', label: 'Floral & doux' },
-    { emoji: '🎨', label: 'Aquarelle & nostalgique' },
+    { emoji: '🌅', label: 'Coucher de soleil & chaleureux', mood: 'tender' },
+    { emoji: '🌿', label: 'Nature & sérénité',           mood: 'tender'   },
+    { emoji: '✈️', label: 'Voyage & aventure',           mood: 'epic'     },
+    { emoji: '🎉', label: 'Festif & coloré',             mood: 'joyful'   },
+    { emoji: '🌸', label: 'Floral & doux',               mood: 'tender'   },
+    { emoji: '🎨', label: 'Aquarelle & nostalgique',     mood: 'tender'   },
   ],
   newyear: [
-    { emoji: '🎆', label: "Feux d'artifice & festif" },
-    { emoji: '✨', label: 'Doré & pétillant' },
-    { emoji: '🌙', label: 'Nocturne & étoilé' },
-    { emoji: '🥂', label: 'Champagne & chic' },
-    { emoji: '🎉', label: 'Coloré & explosif' },
-    { emoji: '❄️', label: 'Hivernal & magique' },
+    { emoji: '🎆', label: "Feux d'artifice & festif",    mood: 'epic'     },
+    { emoji: '✨', label: 'Doré & pétillant',            mood: 'elegant'  },
+    { emoji: '🌙', label: 'Nocturne & étoilé',           mood: 'elegant'  },
+    { emoji: '🥂', label: 'Champagne & chic',            mood: 'elegant'  },
+    { emoji: '🎉', label: 'Coloré & explosif',           mood: 'joyful'   },
+    { emoji: '❄️', label: 'Hivernal & magique',          mood: 'tender'   },
   ],
   christmas: [
-    { emoji: '🎄', label: 'Traditionnel & chaleureux' },
-    { emoji: '❄️', label: 'Hivernal & féerique' },
-    { emoji: '✨', label: 'Doré & élégant' },
-    { emoji: '🦌', label: 'Renne & cartoon' },
-    { emoji: '🌿', label: 'Nature & rustique' },
-    { emoji: '🕯️', label: 'Bougie & intime' },
-    { emoji: '⛄', label: 'Bonhomme de neige & joyeux' },
-    { emoji: '🎁', label: 'Cadeaux & coloré' },
+    { emoji: '🎄', label: 'Traditionnel & chaleureux',   mood: 'tender'   },
+    { emoji: '❄️', label: 'Hivernal & féerique',         mood: 'tender'   },
+    { emoji: '✨', label: 'Doré & élégant',              mood: 'elegant'  },
+    { emoji: '🦌', label: 'Renne & cartoon',             mood: 'funny'    },
+    { emoji: '🌿', label: 'Nature & rustique',           mood: 'tender'   },
+    { emoji: '🕯️', label: 'Bougie & intime',            mood: 'tender'   },
+    { emoji: '⛄', label: 'Bonhomme de neige & joyeux',  mood: 'joyful'   },
+    { emoji: '🎁', label: 'Cadeaux & coloré',            mood: 'joyful'   },
   ],
   easter: [
-    { emoji: '🐣', label: 'Poussin & mignon' },
-    { emoji: '🌸', label: 'Floral & printanier' },
-    { emoji: '🎨', label: 'Aquarelle & pastel' },
-    { emoji: '🐰', label: 'Lapin & cartoon' },
-    { emoji: '🌿', label: 'Nature & champêtre' },
-    { emoji: '🌈', label: 'Arc-en-ciel & coloré' },
+    { emoji: '🐣', label: 'Poussin & mignon',            mood: 'joyful'   },
+    { emoji: '🌸', label: 'Floral & printanier',         mood: 'tender'   },
+    { emoji: '🎨', label: 'Aquarelle & pastel',          mood: 'tender'   },
+    { emoji: '🐰', label: 'Lapin & cartoon',             mood: 'funny'    },
+    { emoji: '🌿', label: 'Nature & champêtre',          mood: 'tender'   },
+    { emoji: '🌈', label: 'Arc-en-ciel & coloré',        mood: 'joyful'   },
   ],
   valentines: [
-    { emoji: '❤️', label: 'Romantique & passionné' },
-    { emoji: '🌸', label: 'Floral & délicat' },
-    { emoji: '✨', label: 'Doré & élégant' },
-    { emoji: '🎨', label: 'Aquarelle & poétique' },
-    { emoji: '🌙', label: 'Nocturne & romantique' },
-    { emoji: '😄', label: 'Humoristique & décalé' },
-    { emoji: '💫', label: 'Étoilé & magique' },
-    { emoji: '🕯️', label: 'Bougie & intime' },
+    { emoji: '❤️', label: 'Romantique & passionné',      mood: 'romantic' },
+    { emoji: '🌸', label: 'Floral & délicat',            mood: 'tender'   },
+    { emoji: '✨', label: 'Doré & élégant',              mood: 'elegant'  },
+    { emoji: '🎨', label: 'Aquarelle & poétique',        mood: 'tender'   },
+    { emoji: '🌙', label: 'Nocturne & romantique',       mood: 'romantic' },
+    { emoji: '😄', label: 'Humoristique & décalé',       mood: 'funny'    },
+    { emoji: '💫', label: 'Étoilé & magique',            mood: 'elegant'  },
+    { emoji: '🕯️', label: 'Bougie & intime',            mood: 'tender'   },
   ],
   mothersday: [
-    { emoji: '🌸', label: 'Floral & délicat' },
-    { emoji: '💛', label: 'Chaleureux & tendre' },
-    { emoji: '🎨', label: 'Aquarelle & poétique' },
-    { emoji: '🌿', label: 'Nature & bohème' },
-    { emoji: '✨', label: 'Doré & élégant' },
-    { emoji: '👑', label: 'Royal & précieux' },
-    { emoji: '🦋', label: 'Papillon & féerique' },
-    { emoji: '🕯️', label: 'Bougie & intime' },
+    { emoji: '🌸', label: 'Floral & délicat',            mood: 'tender'   },
+    { emoji: '💛', label: 'Chaleureux & tendre',         mood: 'tender'   },
+    { emoji: '🎨', label: 'Aquarelle & poétique',        mood: 'tender'   },
+    { emoji: '🌿', label: 'Nature & bohème',             mood: 'tender'   },
+    { emoji: '✨', label: 'Doré & élégant',              mood: 'elegant'  },
+    { emoji: '👑', label: 'Royal & précieux',            mood: 'elegant'  },
+    { emoji: '🦋', label: 'Papillon & féerique',         mood: 'elegant'  },
+    { emoji: '🕯️', label: 'Bougie & intime',            mood: 'tender'   },
   ],
   fathersday: [
-    { emoji: '💪', label: 'Moderne & dynamique' },
-    { emoji: '🌿', label: 'Nature & aventure' },
-    { emoji: '⚽', label: 'Sport & fun' },
-    { emoji: '🎨', label: 'Graphique & sobre' },
-    { emoji: '🏆', label: 'Trophée & victoire' },
-    { emoji: '🌊', label: 'Marine & élégant' },
-    { emoji: '🎸', label: 'Rock & décalé' },
-    { emoji: '🌲', label: 'Forêt & rustique' },
+    { emoji: '💪', label: 'Moderne & dynamique',         mood: 'epic'     },
+    { emoji: '🌿', label: 'Nature & aventure',           mood: 'tender'   },
+    { emoji: '⚽', label: 'Sport & fun',                 mood: 'joyful'   },
+    { emoji: '🎨', label: 'Graphique & sobre',           mood: 'elegant'  },
+    { emoji: '🏆', label: 'Trophée & victoire',          mood: 'epic'     },
+    { emoji: '🌊', label: 'Marine & élégant',            mood: 'elegant'  },
+    { emoji: '🎸', label: 'Rock & décalé',               mood: 'funny'    },
+    { emoji: '🌲', label: 'Forêt & rustique',            mood: 'tender'   },
   ],
   halloween: [
-    { emoji: '🎃', label: 'Citrouille & classique' },
-    { emoji: '👻', label: 'Fantôme & amusant' },
-    { emoji: '🕷️', label: 'Sombre & mystérieux' },
-    { emoji: '🧙', label: 'Sorcière & magique' },
-    { emoji: '💀', label: 'Squelette & décalé' },
-    { emoji: '🌙', label: 'Nocturne & effrayant' },
-    { emoji: '🦇', label: 'Chauve-souris & gothique' },
-    { emoji: '🍬', label: 'Bonbons & coloré' },
+    { emoji: '🎃', label: 'Citrouille & classique',      mood: 'funny'    },
+    { emoji: '👻', label: 'Fantôme & amusant',           mood: 'funny'    },
+    { emoji: '🕷️', label: 'Sombre & mystérieux',        mood: 'epic'     },
+    { emoji: '🧙', label: 'Sorcière & magique',          mood: 'funny'    },
+    { emoji: '💀', label: 'Squelette & décalé',          mood: 'funny'    },
+    { emoji: '🌙', label: 'Nocturne & effrayant',        mood: 'epic'     },
+    { emoji: '🦇', label: 'Chauve-souris & gothique',    mood: 'epic'     },
+    { emoji: '🍬', label: 'Bonbons & coloré',            mood: 'joyful'   },
   ],
   support: [
-    { emoji: '🕊️', label: 'Doux & apaisant' },
-    { emoji: '🌿', label: 'Nature & sérénité' },
-    { emoji: '🌸', label: 'Floral & délicat' },
-    { emoji: '☀️', label: 'Ensoleillé & positif' },
-    { emoji: '🌈', label: 'Arc-en-ciel & espoir' },
-    { emoji: '💫', label: 'Étoilé & réconfortant' },
+    { emoji: '🕊️', label: 'Doux & apaisant',            mood: 'tender'   },
+    { emoji: '🌿', label: 'Nature & sérénité',           mood: 'tender'   },
+    { emoji: '🌸', label: 'Floral & délicat',            mood: 'tender'   },
+    { emoji: '☀️', label: 'Ensoleillé & positif',        mood: 'joyful'   },
+    { emoji: '🌈', label: 'Arc-en-ciel & espoir',        mood: 'joyful'   },
+    { emoji: '💫', label: 'Étoilé & réconfortant',       mood: 'elegant'  },
+  ],
+  birthday_late: [
+    { emoji: '😅', label: 'Décalé & amusant',            mood: 'funny'    },
+    { emoji: '🎉', label: 'Festif malgré tout',           mood: 'joyful'   },
+    { emoji: '🌸', label: 'Sincère & tendre',            mood: 'tender'   },
+  ],
+  weekend: [
+    { emoji: '☀️', label: 'Ensoleillé & joyeux',         mood: 'joyful'   },
+    { emoji: '🌿', label: 'Zen & nature',                 mood: 'tender'   },
+    { emoji: '✨', label: 'Lumineux & doux',              mood: 'elegant'  },
+  ],
+  courage: [
+    { emoji: '💪', label: 'Motivant & épique',            mood: 'epic'     },
+    { emoji: '🌸', label: 'Doux & bienveillant',          mood: 'tender'   },
+    { emoji: '✨', label: 'Lumineux & positif',           mood: 'elegant'  },
   ],
 };
 
 // Fallback si une occasion n'a pas de styles définis
-const DEFAULT_STYLES = [
-  { emoji: '✨', label: 'Élégant & lumineux' },
-  { emoji: '🌸', label: 'Floral & délicat' },
-  { emoji: '🎨', label: 'Aquarelle & doux' },
-  { emoji: '🌿', label: 'Nature & épuré' },
+const DEFAULT_STYLES: CardStyle[] = [
+  { emoji: '✨', label: 'Élégant & lumineux', mood: 'elegant' },
+  { emoji: '🌸', label: 'Floral & délicat',   mood: 'tender'  },
+  { emoji: '🎉', label: 'Festif & coloré',    mood: 'joyful'  },
+  { emoji: '🌿', label: 'Nature & épuré',     mood: 'tender'  },
 ];
 
 type BirthdayDisplayOption = 'name' | 'age' | 'both' | 'none';
@@ -222,9 +246,9 @@ export default function AICardCreateScreen() {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [contactSearch, setContactSearch] = useState('');
-  const [selectedOccasion, setSelectedOccasion] = useState<Occasion | null>(null);
+  const [selectedOccasion, setSelectedOccasion] = useState<CardOccasion | null>(null);
   const [birthdayDisplay, setBirthdayDisplay] = useState<BirthdayDisplayOption>('name');
-  const [selectedStyle, setSelectedStyle] = useState<{ emoji: string; label: string } | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<CardStyle | null>(null);
   const [message, setMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -254,13 +278,20 @@ export default function AICardCreateScreen() {
     if (!selectedContact || !selectedOccasion) return;
     setIsGenerating(true);
     try {
+      // Mapping card-only occasions → occasion IA la plus proche
+      const occasionForAI: Occasion =
+        selectedOccasion === 'birthday_late' ? 'birthday' :
+        selectedOccasion === 'weekend'       ? 'greetings' :
+        selectedOccasion === 'courage'       ? 'support' :
+        selectedOccasion as Occasion;
+
       const content = await generateMessageContent({
         format: 'message',
         tone: 'touching',
         relation: selectedContact.relation,
         contact_name: firstName,
         age: selectedContact.birthday ? undefined : undefined,
-        occasion: selectedOccasion,
+        occasion: occasionForAI,
         style_hint: 'Court',
         language,
       });
@@ -272,51 +303,66 @@ export default function AICardCreateScreen() {
     }
   }, [selectedContact, selectedOccasion, firstName]);
 
-  // ── Génération carte DALL-E ──────────────────────────────────────────────────
+  // ── Génération carte — sélection intelligente de template ───────────────────
   const handleGenerateCard = useCallback(async () => {
+    if (!selectedContact || !selectedOccasion) return;
     setIsGeneratingCard(true);
-    // TODO: appel edge function generate-ai-card (DALL-E)
-    await new Promise((r) => setTimeout(r, 1500)); // placeholder
-    setIsGeneratingCard(false);
-    setStep(5);
-  }, []);
-
-  // ── Partage réseaux sociaux ──────────────────────────────────────────────────
-  const handleSocialShare = useCallback(async (app: 'instagram' | 'facebook') => {
-    const schemes: Record<string, string> = {
-      instagram: 'instagram://',
-      facebook: 'fb://',
-    };
-    const names: Record<string, string> = {
-      instagram: 'Instagram',
-      facebook: 'Facebook',
-    };
-    const scheme = schemes[app];
-    const canOpen = await Linking.canOpenURL(scheme).catch(() => false);
-    if (!canOpen) {
-      Alert.alert(
-        `${names[app]} non installé`,
-        `${names[app]} n'est pas installé sur ton téléphone 😊`,
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-    await Linking.openURL(scheme).catch(() => {
-      Alert.alert('Erreur', `Impossible d'ouvrir ${names[app]}.`);
-    });
-  }, []);
-
-  // ── Partage ──────────────────────────────────────────────────────────────────
-  const handleShare = useCallback(async () => {
-    const occ = CARD_OCCASIONS.find((o) => o.value === selectedOccasion);
-    const shareText =
-      `${occ?.emoji ?? '✨'} Carte pour ${firstName}\n\n${message}\n\nCréé avec Confettis & Cake 🎂💛`;
     try {
-      await Share.share({ message: shareText });
+      // Déterminer le mode selon l'option anniversaire
+      const targetMode: CardMode = selectedOccasion === 'birthday'
+        ? (birthdayDisplay === 'age' ? 'age' : birthdayDisplay === 'both' ? 'age_name' : 'name')
+        : 'name';
+
+      // Chercher des templates correspondant à l'occasion + mood visuel + mode
+      const mood = selectedStyle?.mood ?? null;
+      let templates = await fetchCardTemplates(selectedOccasion, mood, targetMode);
+      if (templates.length === 0) {
+        // Fallback : même occasion sans filtre mood
+        templates = await fetchCardTemplates(selectedOccasion, null, targetMode);
+      }
+      if (templates.length === 0) {
+        // Fallback : même occasion sans aucun filtre
+        templates = await fetchCardTemplates(selectedOccasion);
+      }
+      if (templates.length === 0) {
+        // Dernier recours : template universel
+        templates = await fetchCardTemplates('universal');
+      }
+      if (templates.length === 0) throw new Error('no-template');
+
+      // Choisir aléatoirement parmi les templates correspondants
+      const picked = templates[Math.floor(Math.random() * templates.length)];
+
+      // Pré-remplir le store de création pour "Ajouter un message"
+      const store = useCreateStore.getState();
+      store.setCardTemplateId(picked.id);
+      store.setContact(selectedContact.id, selectedContact.name, selectedContact.relation);
+      const occasionForStore: Occasion =
+        selectedOccasion === 'birthday_late' ? 'birthday' :
+        selectedOccasion === 'weekend'       ? 'greetings' :
+        selectedOccasion === 'courage'       ? 'support' :
+        selectedOccasion as Occasion;
+      store.setOccasion(occasionForStore);
+      store.setMessageLanguage(language as Parameters<typeof store.setMessageLanguage>[0]);
+      if (message.trim()) {
+        store.setGeneratedContent(message.trim());
+      }
+
+      // Naviguer vers l'aperçu de la carte
+      router.push({
+        pathname: '/(app)/cards/[id]',
+        params: {
+          id: picked.id,
+          contactName: firstName,
+          contactId: selectedContact.id,
+        },
+      } as never);
     } catch {
-      // ignore
+      Alert.alert('Erreur', 'Impossible de trouver une carte pour cette occasion. Réessaie.');
+      setIsGeneratingCard(false);
     }
-  }, [firstName, message, selectedOccasion]);
+  }, [selectedContact, selectedOccasion, birthdayDisplay, firstName, message, language, router]);
+
 
   // ── Navigation ───────────────────────────────────────────────────────────────
   const goBack = () => {
@@ -330,8 +376,8 @@ export default function AICardCreateScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={goBack} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+        <TouchableOpacity onPress={goBack} style={styles.backLink}>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>Carte IA personnalisée</Text>
@@ -388,7 +434,7 @@ export default function AICardCreateScreen() {
                   <TouchableOpacity
                     key={c.id}
                     style={[styles.contactRow, selected && { borderColor: C.primary, backgroundColor: C.primaryContainer + '40' }]}
-                    onPress={() => setSelectedContact(c)}
+                    onPress={() => { setSelectedContact(c); setStep(2); }}
                     activeOpacity={0.8}
                   >
                     <Avatar uri={c.avatar_url} name={c.name} size="sm" />
@@ -608,137 +654,118 @@ export default function AICardCreateScreen() {
           </>
         )}
 
-        {/* ── Étape 5 — Envoi ──────────────────────────── */}
+        {/* ── Étape 5 — Récapitulatif & envoi ─────────────── */}
         {step === 5 && (
           <>
-            <Text style={styles.stepTitle}>📲 Ta carte est prête !</Text>
-            <Text style={styles.stepSub}>
-              Choisis comment envoyer ta carte à {firstName}.
-            </Text>
+            <Text style={styles.stepTitle}>🚀 Tout est prêt !</Text>
+            <Text style={styles.stepSub}>Vérifie le récapitulatif de ta carte avant de la générer.</Text>
 
-            {/* Récap de la carte */}
-            <View style={[styles.cardRecap, { borderColor: C.primaryContainer, backgroundColor: C.primaryContainer + '30' }]}>
-              <Text style={styles.cardRecapRow}>
-                <Text style={styles.cardRecapLabel}>Contact : </Text>
-                {selectedContact?.name}
-              </Text>
-              <Text style={styles.cardRecapRow}>
-                <Text style={styles.cardRecapLabel}>Occasion : </Text>
-                {selectedOccasionInfo?.emoji} {selectedOccasionInfo?.label}
-              </Text>
-              {selectedStyle && (
-                <Text style={styles.cardRecapRow}>
-                  <Text style={styles.cardRecapLabel}>Style : </Text>
-                  {selectedStyle.emoji} {selectedStyle.label}
-                </Text>
-              )}
-              <Text style={[styles.cardRecapMessage, { borderTopColor: C.primaryContainer }]} numberOfLines={4}>
-                {message}
-              </Text>
-            </View>
-
-            {/* Bouton partager */}
-            <TouchableOpacity
-              style={[styles.shareBtn, { backgroundColor: C.primary }]}
-              onPress={handleShare}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.shareBtnText}>📲 Partager la carte</Text>
-            </TouchableOpacity>
-
-            {/* Partage réseaux sociaux */}
-            <View style={[styles.socialSection, { borderColor: C.primaryContainer, backgroundColor: C.primaryContainer + '20' }]}>
-              <Text style={styles.socialInfo}>
-                ℹ️ Seule la carte visuelle sera partagée sur les réseaux sociaux — ton message personnel ne sera pas visible pour respecter la vie privée de ton proche 💛
-              </Text>
-              <View style={styles.socialRow}>
-                <TouchableOpacity
-                  style={[styles.socialBtn, { borderColor: '#E1306C' }]}
-                  onPress={() => handleSocialShare('instagram')}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.socialBtnEmoji}>📸</Text>
-                  <Text style={[styles.socialBtnText, { color: '#E1306C' }]}>Instagram</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.socialBtn, { borderColor: '#1877F2' }]}
-                  onPress={() => handleSocialShare('facebook')}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.socialBtnEmoji}>👥</Text>
-                  <Text style={[styles.socialBtnText, { color: '#1877F2' }]}>Facebook</Text>
-                </TouchableOpacity>
+            <View style={[styles.recapCard, { borderColor: C.primaryContainer, backgroundColor: C.primaryContainer + '30' }]}>
+              <View style={styles.recapRow}>
+                <Text style={styles.recapIcon}>👤</Text>
+                <View style={styles.recapInfo}>
+                  <Text style={styles.recapLabel}>Destinataire</Text>
+                  <Text style={styles.recapValue}>{selectedContact?.name ?? '—'}</Text>
+                </View>
+              </View>
+              <View style={styles.recapDivider} />
+              <View style={styles.recapRow}>
+                <Text style={styles.recapIcon}>{selectedOccasionInfo?.emoji ?? '🎉'}</Text>
+                <View style={styles.recapInfo}>
+                  <Text style={styles.recapLabel}>Occasion</Text>
+                  <Text style={styles.recapValue}>{selectedOccasionInfo?.label ?? '—'}</Text>
+                </View>
+              </View>
+              <View style={styles.recapDivider} />
+              <View style={styles.recapRow}>
+                <Text style={styles.recapIcon}>{selectedStyle?.emoji ?? '🎨'}</Text>
+                <View style={styles.recapInfo}>
+                  <Text style={styles.recapLabel}>Style visuel</Text>
+                  <Text style={styles.recapValue}>{selectedStyle?.label ?? '—'}</Text>
+                </View>
+              </View>
+              <View style={styles.recapDivider} />
+              <View style={styles.recapRow}>
+                <Text style={styles.recapIcon}>✍️</Text>
+                <View style={styles.recapInfo}>
+                  <Text style={styles.recapLabel}>Message</Text>
+                  <Text style={styles.recapValue} numberOfLines={3}>{message.trim() || '—'}</Text>
+                </View>
               </View>
             </View>
 
-            {/* Régénérer */}
-            <TouchableOpacity
-              style={[styles.regenBtn, { borderColor: C.primary }]}
-              onPress={() => { setStep(3); setSelectedStyle(null); }}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.regenBtnText, { color: C.primary }]}>🔄 Régénérer une nouvelle carte</Text>
-            </TouchableOpacity>
+            <Text style={[styles.stepSub, { marginTop: 8, textAlign: 'center' }]}>
+              La carte sera générée avec le style visuel choisi. Tu pourras l'envoyer par WhatsApp, SMS, email ou lien partageable.
+            </Text>
           </>
         )}
+
       </ScrollView>
 
       {/* Bouton Suivant / Générer la carte */}
-      {step < 5 && (
-        <View style={styles.footer}>
-          {step === 1 && (
-            <TouchableOpacity
-              style={[styles.nextBtn, { backgroundColor: selectedContact ? C.primary : Colors.surfaceContainerHighest }]}
-              onPress={() => selectedContact && setStep(2)}
-              activeOpacity={0.85}
-              disabled={!selectedContact}
-            >
-              <Text style={[styles.nextBtnText, !selectedContact && { color: Colors.onSurfaceVariant }]}>
-                Suivant — Choisir l'occasion →
-              </Text>
-            </TouchableOpacity>
-          )}
-          {step === 2 && (
-            <TouchableOpacity
-              style={[styles.nextBtn, { backgroundColor: selectedOccasion ? C.primary : Colors.surfaceContainerHighest }]}
-              onPress={() => selectedOccasion && setStep(3)}
-              activeOpacity={0.85}
-              disabled={!selectedOccasion}
-            >
-              <Text style={[styles.nextBtnText, !selectedOccasion && { color: Colors.onSurfaceVariant }]}>
-                Suivant — Choisir le style →
-              </Text>
-            </TouchableOpacity>
-          )}
-          {step === 3 && (
-            <TouchableOpacity
-              style={[styles.nextBtn, { backgroundColor: selectedStyle ? C.primary : Colors.surfaceContainerHighest }]}
-              onPress={async () => { if (!selectedStyle) return; await handleGenerateMessage(); setStep(4); }}
-              activeOpacity={0.85}
-              disabled={!selectedStyle}
-            >
-              <Text style={[styles.nextBtnText, !selectedStyle && { color: Colors.onSurfaceVariant }]}>
-                Suivant — Générer le message →
-              </Text>
-            </TouchableOpacity>
-          )}
-          {step === 4 && (
-            <TouchableOpacity
-              style={[styles.nextBtn, { backgroundColor: message.trim() ? C.primary : Colors.surfaceContainerHighest }, isGeneratingCard && { opacity: 0.6 }]}
-              onPress={handleGenerateCard}
-              activeOpacity={0.85}
-              disabled={!message.trim() || isGeneratingCard}
-            >
-              {isGeneratingCard
-                ? <ActivityIndicator color={Colors.white} />
-                : <Text style={[styles.nextBtnText, !message.trim() && { color: Colors.onSurfaceVariant }]}>
-                    ✨ Créer ma carte →
-                  </Text>
-              }
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+      <View style={styles.footer}>
+        {step === 1 && (
+          <TouchableOpacity
+            style={[styles.nextBtn, { backgroundColor: selectedContact ? C.primary : Colors.surfaceContainerHighest }]}
+            onPress={() => selectedContact && setStep(2)}
+            activeOpacity={0.85}
+            disabled={!selectedContact}
+          >
+            <Text style={[styles.nextBtnText, !selectedContact && { color: Colors.onSurfaceVariant }]}>
+              Suivant — Choisir l'occasion →
+            </Text>
+          </TouchableOpacity>
+        )}
+        {step === 2 && (
+          <TouchableOpacity
+            style={[styles.nextBtn, { backgroundColor: selectedOccasion ? C.primary : Colors.surfaceContainerHighest }]}
+            onPress={() => selectedOccasion && setStep(3)}
+            activeOpacity={0.85}
+            disabled={!selectedOccasion}
+          >
+            <Text style={[styles.nextBtnText, !selectedOccasion && { color: Colors.onSurfaceVariant }]}>
+              Suivant — Choisir le style →
+            </Text>
+          </TouchableOpacity>
+        )}
+        {step === 3 && (
+          <TouchableOpacity
+            style={[styles.nextBtn, { backgroundColor: selectedStyle ? C.primary : Colors.surfaceContainerHighest }]}
+            onPress={async () => { if (!selectedStyle) return; await handleGenerateMessage(); setStep(4); }}
+            activeOpacity={0.85}
+            disabled={!selectedStyle}
+          >
+            <Text style={[styles.nextBtnText, !selectedStyle && { color: Colors.onSurfaceVariant }]}>
+              Suivant — Générer le message →
+            </Text>
+          </TouchableOpacity>
+        )}
+        {step === 4 && (
+          <TouchableOpacity
+            style={[styles.nextBtn, { backgroundColor: message.trim() ? C.primary : Colors.surfaceContainerHighest }]}
+            onPress={() => message.trim() && setStep(5)}
+            activeOpacity={0.85}
+            disabled={!message.trim()}
+          >
+            <Text style={[styles.nextBtnText, !message.trim() && { color: Colors.onSurfaceVariant }]}>
+              Suivant — Récapitulatif →
+            </Text>
+          </TouchableOpacity>
+        )}
+        {step === 5 && (
+          <TouchableOpacity
+            style={[styles.nextBtn, { backgroundColor: C.primary }, isGeneratingCard && { opacity: 0.6 }]}
+            onPress={handleGenerateCard}
+            activeOpacity={0.85}
+            disabled={isGeneratingCard}
+          >
+            {isGeneratingCard
+              ? <ActivityIndicator color={Colors.white} />
+              : <Text style={styles.nextBtnText}>✨ Générer et voir ma carte →</Text>
+            }
+          </TouchableOpacity>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -755,8 +782,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.surfaceContainerHighest,
   },
-  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   headerCenter: { flex: 1, alignItems: 'center' },
   title: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
@@ -1062,6 +1089,40 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   regenBtnText: {
     fontFamily: 'BeVietnamPro_600SemiBold',
     fontSize: Typography.sm,
+  },
+
+  // Step 5 — Récapitulatif
+  recapCard: {
+    borderWidth: 1.5,
+    borderRadius: Radii.xl,
+    overflow: 'hidden',
+  },
+  recapRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: Spacing[4],
+  },
+  recapIcon: { fontSize: 22, marginTop: 2 },
+  recapInfo: { flex: 1 },
+  recapLabel: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  recapValue: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.base,
+    color: Colors.onSurface,
+    lineHeight: 22,
+  },
+  recapDivider: {
+    height: 0.5,
+    backgroundColor: Colors.surfaceContainerHighest,
+    marginHorizontal: Spacing[4],
   },
 
   // Langue

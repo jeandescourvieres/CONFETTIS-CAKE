@@ -11,14 +11,46 @@ const corsHeaders = {
 
 const VALID_EMOJIS = ['❤️', '😂', '😍', '🙏', '😭', '🎉'];
 
+function displayName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const first = parts.filter((p) => !(p === p.toUpperCase() && /[A-Z]/.test(p)));
+  return first.join(' ') || parts[0] || name;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const supabaseUrl    = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+  // ── GET : métadonnées du message (bg_theme, destinataire) ──────────────────
+  if (req.method === 'GET') {
+    const url = new URL(req.url);
+    const id  = url.searchParams.get('id') ?? '';
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'id manquant' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const sb = createClient(supabaseUrl, serviceRoleKey);
+    const { data: msg } = await (sb.from('messages') as any)
+      .select('contact_name, bg_theme')
+      .eq('id', id)
+      .single();
+    if (!msg) {
+      return new Response(JSON.stringify({ error: 'not_found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    return new Response(JSON.stringify({
+      bg_theme:  msg.bg_theme  ?? 'none',
+      recipient: displayName(msg.contact_name ?? ''),
+    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   try {
-    const supabaseUrl    = Deno.env.get('SUPABASE_URL') ?? '';
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 

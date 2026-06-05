@@ -62,7 +62,20 @@
       "Bash(grep *)",
       "Bash(sed -n '7,40p' C:/Users/HYDROFOLLIES/confettis-cake/src/utils/generalHolidays.ts)",
       "Bash(sed -n '1,40p' C:/Users/HYDROFOLLIES/confettis-cake/src/hooks/useCustomEvents.ts)",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); deps={**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}; [print\\(k\\) for k in sorted\\(deps.keys\\(\\)\\) if any\\(x in k for x in ['sharing','document','async','storage','file']\\)]\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); deps={**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}; [print\\(k\\) for k in sorted\\(deps.keys\\(\\)\\) if any\\(x in k for x in ['sharing','document','async','storage','file']\\)]\")",
+      "Bash(powershell *)",
+      "Bash(n\\\\\")",
+      "Bash(Write-Host 'Total lines:' '$lines.Count')",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\HYDROFOLLIES\\\\confettis-cake\\\\supabase\\\\migrations\\\\\" | Where-Object { $_.Name -match 'pet' })",
+      "Bash(git -C \"C:/Users/HYDROFOLLIES/confettis-cake\" show e340136:app/\\\\\\(app\\\\\\)/index.tsx)",
+      "Bash(Copy-Item *)",
+      "WebFetch(domain:www.joliecarte.com)",
+      "Bash(supabase db *)",
+      "Bash(eas build *)",
+      "Bash(supabase secrets *)",
+      "mcp__plugin_supabase_supabase__execute_sql",
+      "Bash(git push *)",
+      "PowerShell(Stop-Process *)"
     ]
   }
 }

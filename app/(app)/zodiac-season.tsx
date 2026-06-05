@@ -7,13 +7,14 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { BackHeader } from '../../src/components/ui/BackHeader';
 import { useContacts } from '../../src/hooks/useContacts';
 import { useCreateStore } from '../../src/stores/createStore';
-import { getCurrentZodiacSign, getContactsInZodiacSeason } from '../../src/utils/zodiac';
+import { getCurrentZodiacSign, getContactsInZodiacSeason, getZodiacPortrait } from '../../src/utils/zodiac';
 
 export default function ZodiacSeasonScreen() {
   const C = useColors();
@@ -22,7 +23,7 @@ export default function ZodiacSeasonScreen() {
   const { data: contacts = [] } = useContacts();
   const { reset, setContact, setOccasion } = useCreateStore();
   const scrollRef = useRef<ScrollView>(null);
-  useFocusEffect(useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []));
+  useTabScrollToTop('zodiac-season', () => scrollRef.current?.scrollTo({ y: 0, animated: false }));
 
   const currentSign = getCurrentZodiacSign();
   const seasonContacts = useMemo(() => getContactsInZodiacSeason(contacts), [contacts]);
@@ -40,13 +41,25 @@ export default function ZodiacSeasonScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <BackHeader title="" />
+      <BackHeader title="⭐ Zodiaque" />
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* ── Intro ────────────────────────────────── */}
+        <View style={styles.introCard}>
+          <Text style={styles.introTitle}>✨ Le signe du moment</Text>
+          <Text style={styles.introText}>
+            {'Chaque mois, un nouveau signe est en saison. Retrouve ici ses grandes caractéristiques et découvre lesquels de tes contacts sont nés sous ce signe — pour leur envoyer un message personnalisé qui leur ressemble vraiment.'}
+          </Text>
+        </View>
 
         {/* ── En-tête ──────────────────────────────── */}
         <View style={styles.header}>
           <Text style={styles.headerEyebrow}>En saison ✨</Text>
-          <Text style={styles.headerSign}>{currentSign.emoji}  {currentSign.name}</Text>
+          <View style={styles.headerPortraitRow}>
+            <Text style={styles.headerSignEmoji}>{currentSign.emoji}</Text>
+            <Text style={styles.headerPortrait}>{getZodiacPortrait(currentSign.name)}</Text>
+          </View>
+          <Text style={styles.headerSign}>{currentSign.name}</Text>
           <Text style={styles.headerDates}>{currentSign.dateRange}</Text>
         </View>
 
@@ -151,6 +164,31 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     container: { flex: 1, backgroundColor: Colors.background },
     content: { paddingBottom: 80 },
 
+    introCard: {
+      marginHorizontal: Spacing[4],
+      marginTop: Spacing[4],
+      backgroundColor: '#EDE9FE',
+      borderRadius: Radii.xl,
+      padding: Spacing[4],
+      gap: 6,
+      borderTopWidth: 1.5,
+      borderBottomWidth: 1.5,
+      borderLeftWidth: 1.5,
+      borderRightWidth: 1.5,
+      borderColor: '#A78BFA',
+    },
+    introTitle: {
+      fontFamily: 'PlusJakartaSans_800ExtraBold',
+      fontSize: Typography.lg,
+      color: '#5B21B6',
+    },
+    introText: {
+      fontFamily: 'BeVietnamPro_400Regular',
+      fontSize: Typography.md,
+      color: '#4C1D95',
+      lineHeight: 22,
+    },
+
     header: {
       paddingHorizontal: Spacing[4],
       paddingTop: Spacing[4],
@@ -162,8 +200,16 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       fontSize: Typography.base,
       color: C.primary,
       letterSpacing: 0.5,
-      marginBottom: 4,
+      marginBottom: 8,
     },
+    headerPortraitRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 8,
+    },
+    headerSignEmoji: { fontSize: 42, lineHeight: 52 },
+    headerPortrait:  { fontSize: 52, lineHeight: 62 },
     headerSign: {
       fontFamily: 'PlusJakartaSans_800ExtraBold',
       fontSize: Typography['3xl'],

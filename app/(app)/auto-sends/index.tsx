@@ -42,8 +42,8 @@ export default function AutoSendsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-          <Text style={{ fontSize: 28, color: Colors.primary, lineHeight: 32 }}>‹</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>Envois automatiques 🤖</Text>
         <TouchableOpacity
@@ -161,6 +161,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
       backgroundColor: Colors.surfaceContainerLow,
     },
+    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
+    backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
     topbarTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface },
     addBtn: {
       width: 36, height: 36, borderRadius: 18,

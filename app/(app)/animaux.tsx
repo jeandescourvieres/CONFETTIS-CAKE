@@ -5,6 +5,22 @@ import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { useContacts } from '../../src/hooks/useContacts';
+import { BackHeader } from '../../src/components/ui/BackHeader';
+
+const PET_TYPE_LABEL: Record<string, string> = {
+  chien:        '🐶 Chien',
+  chat:         '🐱 Chat',
+  lapin:        '🐰 Lapin',
+  perroquet:    '🦜 Perroquet',
+  hamster:      '🐹 Hamster',
+  poisson:      '🐠 Poisson',
+  cheval:       '🐴 Cheval',
+  oiseau:       '🐦 Oiseau',
+  cochon_d_inde:'🐹 Cochon d\'Inde',
+  souris:       '🐭 Souris',
+  tortue:       '🐢 Tortue',
+  autre:        '🐾 Animal',
+};
 
 export default function AnimauxScreen() {
   const router = useRouter();
@@ -17,15 +33,18 @@ export default function AnimauxScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>🐾 Mes animaux</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <BackHeader title="🐾 Mes animaux" />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* Intro */}
+        <View style={styles.introCard}>
+          <Text style={styles.introTitle}>Messages depuis le monde animal 😄</Text>
+          <Text style={styles.introText}>
+            {'Ajoute les animaux de tes contacts pour débloquer deux types de messages fun :\n\n🎂 Un message adressé directement à l\'animal — son anniversaire mérite d\'être fêté !\n\n💌 Un message écrit par toi-même, comme si c\'était l\'animal qui tenait la plume — jalousie, réclamations de croquettes, déclarations d\'amour à son maître… l\'IA se glisse dans sa tête.'}
+          </Text>
+        </View>
+
         {pets.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>🐶🐱🐰🦜🐹🐠🐴</Text>
@@ -40,10 +59,13 @@ export default function AnimauxScreen() {
                 { emoji: '🐶', label: 'Chien' },
                 { emoji: '🐱', label: 'Chat' },
                 { emoji: '🐰', label: 'Lapin' },
-                { emoji: '🦜', label: 'Perroquet' },
-                { emoji: '🐹', label: 'Hamster' },
-                { emoji: '🐠', label: 'Poisson' },
+                { emoji: '🐦', label: 'Oiseau' },
                 { emoji: '🐴', label: 'Cheval' },
+                { emoji: '🐹', label: 'Hamster' },
+                { emoji: '🦜', label: 'Perroquet' },
+                { emoji: '🐭', label: 'Souris' },
+                { emoji: '🐠', label: 'Poisson' },
+                { emoji: '🐢', label: 'Tortue' },
                 { emoji: '🐾', label: 'Autre' },
               ].map((a) => (
                 <View key={a.label} style={styles.animalChip}>
@@ -62,7 +84,7 @@ export default function AnimauxScreen() {
           </View>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>Mes boules de poils ({pets.length})</Text>
+            <Text style={styles.sectionTitle}>Mes boules de poils et les autres ({pets.length})</Text>
             {pets.map((pet) => (
               <TouchableOpacity
                 key={pet.id}
@@ -78,8 +100,24 @@ export default function AnimauxScreen() {
                   </Text>
                 </View>
                 <View style={styles.petInfo}>
-                  <Text style={styles.petName}>{pet.name}</Text>
-                  {pet.birthday ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <Text style={styles.petName}>{pet.name}</Text>
+                    {(pet as any).pet_type && (
+                      <Text style={styles.petTypeTag}>
+                        {PET_TYPE_LABEL[(pet as any).pet_type] ?? '🐾 Animal'}
+                      </Text>
+                    )}
+                  </View>
+                  {(pet as any).pet_owner_name ? (
+                    <Text style={styles.petSub}>
+                      {(() => {
+                        const parts = ((pet as any).pet_owner_name as string).trim().split(/\s+/);
+                        const upper = parts.filter((p: string) => p.length > 1 && p === p.toUpperCase());
+                        const mixed = parts.filter((p: string) => p.length <= 1 || p !== p.toUpperCase());
+                        return '🧑 ' + (mixed.length && upper.length ? [...mixed, ...upper].join(' ') : (pet as any).pet_owner_name);
+                      })()}
+                    </Text>
+                  ) : pet.birthday ? (
                     <Text style={styles.petSub}>
                       {new Date(pet.birthday).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </Text>
@@ -105,17 +143,27 @@ export default function AnimauxScreen() {
 function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
-    header: {
-      flexDirection: 'row', alignItems: 'center',
-      paddingHorizontal: Spacing[4], paddingVertical: Spacing[3], gap: 8,
+    content: { paddingHorizontal: Spacing[4], gap: 12, paddingTop: Spacing[4], paddingBottom: 120 },
+
+    introCard: {
+      backgroundColor: '#FFF8E7',
+      borderRadius: Radii.xl,
+      padding: Spacing[4],
+      borderLeftWidth: 4,
+      borderLeftColor: '#F59E0B',
+      gap: 8,
     },
-    backBtn: { padding: 4 },
-    backBtnText: { fontSize: 28, color: C.primary, fontFamily: 'BeVietnamPro_700Bold', lineHeight: 32 },
-    headerTitle: {
-      flex: 1, fontFamily: 'BeVietnamPro_700Bold',
-      fontSize: Typography.xl, color: Colors.onSurface, textAlign: 'center',
+    introTitle: {
+      fontFamily: 'PlusJakartaSans_800ExtraBold',
+      fontSize: Typography.xl,
+      color: '#B45309',
     },
-    content: { paddingHorizontal: Spacing[4], gap: 12, paddingTop: Spacing[4] },
+    introText: {
+      fontFamily: 'BeVietnamPro_400Regular',
+      fontSize: Typography.md,
+      color: Colors.onSurface,
+      lineHeight: 22,
+    },
 
     emptyState: { alignItems: 'center', paddingTop: 32, gap: 14, paddingHorizontal: 8 },
     emptyEmoji: { fontSize: 42, letterSpacing: 4, textAlign: 'center' },
@@ -173,6 +221,15 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     petAvatarText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: C.primary },
     petInfo: { flex: 1, gap: 2 },
     petName: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.onSurface },
+    petTypeTag: {
+      fontFamily: 'BeVietnamPro_500Medium',
+      fontSize: Typography.xs,
+      color: C.primary,
+      backgroundColor: C.primaryContainer,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: Radii.full,
+    },
     petSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant },
     petArrow: { fontSize: 22, fontFamily: 'BeVietnamPro_700Bold' },
     addBtnSmall: {

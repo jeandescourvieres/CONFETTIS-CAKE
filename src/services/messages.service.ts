@@ -21,6 +21,7 @@ export interface GenerateMessageInput {
   language?: string; // code langue ISO (fr, en, de, es, it...)
   is_regeneration?: boolean; // true = pas de déduction de crédit
   sender_civilite?: 'M.' | 'Mme' | null; // Civilité de l'expéditeur → accord grammatical
+  contact_civilite?: 'M.' | 'Mme' | null; // Civilité du destinataire → accord des participes
 }
 
 // ── Edge Function ────────────────────────────────
@@ -56,7 +57,10 @@ export async function generateMessageContent(input: GenerateMessageInput): Promi
   // Nettoie les artefacts markdown de Mistral (* " en début/fin)
   const content = raw.trim().replace(/^[*"«\s]+/, '').replace(/[*"»\s]+$/, '').trim();
 
-  return content;
+  // Normalise les sauts de ligne : tous les \n → \n\n pour que l'affichage découpe bien en paragraphes
+  const normalized = content.replace(/\r\n/g, '\n').replace(/\n+/g, '\n\n');
+
+  return normalized;
 }
 
 // ── CRUD Supabase ────────────────────────────────

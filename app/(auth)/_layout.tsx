@@ -6,6 +6,7 @@ export default function AuthLayout() {
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="login" />
       <Stack.Screen name="callback" />
+      <Stack.Screen name="reset-password" options={{ headerShown: false }} />
     </Stack>
   );
 }

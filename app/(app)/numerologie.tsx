@@ -414,13 +414,22 @@ export default function NumerologieScreen() {
 
           {/* ── CTA contacts ── */}
           {!hasResult && (
-            <TouchableOpacity
-              style={[styles.contactsBtn, { backgroundColor: C.primary }]}
-              onPress={() => router.push('/(app)/contacts/' as never)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.contactsBtnText}>👤 Voir la numérologie de mes contacts</Text>
-            </TouchableOpacity>
+            <View style={styles.ctaGroup}>
+              <TouchableOpacity
+                style={[styles.contactsBtn, { backgroundColor: C.primary }]}
+                onPress={() => router.push('/(app)/contacts/' as never)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.contactsBtnText}>👤 Voir la numérologie d'un de mes contacts et notre compatibilité</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.compatBtn, { borderColor: C.primary }]}
+                onPress={() => router.push('/(app)/compat' as never)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.compatBtnText, { color: C.primary }]}>💞 Tester la compatibilité de 2 prénoms</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           <View style={{ height: 120 }} />
@@ -542,8 +551,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
     container:    { flex: 1, backgroundColor: Colors.background },
     header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing[4], paddingVertical: Spacing[3], gap: 8 },
-    backBtn:      { padding: 4 },
-    backBtnText:  { fontSize: 28, color: C.primary, fontFamily: 'BeVietnamPro_700Bold', lineHeight: 32 },
+    backBtn:      { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
+    backBtnText:  { fontSize: 34, color: C.primary, lineHeight: 38 },
     headerTitle:  { flex: 1, fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xl, color: Colors.onSurface, textAlign: 'center' },
     helpBtn:      { padding: 4 },
     helpBtnText:  { fontSize: 20 },
@@ -646,11 +655,19 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     },
     resetBtnText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
 
+    ctaGroup: { gap: Spacing[3] },
     contactsBtn: {
-      borderRadius: Radii.full, paddingVertical: 14,
+      borderRadius: Radii.xl, paddingVertical: 14, paddingHorizontal: 18,
       alignItems: 'center', ...Shadows.sm,
     },
-    contactsBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.white },
+    contactsBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.white, textAlign: 'center' },
+    compatBtn: {
+      borderRadius: Radii.full, paddingVertical: 13,
+      alignItems: 'center',
+      borderWidth: 1.5,
+      backgroundColor: 'transparent',
+    },
+    compatBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base },
 
     // Modal aide
     modalOverlay:  { flex: 1, backgroundColor: '#0006', justifyContent: 'flex-end' },

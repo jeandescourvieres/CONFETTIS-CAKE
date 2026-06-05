@@ -21,6 +21,7 @@ export type Occasion =
   | 'halloween'
   | 'retirement'
   | 'support'
+  | 'greetings'
   | 'custom';
 
 export type PersonalityTag =
@@ -65,14 +66,23 @@ export interface OccasionExtras {
   customOccasionLabel?: string;
   // support
   supportType?: 'bereavement' | 'illness' | 'breakup' | 'hardtime' | 'encouragement';
+  // enfant d'un contact (parent → enfant)
+  childName?: string;
+  childAge?: number;
+  // enfant écrit au parent (enfant → parent)
+  childFromName?: string;
+  childFromAge?: number;
 }
 
 export interface CreateState {
+  sessionKey: number; // incrémenté à chaque reset() pour signaler un nouveau message
+
   // Step 1 — Contact & occasion
   contactId: string | null;
   contactName: string;
   contactPhone: string | null;
   contactEmail: string | null;
+  contactCivilite: 'M.' | 'Mme' | null;
   relation: Relation;
   familySubRelation: string; // précision pour "famille" : frère, mère, etc.
   petSubRelation: string;    // précision pour "boule de poils" : chien, chat, autre
@@ -109,7 +119,7 @@ export interface CreateState {
   generationError: string | null;
 
   // Actions
-  setContact: (id: string | null, name: string, relation: Relation, phone?: string | null, email?: string | null) => void;
+  setContact: (id: string | null, name: string, relation: Relation, phone?: string | null, email?: string | null, civilite?: 'M.' | 'Mme' | null) => void;
   setFavouriteColor: (color: string | null) => void;
   setFamilySubRelation: (sub: string) => void;
   setPetSubRelation: (sub: string) => void;
@@ -134,6 +144,9 @@ export interface CreateState {
   setIsGenerating: (value: boolean) => void;
   setGenerationError: (error: string | null) => void;
   reset: () => void;
+  bumpSessionKey: () => void;
+  jumpToTemplates: boolean;
+  setJumpToTemplates: (v: boolean) => void;
 }
 
 type ActionKeys =
@@ -145,10 +158,12 @@ type ActionKeys =
   | 'setFontStyle' | 'setFontSize' | 'setIsItalic' | 'reset';
 
 const initialState: Omit<CreateState, ActionKeys> = {
+  sessionKey: 0,
   contactId: null,
   contactName: '',
   contactPhone: null,
   contactEmail: null,
+  contactCivilite: null,
   relation: 'friend',
   familySubRelation: '',
   petSubRelation: '',
@@ -178,7 +193,7 @@ const initialState: Omit<CreateState, ActionKeys> = {
 export const useCreateStore = create<CreateState>((set) => ({
   ...initialState,
 
-  setContact: (id, name, relation, phone = null, email = null) => set({ contactId: id, contactName: name, contactPhone: phone, contactEmail: email, relation, familySubRelation: '', petSubRelation: '' }),
+  setContact: (id, name, relation, phone = null, email = null, civilite = null) => set({ contactId: id, contactName: name, contactPhone: phone, contactEmail: email, contactCivilite: civilite, relation, familySubRelation: '', petSubRelation: '' }),
   setFavouriteColor: (favouriteColor) => set({ favouriteColor }),
   setFamilySubRelation: (familySubRelation) => set({ familySubRelation }),
   setPetSubRelation: (petSubRelation) => set({ petSubRelation }),
@@ -212,5 +227,8 @@ export const useCreateStore = create<CreateState>((set) => ({
   setSavedMessageId: (savedMessageId) => set({ savedMessageId }),
   setIsGenerating: (isGenerating) => set({ isGenerating }),
   setGenerationError: (generationError) => set({ generationError }),
-  reset: () => set({ ...initialState }),
+  reset: () => set({ ...initialState, sessionKey: Date.now() }),
+  bumpSessionKey: () => set({ sessionKey: Date.now() }),
+  jumpToTemplates: false,
+  setJumpToTemplates: (v) => set({ jumpToTemplates: v }),
 }));

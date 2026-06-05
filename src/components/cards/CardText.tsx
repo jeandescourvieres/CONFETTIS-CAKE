@@ -110,6 +110,19 @@ function AgeNameDisplay({
 
   return (
     <View style={[StyleSheet.absoluteFill, styles.container, posStyle]} pointerEvents="none">
+      {/* Préfixe "Enfin" au-dessus du chiffre */}
+      {!!config.prefix && (
+        <Animated.Text
+          style={[
+            styles.prefix,
+            { fontSize: config.prefix_size * 0.65, color: config.color, opacity: opAge },
+            textShadow,
+          ]}
+        >
+          {config.prefix}
+        </Animated.Text>
+      )}
+
       {/* Chiffre de l'âge */}
       <Animated.Text
         style={[

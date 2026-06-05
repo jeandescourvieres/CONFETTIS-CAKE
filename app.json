@@ -11,8 +11,8 @@
     "primaryColor": "#9b6bb5",
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#9b6bb5"
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,
@@ -26,7 +26,7 @@
       },
       "config": {
         "googleSignIn": {
-          "reservedClientId": "VOTRE_REVERSED_CLIENT_ID"
+          "reservedClientId": "com.googleusercontent.apps.273554357335-gfgrilo2mlhlajv4vkhe8g4f47t928be"
         }
       }
     },
@@ -89,7 +89,8 @@
         }
       ],
       "./plugins/withAndroidWidget",
-      "./plugins/withIOSWidget"
+      "./plugins/withIOSWidget",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

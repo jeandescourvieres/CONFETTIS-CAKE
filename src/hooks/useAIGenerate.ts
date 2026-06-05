@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { useCreateStore } from '../stores/createStore';
+import { extractFirstName } from '../utils/nameHelpers';
 import { generateMessageContent, saveMessage } from '../services/messages.service';
 
 /**
@@ -18,6 +19,7 @@ export function useAIGenerate(onSuccess?: () => void) {
   const {
     contactId,
     contactName,
+    contactCivilite,
     relation,
     familySubRelation,
     petSubRelation,
@@ -41,8 +43,7 @@ export function useAIGenerate(onSuccess?: () => void) {
   } = useCreateStore();
 
   // contactName stocké en "NOM Prénom" — on envoie seulement le prénom à l'IA
-  const nameParts = contactName.trim().split(' ');
-  const firstName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : nameParts[0];
+  const firstName = extractFirstName(contactName);
 
   // Pour "famille", on affine la relation si une sous-relation est définie
   // Pour "boule de poils", on précise le type d'animal
@@ -76,6 +77,7 @@ export function useAIGenerate(onSuccess?: () => void) {
         language: messageLanguage,
         is_regeneration: !!savedMessageId,
         sender_civilite: profile?.civilite ?? null,
+        contact_civilite: contactCivilite ?? null,
       });
 
       const saved = await saveMessage(user.id, {

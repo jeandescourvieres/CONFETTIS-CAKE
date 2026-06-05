@@ -111,6 +111,20 @@ export function useToggleReminder() {
   });
 }
 
+export function useUpdateReminder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: { id: string } & CreateReminderInput) => {
+      const { error } = await (supabase as any)
+        .from('reminders')
+        .update(input)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['reminders'] }),
+  });
+}
+
 export function useDeleteReminder() {
   const qc = useQueryClient();
   return useMutation({

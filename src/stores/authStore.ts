@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '@services/supabase';
 import type { Profile } from '../types/models';
 
@@ -99,7 +100,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   resetPassword: async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const redirectTo = Linking.createURL('reset-password');
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) throw error;
   },
 
@@ -107,11 +109,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const redirectTo = Linking.createURL('auth/callback');
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo },
+        options: { redirectTo, skipBrowserRedirect: true },
       });
       if (error) throw error;
+      if (data.url) {
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+        if (result.type === 'success' && result.url) {
+          const url = result.url;
+          const hashIndex = url.indexOf('#');
+          if (hashIndex !== -1) {
+            const hash = url.substring(hashIndex + 1);
+            const params = Object.fromEntries(new URLSearchParams(hash));
+            if (params['access_token'] && params['refresh_token']) {
+              await supabase.auth.setSession({
+                access_token: params['access_token'],
+                refresh_token: params['refresh_token'],
+              });
+            }
+          }
+        }
+      }
     } finally {
       set({ isLoading: false });
     }
@@ -151,11 +170,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = get().user;
     if (!user) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: updated } = await (supabase.from('profiles') as any)
+    const { data: updated, error } = await (supabase.from('profiles') as any)
       .update(data)
       .eq('id', user.id)
       .select()
       .single();
+    if (error) throw error;
     if (updated) set({ profile: updated as Profile });
   },
 }));

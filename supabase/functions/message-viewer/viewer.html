@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Un message pour toi 💛 — Confettis &amp; Cake</title>
+  <meta property="og:title"       content="💌 Un message pour toi">
+  <meta property="og:description" content="Quelqu'un t'a envoyé un message avec Confettis &amp; Cake 🎂">
+  <meta property="og:type"        content="website">
+  <meta property="og:image"       content="https://confetticake.fr/og-vocal.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;700&family=Satisfy&family=Patrick+Hand&family=Pacifico&family=Special+Elite&family=Bangers&family=Merriweather&family=Oswald&family=Roboto+Slab&family=Space+Mono&family=Playfair+Display&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background: linear-gradient(160deg, #f5f0ff 0%, #fff0f6 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      transition: background 0.5s ease;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(155, 107, 181, 0.18);
+      padding: 36px 28px 32px;
+      max-width: 440px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+    .logo { font-size: 13px; color: #9b6bb5; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; margin-bottom: 20px; text-align: center; }
+    .recipient { font-size: 18px; font-weight: 800; color: #1a1a2e; margin-bottom: 20px; text-align: center; line-height: 1.3; }
+    .message-body {
+      font-size: 17px;
+      line-height: 1.75;
+      color: #2d2d2d;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .divider { height: 1px; background: linear-gradient(to right, transparent, #e2d9f3, transparent); margin: 24px 0; }
+    .footer { margin-top: 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .footer-brand { font-size: 13px; color: #9b6bb5; font-weight: 700; letter-spacing: 0.8px; }
+    .footer-tagline { font-size: 11px; color: #b08ec0; }
+    /* ── Particules ── */
+    #particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 0; }
+    .particle { position: absolute; bottom: -40px; font-size: 22px; animation: floatUp linear forwards; opacity: 0; }
+    @keyframes floatUp {
+      0%   { transform: translateY(0) rotate(0deg);   opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 0.8; }
+      100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
+    }
+    /* ── Loading ── */
+    .loading { text-align: center; color: #9b6bb5; font-size: 15px; }
+    .loading-dots { display: inline-flex; gap: 6px; margin-top: 16px; }
+    .loading-dots span { width: 8px; height: 8px; background: #c084fc; border-radius: 50%; animation: dot 1.2s ease-in-out infinite; }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+  </style>
+</head>
+<body>
+  <div id="particles"></div>
+  <div class="card" id="card">
+    <div class="logo">🎂 Confettis &amp; Cake</div>
+    <div class="loading" id="loading">
+      Chargement du message…
+      <div class="loading-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div id="content" style="display:none">
+      <div class="recipient" id="recipient"></div>
+      <div class="message-body" id="messageBody"></div>
+      <div class="divider"></div>
+      <div class="footer">
+        <div class="footer-brand">🎂 CONFETTIS &amp; CAKE</div>
+        <div class="footer-tagline">Des messages qui font chavirer les cœurs 💌</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var SUPABASE_URL = 'https://rlwxcbnsqokpirhzzurj.supabase.co';
+
+    var BG_THEMES = {
+      none:     { color: null,      particles: [] },
+      auto:     { color: '#F8E8FF', particles: ['🎉','✨','🎊','⭐'] },
+      birthday: { color: '#FFF3E0', particles: ['🎉','🎊','🥳','🎈'] },
+      petales:  { color: '#FCE4EC', particles: ['🌸','🌺','🌼','💐'] },
+      flocons:  { color: '#E3F2FD', particles: ['❄️','⛄','🌨','✨'] },
+      coeurs:   { color: '#FCE4EC', particles: ['💝','💖','❤️','💕'] },
+      etoiles:  { color: '#F3E5F5', particles: ['⭐','🌟','✨','💫'] },
+    };
+
+    var FONT_MAP = {
+      standard:       "'Be Vietnam Pro', sans-serif",
+      caveat_bold:    "'Be Vietnam Pro', sans-serif",
+      dancing:        "'Be Vietnam Pro', sans-serif",
+      satisfy:        "'Satisfy', cursive",
+      patrick:        "'Patrick Hand', cursive",
+      pacifico:       "'Pacifico', cursive",
+      special_elite:  "'Special Elite', cursive",
+      bangers:        "'Bangers', cursive",
+      merriweather:   "'Merriweather', serif",
+      oswald:         "'Oswald', sans-serif",
+      roboto_slab:    "'Roboto Slab', serif",
+      space_mono:     "'Space Mono', monospace",
+      playfair:       "'Playfair Display', serif",
+      times_new_roman:"'Times New Roman', serif",
+      comic_sans:     "'Comic Sans MS', cursive",
+      verdana:        "Verdana, sans-serif",
+      book_antiqua:   "'Book Antiqua', 'Palatino Linotype', serif",
+    };
+
+    var FONT_WEIGHT = {
+      caveat_bold: '700',
+      dancing: '300',
+    };
+
+    var FONT_SIZE_MAP = { sm: '14px', md: '17px', lg: '21px' };
+
+    function spawnParticle(emojis) {
+      var el = document.createElement('span');
+      el.className = 'particle';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      el.style.left = (Math.random() * 100) + '%';
+      var dur = 4 + Math.random() * 4;
+      el.style.animationDuration = dur + 's';
+      el.style.fontSize = (16 + Math.random() * 14) + 'px';
+      document.getElementById('particles').appendChild(el);
+      setTimeout(function() { el.remove(); }, dur * 1000);
+    }
+
+    function applyBgTheme(themeId) {
+      var theme = BG_THEMES[themeId] || BG_THEMES['none'];
+      if (theme.color) {
+        document.body.style.background = 'linear-gradient(160deg, ' + theme.color + ' 0%, #fff 100%)';
+      }
+      if (theme.particles.length > 0) {
+        setInterval(function() { spawnParticle(theme.particles); }, 700);
+        for (var i = 0; i < 6; i++) {
+          (function(d) { setTimeout(function() { spawnParticle(theme.particles); }, d); })(i * 120);
+        }
+      }
+    }
+
+    var params = new URLSearchParams(window.location.search);
+    var msgId  = params.get('id') || '';
+
+    if (!msgId) {
+      document.getElementById('loading').textContent = '😕 Lien invalide.';
+    } else {
+      fetch(SUPABASE_URL + '/functions/v1/message-viewer?id=' + encodeURIComponent(msgId))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.content) throw new Error('vide');
+
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('content').style.display = 'block';
+
+          // Titre
+          var title = data.recipient ? ('💌 Un message pour toi, ' + data.recipient + ' !') : '💌 Un message pour toi !';
+          document.title = title + ' — Confettis & Cake';
+          document.getElementById('recipient').textContent = title;
+
+          // Corps du message
+          var bodyEl = document.getElementById('messageBody');
+          bodyEl.textContent = data.content;
+
+          // Police
+          var fontFamily = FONT_MAP[data.font_style] || FONT_MAP['standard'];
+          var fontWeight = FONT_WEIGHT[data.font_style] || '400';
+          var fontSize   = FONT_SIZE_MAP[data.font_size] || '17px';
+          bodyEl.style.fontFamily  = fontFamily;
+          bodyEl.style.fontWeight  = fontWeight;
+          bodyEl.style.fontSize    = fontSize;
+          bodyEl.style.lineHeight  = data.font_size === 'lg' ? '1.9' : '1.75';
+          if (data.is_italic) bodyEl.style.fontStyle = 'italic';
+
+          // Fond animé
+          applyBgTheme(data.bg_theme || 'none');
+        })
+        .catch(function() {
+          document.getElementById('loading').textContent = '😕 Message introuvable ou lien expiré.';
+        });
+    }
+  </script>
+</body>
+</html>

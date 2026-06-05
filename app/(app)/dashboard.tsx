@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback } from 'react';
+﻿import React, { useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../src/stores/authStore';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
@@ -16,18 +17,27 @@ import { BackHeader } from '../../src/components/ui/BackHeader';
 
 // ── Navigation grid ────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { emoji: '📅', label: 'Calendrier',        route: '/(app)/calendar'          },
-  { emoji: '✉️', label: 'Créations',          route: '/(app)/creations'         },
-  { emoji: '👥', label: 'Contacts',           route: '/(app)/contacts/index'    },
-  { emoji: '🎴', label: 'Cartes animées',     route: '/(app)/cards/index'       },
-  { emoji: '🔍', label: 'Recherche',          route: '/(app)/search/index'      },
-  { emoji: '🎉', label: 'Réactions reçues',  route: '/(app)/reactions/index'   },
-  { emoji: '🔤', label: 'Explorer prénoms',   route: '/(app)/explore/prenoms'   },
-  { emoji: '🌍', label: 'Explorer noms',      route: '/(app)/explore/noms'      },
-  { emoji: '🎁', label: 'Cagnotte',           route: '/(app)/pot/new'           },
-  { emoji: '🎟️', label: 'Parrainage',         route: '/(app)/referral/index'    },
-  { emoji: '🔔', label: 'Notifications',      route: '/(app)/notifications/index'},
-  { emoji: '👤', label: 'Mon profil',         route: '/(app)/profile'           },
+  { emoji: '✨', label: 'Créer un\nmessage',   route: '/(app)/create'          },
+  { emoji: '📅', label: 'Calendrier',         route: '/(app)/calendar'        },
+  { emoji: '✉️', label: 'Messages',            route: '/(app)/creations'       },
+  { emoji: '👥', label: 'Contacts',            route: '/(app)/contacts'        },
+  { emoji: '🎴', label: 'Cartes animées',      route: '/(app)/cards'           },
+  { emoji: '🔍', label: 'Recherche',           route: '/(app)/search'          },
+  { emoji: '🎉', label: 'Réactions reçues',   route: '/(app)/reactions'       },
+  { emoji: '🔤', label: 'Explorer prénoms',    route: '/(app)/explore/prenoms' },
+  { emoji: '🌍', label: 'Explorer noms',       route: '/(app)/explore/noms'    },
+  { emoji: '🎁', label: 'Cagnotte',            route: '/(app)/pot'             },
+  { emoji: '🎟️', label: 'Parrainage',          route: '/(app)/referral'        },
+  { emoji: '🔔', label: 'Notifications',       route: '/(app)/notifications'   },
+  { emoji: '💑', label: 'Compatibilité',       route: '/(app)/compat'          },
+  { emoji: '🔢', label: 'Numérologie',         route: '/(app)/numerologie'     },
+  { emoji: '⭐', label: 'Zodiaque',            route: '/(app)/zodiac-season'   },
+  { emoji: '💑', label: 'Mode couple',         route: '/(app)/couple'          },
+  { emoji: '🐾', label: 'Animaux',             route: '/(app)/animaux'         },
+  { emoji: '🗓️', label: 'Agenda',              route: '/(app)/agenda'          },
+  { emoji: '📖', label: 'Aide',                route: '/(app)/help'            },
+  { emoji: '⚙️', label: 'Paramètres',          route: '/(app)/settings'        },
+  { emoji: '👤', label: 'Mon profil',          route: '/(app)/profile'         },
 ];
 
 // ── Steps ──────────────────────────────────────────────────────────────────────
@@ -37,7 +47,7 @@ type Step =
   | { n: string; emoji: string; title: string; desc?: never; subSteps: SubStep[] };
 
 const STEPS: Step[] = [
-  { n: '1',  emoji: '👥', title: 'La gestion des contacts',        desc: 'Tu peux les créer manuellement ou les importer directement (après sélection) depuis les contacts de ton téléphone. Dans les 2 cas, leur date de naissance et leur prénom devront être bien renseignés pour activer la détection automatique des anniversaires et des fêtes.\n\n🐾 Tu peux aussi ajouter l\'animal de compagnie d\'un proche comme contact ! Choisis la relation "Animal de compagnie" et renseigne le champ "Animal de qui ?" avec le prénom du propriétaire. Dans ta liste, tu verras alors "🐾 Animal de Michel" sous le nom de l\'animal — impossible de les confondre !' },
+  { n: '1',  emoji: '👥', title: 'La gestion des contacts',        desc: 'Tu peux les créer manuellement ou les importer directement (après sélection) depuis les contacts de ton téléphone. Dans les 2 cas, leur date de naissance et leur prénom devront être bien renseignés pour activer la détection automatique des anniversaires et des fêtes.\n\n🔗 Tu peux partager tes contacts avec n\'importe qui (ami, famille…) via un lien valable 24h. Dans ta liste de contacts → bouton "🔗 Partager". Tu choisis quels contacts partager, l\'autre personne choisit lesquels importer. Aucun message n\'est partagé — seulement les noms, dates et relations.\n\n⚠️ Pense à renseigner la civilité (M. ou Mme) de chaque contact — l\'IA en a besoin pour accorder correctement les adjectifs dans le message (ex : "entouré" vs "entourée"). Sans civilité, l\'IA utilisera des formulations neutres.\n\n👨‍👩‍👧 Tu peux rattacher un enfant à son parent : dans la fiche de l\'enfant, choisis la relation "Enfant de…" puis sélectionne le contact parent. L\'IA adaptera alors le ton du message en conséquence.\n\n🐾 Tu peux aussi ajouter l\'animal de compagnie d\'un proche comme contact ! Choisis la relation "Animal de compagnie" et renseigne le champ "Animal de qui ?" avec le prénom du propriétaire. Dans ta liste, tu verras alors "🐾 Animal de Michel" sous le nom de l\'animal — impossible de les confondre !' },
   { n: '2',  emoji: '🔔', title: 'Les alertes',                    desc: 'L\'appli va t\'envoyer une notification 7 jours avant chaque anniversaire ou fête des contacts que tu as créés. Plus de surprise de dernière minute !' },
   { n: '3',  emoji: '✦',  title: 'Envoyer un message IA',          desc: 'Pour générer ton message IA, choisis un contact, l\'occasion, le format (chanson, poème, message, humour) et la tonalité. L\'IA compose un texte unique en quelques secondes.\n\n🌍 Ton contact est étranger ? Sélectionne sa langue dans le sélecteur "Langue du message" — l\'IA rédigera directement dans cette langue. Tu peux aussi enregistrer la langue préférée de chaque contact dans sa fiche pour qu\'elle soit pré-sélectionnée automatiquement.' },
   { n: '4',  emoji: '↺',  title: 'Régénère gratuitement ton message IA', desc: 'Le premier message IA coûte 1 crédit. Les suivants pour la même création sont GRATUITS — parce que l\'IA peut parfois proposer un texte maladroit ou qui ne te correspond pas. Tu peux relancer autant de fois que nécessaire jusqu\'à trouver le message parfait, qui ne te coûtera donc, en final, qu\'un crédit !' },
@@ -64,18 +74,12 @@ export default function DashboardScreen() {
 
   const styles = useMemo(() => makeStyles(C), [C]);
   const scrollRef = useRef<ScrollView>(null);
-  useFocusEffect(useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []));
+  useTabScrollToTop('dashboard', () => scrollRef.current?.scrollTo({ y: 0, animated: false }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <BackHeader title="" />
+      <BackHeader title="Mon tableau de bord" />
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
-        {/* ── Header ───────────────────────────────── */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Mon tableau de bord</Text>
-          <Text style={styles.headerSub}>Navigation rapide & Mode d'emploi</Text>
-        </View>
 
         {/* ── Credits card ─────────────────────────── */}
         <LinearGradient
@@ -111,6 +115,28 @@ export default function DashboardScreen() {
           )}
         </LinearGradient>
 
+        {/* ── Intro navigation ─────────────────────── */}
+        <View style={styles.introCard}>
+          <Text style={styles.introTitle}>🗺️ Toute l'appli d'un seul endroit</Text>
+          <Text style={styles.introText}>
+            {'Ce tableau de bord est ton raccourci universel. Chaque tuile ci-dessous t\'amène directement à une section de l\'appli — sans passer par les menus.\n\nUtile quand tu sais exactement où tu veux aller.'}
+          </Text>
+        </View>
+
+        {/* ── Guide A-Z ────────────────────────────── */}
+        <TouchableOpacity
+          onPress={() => router.push('/(app)/glossaire' as never)}
+          activeOpacity={0.85}
+          style={{ marginBottom: 16, backgroundColor: C.primaryContainer, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: C.primary + '40' }}
+        >
+          <Text style={{ fontSize: 28 }}>📚</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: 'PlusJakartaSans_700Bold', fontSize: 14, color: C.primary }}>Guide A-Z de l'appli</Text>
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#666', marginTop: 2, lineHeight: 17 }}>Toutes les fonctions par ordre alphabétique, avec recherche. Parfait pour débuter !</Text>
+          </View>
+          <Text style={{ color: C.primary, fontSize: 20 }}>›</Text>
+        </TouchableOpacity>
+
         {/* ── Navigation grid ──────────────────────── */}
         <Text style={styles.sectionTitle}>Navigation rapide</Text>
         <View style={styles.grid}>
@@ -118,7 +144,7 @@ export default function DashboardScreen() {
             <TouchableOpacity
               key={item.label}
               style={styles.gridItem}
-              onPress={() => router.push(item.route as never)}
+              onPress={() => router.push({ pathname: item.route as never, params: { backTo: '/(app)/dashboard' } } as never)}
               activeOpacity={0.8}
             >
               <Text style={styles.gridEmoji}>{item.emoji}</Text>
@@ -234,16 +260,42 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: 'rgba(255,255,255,0.85)',
   },
 
+  // Intro
+  introCard: {
+    marginHorizontal: Spacing[4],
+    marginTop: Spacing[4],
+    backgroundColor: C.primaryContainer,
+    borderRadius: Radii.xl,
+    padding: Spacing[4],
+    borderLeftWidth: 4,
+    borderLeftColor: C.primary,
+    gap: 8,
+  },
+  introTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.xl,
+    color: C.primary,
+  },
+  introText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.md,
+    color: Colors.onSurface,
+    lineHeight: 22,
+  },
+
   // Section title
   sectionTitle: {
-    fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.xl,
-    letterSpacing: 0.4,
+    borderLeftWidth: 3,
+    borderLeftColor: C.primary,
+    paddingLeft: 8,
+    paddingVertical: 4,    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     color: C.primary,
-    marginTop: Spacing[5],
-    marginBottom: Spacing[3],
-    paddingHorizontal: Spacing[4],
-    textAlign: 'center',
+    marginTop: Spacing[4],
+    marginBottom: Spacing[2],
+    marginHorizontal: Spacing[4],
   },
 
   // Grid

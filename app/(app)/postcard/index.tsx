@@ -165,8 +165,8 @@ export default function PostcardScreen() {
 
         {/* ── Topbar ─────────────────────────────────── */}
         <View style={styles.topbar}>
-          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>‹</Text>
+          <TouchableOpacity onPress={handleBack} style={styles.backLink}>
+            <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
           </TouchableOpacity>
           <Text style={styles.topbarTitle}>Carte postale</Text>
           <HelpModal
@@ -504,8 +504,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
       backgroundColor: Colors.surfaceContainerLow,
     },
-    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-    backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+    backLink: { justifyContent: 'center', minWidth: 70 },
+    backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
     topbarTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface },
 
     // Étapes

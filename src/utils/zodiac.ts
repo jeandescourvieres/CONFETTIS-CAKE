@@ -156,6 +156,25 @@ export function getContactsInZodiacSeason(contacts: Contact[]): Contact[] {
   });
 }
 
+// ── Portrait illustratif par signe ──────────────────────────────────────────
+export function getZodiacPortrait(name: string): string {
+  const map: Record<string, string> = {
+    'Bélier':     '🐏',
+    'Taureau':    '🐂',
+    'Gémeaux':    '👯',
+    'Cancer':     '🦀',
+    'Lion':       '🦁',
+    'Vierge':     '🌾',
+    'Balance':    '⚖️',
+    'Scorpion':   '🦂',
+    'Sagittaire': '🏹',
+    'Capricorne': '🐐',
+    'Verseau':    '🫧',
+    'Poissons':   '🐠',
+  };
+  return map[name] ?? '⭐';
+}
+
 // ── Compatibilité zodiacale ──────────────────────────────────────────────────
 
 export interface ZodiacCompatibility {

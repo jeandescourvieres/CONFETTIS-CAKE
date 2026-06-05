@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contacts partagés — Confettis &amp; Cake</title>
+  <meta property="og:title" content="🎁 Des contacts partagés pour toi !">
+  <meta property="og:description" content="Quelqu'un t'a partagé ses contacts ConfettiCake. Importe ceux que tu veux en un clic !">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(160deg, #f5f0ff 0%, #fff0f6 100%);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+    .logo { text-align: center; font-size: 13px; color: #9b6bb5; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; margin-bottom: 20px; }
+    .card { background: white; border-radius: 20px; box-shadow: 0 8px 32px rgba(155,107,181,0.15); padding: 24px 20px; max-width: 440px; margin: 0 auto; }
+    .hero { text-align: center; margin-bottom: 20px; }
+    .hero-emoji { font-size: 52px; display: block; margin-bottom: 12px; }
+    .hero-title { font-size: 20px; font-weight: 800; color: #1a1a2e; line-height: 1.3; margin-bottom: 8px; }
+    .hero-sub { font-size: 14px; color: #666; line-height: 1.5; }
+    .info-box { background: #f3eefe; border-radius: 12px; padding: 14px; margin-bottom: 20px; }
+    .info-box p { font-size: 13px; color: #5b3fa0; line-height: 1.6; }
+    .info-box strong { color: #7C3AED; }
+    .section-title { font-size: 13px; font-weight: 700; color: #7C3AED; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .contact-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .contact-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid #e8d8f5; background: #fafafa; cursor: pointer; transition: all 0.15s; }
+    .contact-item.selected { border-color: #9b6bb5; background: #f3eefe; }
+    .contact-checkbox { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+    .contact-item.selected .contact-checkbox { background: #9b6bb5; border-color: #9b6bb5; }
+    .contact-checkbox-tick { color: white; font-size: 12px; display: none; }
+    .contact-item.selected .contact-checkbox-tick { display: block; }
+    .contact-info { flex: 1; }
+    .contact-name { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+    .contact-meta { font-size: 12px; color: #888; margin-top: 2px; }
+    .select-all { text-align: right; margin-bottom: 10px; }
+    .select-all button { background: none; border: none; color: #9b6bb5; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-import { width: 100%; padding: 16px; border-radius: 99px; background: linear-gradient(135deg, #9b6bb5, #7C3AED); border: none; color: white; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(124,58,237,0.35); transition: transform 0.15s; }
+    .btn-import:active { transform: scale(0.97); }
+    .btn-import:disabled { opacity: 0.5; cursor: not-allowed; }
+    .expiry { text-align: center; font-size: 11px; color: #aaa; margin-top: 12px; }
+    .footer { text-align: center; margin-top: 24px; font-size: 12px; color: #b08ec0; }
+    .footer a { color: #9b6bb5; text-decoration: none; font-weight: 600; }
+    .loading { text-align: center; padding: 40px 0; color: #9b6bb5; }
+    .error-state { text-align: center; padding: 30px 0; }
+    .error-emoji { font-size: 48px; margin-bottom: 12px; }
+    .error-text { font-size: 15px; color: #666; }
+    .success-state { text-align: center; padding: 20px 0; }
+    .success-emoji { font-size: 56px; margin-bottom: 12px; display: block; }
+    .success-title { font-size: 20px; font-weight: 800; color: #1a1a2e; margin-bottom: 8px; }
+    .success-sub { font-size: 14px; color: #666; line-height: 1.5; margin-bottom: 20px; }
+    .btn-open-app { display: inline-block; padding: 14px 28px; border-radius: 99px; background: linear-gradient(135deg, #9b6bb5, #7C3AED); color: white; font-size: 15px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 16px rgba(124,58,237,0.35); }
+  </style>
+</head>
+<body>
+  <div class="logo">🎂 Confettis &amp; Cake</div>
+  <div class="card" id="card">
+    <div class="loading" id="loading">
+      Chargement des contacts…
+    </div>
+  </div>
+
+  <script>
+    var SUPABASE_URL = 'https://rlwxcbnsqokpirhzzurj.supabase.co';
+    var params = new URLSearchParams(window.location.search);
+    var token  = params.get('token') || '';
+    var selectedIds = new Set();
+    var contacts = [];
+
+    if (!token) {
+      showError('Lien invalide — aucun token trouvé.');
+    } else {
+      fetch(SUPABASE_URL + '/functions/v1/get-shared-contacts?token=' + encodeURIComponent(token))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.error) { showError(data.error); return; }
+          contacts = data.contacts || [];
+          renderContacts(data.sender_name, data.expires_at);
+        })
+        .catch(function() { showError('Impossible de charger les contacts.'); });
+    }
+
+    function formatRelation(rel) {
+      var map = { friend: 'Ami·e', family: 'Famille', partner: 'Partenaire', colleague: 'Collègue', pet: 'Animal', child_of: 'Enfant' };
+      return map[rel] || rel;
+    }
+
+    function formatBirthday(bd) {
+      if (!bd) return null;
+      var months = ['jan.','fév.','mar.','avr.','mai','juin','juil.','août','sep.','oct.','nov.','déc.'];
+      var d = new Date(bd.startsWith('0000-') ? bd.replace('0000-', '2000-') : bd);
+      return d.getDate() + ' ' + months[d.getMonth()];
+    }
+
+    function renderContacts(senderName, expiresAt) {
+      var card = document.getElementById('card');
+      if (!contacts.length) {
+        card.innerHTML = '<div class="error-state"><div class="error-emoji">📭</div><div class="error-text">Aucun contact disponible dans ce partage.</div></div>';
+        return;
+      }
+
+      // Sélectionner tout par défaut
+      contacts.forEach(function(c) { selectedIds.add(c.id); });
+
+      var expiryDate = new Date(expiresAt);
+      var expiryStr = expiryDate.toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+
+      card.innerHTML =
+        '<div class="hero">' +
+          '<span class="hero-emoji">🎁</span>' +
+          '<div class="hero-title">' + escHtml(senderName) + ' t\'a partagé des contacts !</div>' +
+          '<div class="hero-sub">Choisis ceux que tu veux importer dans ton appli ConfettiCake.</div>' +
+        '</div>' +
+        '<div class="info-box">' +
+          '<p>📋 <strong>Ce qui est partagé :</strong> noms, dates d\'anniversaire et relations.<br>' +
+          '🔒 <strong>Ce qui reste privé :</strong> les messages envoyés restent confidentiels.<br>' +
+          '✅ Coche les contacts que tu veux, puis clique sur <strong>"Importer"</strong>.</p>' +
+        '</div>' +
+        '<div class="section-title">' + contacts.length + ' contact' + (contacts.length > 1 ? 's' : '') + ' disponible' + (contacts.length > 1 ? 's' : '') + '</div>' +
+        '<div class="select-all"><button onclick="toggleAll()">Tout sélectionner / Tout déselectionner</button></div>' +
+        '<div class="contact-list" id="contactList"></div>' +
+        '<button class="btn-import" id="btnImport" onclick="doImport()">📥 Importer les contacts sélectionnés</button>' +
+        '<div class="expiry">⏳ Lien valable jusqu\'au ' + expiryStr + '</div>';
+
+      renderList();
+    }
+
+    function renderList() {
+      var list = document.getElementById('contactList');
+      if (!list) return;
+      list.innerHTML = contacts.map(function(c) {
+        var sel = selectedIds.has(c.id);
+        var bd  = formatBirthday(c.birthday);
+        var meta = [formatRelation(c.relation), bd ? '🎂 ' + bd : null].filter(Boolean).join(' · ');
+        return '<div class="contact-item' + (sel ? ' selected' : '') + '" onclick="toggle(\'' + c.id + '\')">' +
+          '<div class="contact-checkbox"><span class="contact-checkbox-tick">✓</span></div>' +
+          '<div class="contact-info">' +
+            '<div class="contact-name">' + escHtml(displayName(c.name)) + '</div>' +
+            (meta ? '<div class="contact-meta">' + escHtml(meta) + '</div>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+      var btn = document.getElementById('btnImport');
+      if (btn) btn.disabled = selectedIds.size === 0;
+    }
+
+    function toggle(id) {
+      if (selectedIds.has(id)) selectedIds.delete(id);
+      else selectedIds.add(id);
+      renderList();
+    }
+
+    function toggleAll() {
+      if (selectedIds.size === contacts.length) selectedIds.clear();
+      else contacts.forEach(function(c) { selectedIds.add(c.id); });
+      renderList();
+    }
+
+    function doImport() {
+      var selected = contacts.filter(function(c) { return selectedIds.has(c.id); });
+      if (!selected.length) return;
+      // Encode les contacts sélectionnés dans le deep link
+      var encoded = encodeURIComponent(JSON.stringify(selected.map(function(c) {
+        return { name: c.name, civilite: c.civilite, relation: c.relation, birthday: c.birthday, notes: c.notes };
+      })));
+      var deepLink = 'confetticake://import-contacts?data=' + encoded;
+      window.location.href = deepLink;
+      // Fallback : afficher le succès après 1.5s si le deep link ne s'ouvre pas
+      setTimeout(function() { showSuccess(selected.length); }, 1500);
+    }
+
+    function showSuccess(count) {
+      document.getElementById('card').innerHTML =
+        '<div class="success-state">' +
+          '<span class="success-emoji">🎉</span>' +
+          '<div class="success-title">C\'est dans ta poche !</div>' +
+          '<div class="success-sub">' + count + ' contact' + (count > 1 ? 's' : '') + ' prêt' + (count > 1 ? 's' : '') + ' à importer.<br>Ouvre ConfettiCake sur ton téléphone pour les retrouver.</div>' +
+          '<a class="btn-open-app" href="confetticake://import-contacts">Ouvrir ConfettiCake →</a>' +
+        '</div>';
+    }
+
+    function showError(msg) {
+      document.getElementById('card').innerHTML =
+        '<div class="error-state"><div class="error-emoji">😕</div><div class="error-text">' + escHtml(msg) + '</div></div>';
+    }
+
+    function displayName(name) {
+      var parts = name.trim().split(' ');
+      var first = parts.slice(1).join(' ');
+      return first || parts[0] || name;
+    }
+
+    function escHtml(s) {
+      return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+
+  <div class="footer">
+    Propulsé par <a href="https://confetticake.fr">🎂 Confettis &amp; Cake</a><br>
+    <span style="font-size:10px;color:#ccc;">Tu ne veux pas importer ? Ferme simplement cette page.</span>
+  </div>
+</body>
+</html>

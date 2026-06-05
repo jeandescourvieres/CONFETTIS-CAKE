@@ -8,10 +8,11 @@ export function useCardTemplates(
   occasion?: string | null,
   mood?: string | null,
   mode?: CardMode | null,
+  gender?: string | null,
 ) {
   return useQuery({
-    queryKey: ['cards', occasion ?? 'all', mood ?? 'all', mode ?? 'all'],
-    queryFn: () => fetchCardTemplates(occasion, mood, mode),
+    queryKey: ['cards', occasion ?? 'all', mood ?? 'all', mode ?? 'all', gender ?? 'all'],
+    queryFn: () => fetchCardTemplates(occasion, mood, mode, gender),
     staleTime: STALE,
     retry: false,
   });

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -60,8 +60,8 @@ export default function PotNewScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Topbar */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>Nouvelle cagnotte</Text>
         <View style={styles.topbarRight}>
@@ -244,8 +244,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   topbarTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface },
   topbarRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   saveBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: Radii.full, backgroundColor: C.primary },
@@ -256,17 +256,17 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginBottom: Spacing[2],
     paddingVertical: Spacing[5],
     paddingHorizontal: Spacing[4],
-    backgroundColor: C.primaryContainer + '40',
+    backgroundColor: '#FEF3C7',
     borderRadius: Radii.xl,
     borderWidth: 1.5,
-    borderColor: C.primary + '55',
+    borderColor: '#F59E0B',
     gap: 10,
   },
   catchTitle: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: Typography['2xl'],
+    fontSize: Typography.xl,
     color: C.primary,
-    lineHeight: 34,
+    lineHeight: 30,
     textAlign: 'center',
   },
   catchText: {
@@ -308,9 +308,16 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     justifyContent: 'center',
   },
   label: {
-    fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.md,
-    textTransform: 'uppercase', letterSpacing: 0.5,
-    color: Colors.onSurface,
+    borderLeftWidth: 3,
+    borderLeftColor: C.primary,
+    paddingLeft: 8,
+    paddingVertical: 4,    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: C.primary,
+    marginTop: Spacing[4],
+    marginBottom: Spacing[2],
   },
   input: {
     backgroundColor: Colors.white, borderWidth: 0.5, borderColor: C.primaryContainer,

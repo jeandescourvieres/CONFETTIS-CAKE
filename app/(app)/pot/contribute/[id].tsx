@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useStripe } from '@stripe/stripe-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePot } from '../../../../src/hooks/usePot';
 import { createPaymentIntent } from '../../../../src/services/pot.service';
+import { useAuthStore } from '../../../../src/stores/authStore';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../../src/constants/theme';
 import { useColors } from '../../../../src/hooks/useColors';
 import { HelpModal } from '../../../../src/components/ui/HelpModal';
@@ -85,15 +86,31 @@ export default function ContributeScreen() {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const { data: pot } = usePot(id ?? null);
+  const { profile } = useAuthStore();
 
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+
+  // Pré-remplissage dès que le profil est disponible
+  useEffect(() => {
+    if (!profile) return;
+    if (profile.full_name) {
+      const parts = profile.full_name.trim().split(' ');
+      setFirstName(prev => prev || (parts[0] ?? ''));
+      setLastName(prev => prev || parts.slice(1).join(' '));
+    }
+    if (profile.email) {
+      setEmail(prev => prev || profile.email!);
+    }
+  }, [profile]);
   const [amountInput, setAmountInput] = useState('');
   const [isPaying, setIsPaying] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
   const parsedAmount = parseFloat(amountInput.replace(',', '.'));
-  const isValid = name.trim().length >= 2 && email.includes('@') && parsedAmount >= 1;
+  const isValid = fullName.length >= 2 && email.includes('@') && parsedAmount >= 1;
 
   const styles = useMemo(() => makeStyles(C), [C]);
 
@@ -104,7 +121,7 @@ export default function ContributeScreen() {
       // 1. Créer l'intention de paiement côté serveur
       const { client_secret } = await createPaymentIntent({
         pot_id: id,
-        contributor_name: name.trim(),
+        contributor_name: fullName,
         contributor_email: email.trim().toLowerCase(),
         amount_cents: Math.round(parsedAmount * 100),
       });
@@ -114,7 +131,7 @@ export default function ContributeScreen() {
         paymentIntentClientSecret: client_secret,
         merchantDisplayName: 'Confettis & Cake',
         defaultBillingDetails: {
-          name: name.trim(),
+          name: fullName,
           email: email.trim().toLowerCase(),
         },
         appearance: {
@@ -149,7 +166,7 @@ export default function ContributeScreen() {
   if (success) {
     return (
       <SuccessView
-        contributorName={name.trim()}
+        contributorName={fullName}
         amount={parsedAmount}
         email={email.trim().toLowerCase()}
         onClose={() => router.back()}
@@ -164,8 +181,8 @@ export default function ContributeScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Topbar */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle} numberOfLines={1}>
           {pot?.title ?? 'Contribuer'}
@@ -227,15 +244,30 @@ export default function ContributeScreen() {
           {/* Formulaire */}
           <Text style={styles.sectionLabel}>Tes coordonnées</Text>
 
-          <Text style={styles.fieldLabel}>Ton prénom et nom *</Text>
-          <TextInput
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="Ex: Jean Dupont"
-            placeholderTextColor={Colors.outlineVariant}
-            autoCapitalize="words"
-          />
+          <View style={styles.nameRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fieldLabel}>Prénom *</Text>
+              <TextInput
+                style={styles.input}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Jean"
+                placeholderTextColor={Colors.outlineVariant}
+                autoCapitalize="words"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fieldLabel}>Nom *</Text>
+              <TextInput
+                style={styles.input}
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Dupont"
+                placeholderTextColor={Colors.outlineVariant}
+                autoCapitalize="words"
+              />
+            </View>
+          </View>
 
           <Text style={styles.fieldLabel}>Ton adresse email * (pour le reçu)</Text>
           <TextInput
@@ -331,8 +363,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   topbarTitle: { flex: 1, fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.onSurface, textAlign: 'center' },
 
   content: { padding: Spacing[4], paddingBottom: 80 },
@@ -377,6 +409,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderRadius: Radii.md, paddingVertical: 12, paddingHorizontal: Spacing[3],
     fontSize: Typography.md, fontFamily: 'BeVietnamPro_400Regular', color: Colors.onSurface,
   },
+
+  nameRow: { flexDirection: 'row', gap: 10 },
 
   // Quick amounts
   quickAmountsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 10 },

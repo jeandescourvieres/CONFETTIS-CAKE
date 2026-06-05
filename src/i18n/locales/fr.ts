@@ -23,10 +23,10 @@ const fr = {
   },
 
   greeting: {
-    night: 'Bonne nuit {{name}} 🌙',
-    morning: 'Bonjour {{name}} ☀️',
-    afternoon: 'Bon après-midi {{name}} 🌤',
-    evening: 'Bonne soirée {{name}} 🌆',
+    night: 'Bonne nuit, {{name}} ! 🌙',
+    morning: 'Bonjour, {{name}} ! ☀️',
+    afternoon: 'Bon après-midi, {{name}} ! 🌤',
+    evening: 'Bonne soirée, {{name}} ! 🌆',
   },
 
   home: {

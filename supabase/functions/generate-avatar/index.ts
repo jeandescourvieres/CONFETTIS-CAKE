@@ -158,12 +158,12 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model:           'dall-e-3',
+        model:           'gpt-image-1',
         prompt,
         n:               1,
         size:            '1024x1024',
-        quality:         'standard',
-        response_format: 'url',
+        quality:         'medium',
+        response_format: 'b64_json',
       }),
     });
 
@@ -173,12 +173,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const dalleData = await dalleResp.json();
-    const tempImageUrl: string = dalleData.data[0].url;
+    const b64 = dalleData.data[0].b64_json;
+    if (!b64) throw new Error('Réponse image vide');
 
-    // ── Télécharger l'image ───────────────────────────────────────
-    const imgResp = await fetch(tempImageUrl);
-    if (!imgResp.ok) throw new Error(`Image download failed: ${imgResp.status}`);
-    const imgBuffer = await imgResp.arrayBuffer();
+    // ── Décoder le base64 en buffer ───────────────────────────────
+    const binaryStr = atob(b64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+    const imgBuffer = bytes.buffer;
 
     // ── Upload vers contact-avatars ───────────────────────────────
     const fileName = `${user_id}/ai_${contact_id}_${Date.now()}.png`;

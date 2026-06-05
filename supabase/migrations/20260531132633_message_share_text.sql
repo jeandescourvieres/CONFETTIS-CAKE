@@ -1,0 +1,1 @@
+alter table messages add column if not exists share_text text;

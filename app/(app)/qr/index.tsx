@@ -89,7 +89,7 @@ export default function QrIndexScreen() {
           </Text>
           <TouchableOpacity
             style={[styles.createBtn, { backgroundColor: C.primary }]}
-            onPress={() => router.push('/(app)/create/index' as never)}
+            onPress={() => router.push('/(app)/create' as never)}
           >
             <Text style={styles.createBtnText}>✨ Créer un message</Text>
           </TouchableOpacity>

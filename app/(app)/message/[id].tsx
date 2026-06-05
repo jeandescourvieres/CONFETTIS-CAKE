@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -31,7 +31,7 @@ const FORMAT_EMOJI: Record<string, string> = { song: '🎵', poem: '✍️', mes
 const FORMAT_LABEL: Record<MessageFormat, string> = { song: 'Chanson', poem: 'Poème', message: 'Message', joke: 'Humour' };
 const TONE_LABEL: Record<MessageTone, string> = {
   humorous: 'Humoristique', touching: 'Touchant', poetic: 'Poétique',
-  playful: 'Chaleureux', professional: 'Professionnel',
+  playful: 'Chaleureux', professional: 'Professionnel', childlike: 'Enfantin ✨',
 };
 
 // ── Mini lecteur audio ────────────────────────────────────────────────────────
@@ -125,6 +125,7 @@ export default function MessageDetailScreen() {
   const { i18n } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const [sending, setSending] = useState(false);
+  const [photoShape, setPhotoShape] = useState<'square' | 'round'>('square');
 
   const { data: message, isLoading } = useMessage(id ?? null);
   const { data: groupData } = useGroupMessage(id ?? null);
@@ -219,8 +220,8 @@ export default function MessageDetailScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Topbar */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle} numberOfLines={1}>
           Pour {message.contact_name}
@@ -259,15 +260,37 @@ export default function MessageDetailScreen() {
           <Text style={styles.heroDate}>{dateLabel}</Text>
         </LinearGradient>
 
-        {/* ── Lecteur audio (chansons) ─────────────────── */}
-        {isSong && (
+        {/* ── Lecteur audio (chansons + messages avec musique) ── */}
+        {(isSong || message.audio_url) && (
           <MiniAudioPlayer audioUrl={message.audio_url} musicStatus={message.music_status} />
         )}
 
-        {/* ── Photo attachée (mode sous texte) ────────── */}
+        {/* ── Photo attachée ───────────────────────────── */}
         {message.photo_url && (
-          <View style={styles.photoCard}>
-            <Image source={{ uri: message.photo_url }} style={styles.photoImg} resizeMode="cover" />
+          <View style={styles.photoSection}>
+            <View style={styles.photoShapeToggle}>
+              <TouchableOpacity
+                style={[styles.shapeBtn, photoShape === 'square' && styles.shapeBtnActive]}
+                onPress={() => setPhotoShape('square')}
+              >
+                <Text style={[styles.shapeBtnText, photoShape === 'square' && styles.shapeBtnTextActive]}>⬛ Carré</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.shapeBtn, photoShape === 'round' && styles.shapeBtnActive]}
+                onPress={() => setPhotoShape('round')}
+              >
+                <Text style={[styles.shapeBtnText, photoShape === 'round' && styles.shapeBtnTextActive]}>⭕ Rond</Text>
+              </TouchableOpacity>
+            </View>
+            {photoShape === 'square' ? (
+              <View style={styles.photoCard}>
+                <Image source={{ uri: message.photo_url }} style={styles.photoImg} resizeMode="cover" />
+              </View>
+            ) : (
+              <View style={styles.photoRoundWrapper}>
+                <Image source={{ uri: message.photo_url }} style={styles.photoRound} resizeMode="cover" />
+              </View>
+            )}
           </View>
         )}
 
@@ -353,17 +376,59 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: Colors.onSurfaceVariant,
   },
 
-  photoCard: {
+  photoSection: {
     marginHorizontal: Spacing[4],
     marginBottom: Spacing[3],
-    borderRadius: Radii.lg,
+    alignItems: 'center',
+    gap: 12,
+  },
+  photoShapeToggle: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surfaceContainer,
+    borderRadius: Radii.full,
+    padding: 3,
+    gap: 2,
+  },
+  shapeBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: Radii.full,
+  },
+  shapeBtnActive: {
+    backgroundColor: Colors.white,
+    ...Shadows.sm,
+  },
+  shapeBtnText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.xs,
+    color: Colors.onSurfaceVariant,
+  },
+  shapeBtnTextActive: {
+    color: Colors.onSurface,
+  },
+  photoCard: {
+    width: '100%',
+    borderRadius: Radii.xl,
     overflow: 'hidden',
     borderWidth: 0.5,
     borderColor: Colors.outlineVariant,
   },
   photoImg: {
     width: '100%',
-    height: 220,
+    height: 280,
+  },
+  photoRoundWrapper: {
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: Colors.outlineVariant,
+    ...Shadows.md,
+  },
+  photoRound: {
+    width: 240,
+    height: 240,
   },
 
   topbar: {
@@ -376,8 +441,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   topbarTitle: {
     flex: 1,
     fontFamily: 'PlusJakartaSans_800ExtraBold',

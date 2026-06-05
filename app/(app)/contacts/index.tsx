@@ -11,7 +11,8 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useTabScrollToTop } from '../../../src/hooks/useTabScrollToTop';
 import {
   useContacts,
   useContactsGrouped,
@@ -64,7 +65,7 @@ export default function ContactsScreen() {
     () => contacts.filter((c) => c.relation === 'pet'),
     [contacts],
   );
-  useFocusEffect(useCallback(() => { scrollRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false }); }, []));
+  useTabScrollToTop('contacts/index', () => scrollRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false }));
 
   const urgentMap = useMemo(() => {
     const map = new Map<string, (typeof upcomingEvents)[0]>();
@@ -211,6 +212,24 @@ export default function ContactsScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Partage de contacts */}
+            <TouchableOpacity
+              style={styles.shareCard}
+              onPress={() => router.push('/(app)/contacts/share' as never)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.shareCardLeft}>
+                <Text style={styles.shareCardIcon}>🔗</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.shareCardTitle}>Partager mes contacts</Text>
+                  <Text style={styles.shareCardDesc}>
+                    Envoie une liste de tes contacts à un proche via un lien valable 24h. Pratique pour organiser un événement en groupe ou aider quelqu'un à démarrer sur ConfettiCake.
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.shareCardArrow}>›</Text>
+            </TouchableOpacity>
+
             {/* Intro filtres */}
             <Text style={styles.filtersIntro}>Grâce aux filtres, retrouve rapidement tes contacts et ceux à fêter prochainement 🎉</Text>
 
@@ -257,10 +276,14 @@ export default function ContactsScreen() {
                         <View style={styles.petFilterCardHeader}>
                           <Text style={{ fontSize: 30 }}>{petEmoji}</Text>
                           <View style={{ flex: 1, gap: 3 }}>
-                            <Text style={styles.petFilterCardName}>{pet.name}</Text>
+                            <TouchableOpacity onPress={() => router.push(`/(app)/contact/${pet.id}` as never)}>
+                              <Text style={styles.petFilterCardName}>
+                                {pet.name}{(pet as any).breed ? ` · ${(pet as any).breed}` : ''} ›
+                              </Text>
+                            </TouchableOpacity>
                             {ownerContact && (
                               <TouchableOpacity onPress={() => router.push(`/(app)/contact/${ownerContact.id}` as never)}>
-                                <Text style={styles.petFilterCardOwner}>📎 {ownerContact.name.split(' ').slice(1).join(' ') || ownerContact.name}</Text>
+                                <Text style={styles.petFilterCardOwner}>📎 {ownerContact.name}</Text>
                               </TouchableOpacity>
                             )}
                             {pet.birthday && !pet.birthday.startsWith('0000-00') && (() => {
@@ -289,7 +312,7 @@ export default function ContactsScreen() {
                         <View style={styles.petFilterCardBtns}>
                           <TouchableOpacity
                             style={styles.petFilterBtn}
-                            onPress={() => router.push({ pathname: '/(app)/create/index', params: { contactId: pet.id } } as never)}
+                            onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: pet.id } } as never)}
                             activeOpacity={0.85}
                           >
                             <Text style={styles.petFilterBtnText}>Message à {pet.name} 🐾</Text>
@@ -335,9 +358,10 @@ export default function ContactsScreen() {
             upcomingEvent={urgentMap.get(item.id)}
             onPress={() => router.push(`/(app)/contact/${item.id}` as never)}
             onCreateMessage={() =>
-              router.push({ pathname: '/(app)/create/index', params: { contactId: item.id } } as never)
+              router.push({ pathname: '/(app)/create', params: { contactId: item.id } } as never)
             }
             isPartnerContact={partnerContactIds.has(item.id)}
+            allContacts={contacts}
           />
         )}
         ListEmptyComponent={
@@ -396,7 +420,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     paddingTop: Spacing[5],
     paddingBottom: Spacing[3],
   },
-  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: C.primaryContainer },
   backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
   headerCenter: { flex: 1, alignItems: 'center' },
   title: {
@@ -441,6 +465,24 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: Colors.onSurface,
   },
   clearBtn: { fontSize: 20, color: Colors.outlineVariant, paddingHorizontal: 4 },
+
+  shareCard: {
+    marginHorizontal: Spacing[4],
+    marginBottom: Spacing[4],
+    backgroundColor: '#F3EEFE',
+    borderRadius: Radii.lg,
+    borderWidth: 1.5,
+    borderColor: '#7C3AED30',
+    padding: Spacing[4],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing[3],
+  },
+  shareCardLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing[3], flex: 1 },
+  shareCardIcon: { fontSize: 26, marginTop: 2 },
+  shareCardTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#5B21B6', marginBottom: 4 },
+  shareCardDesc: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#6D28D9', lineHeight: 18 },
+  shareCardArrow: { fontFamily: 'BeVietnamPro_700Bold', fontSize: 22, color: '#7C3AED' },
 
   filtersIntro: {
     fontFamily: 'BeVietnamPro_700Bold',
@@ -488,8 +530,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   urgentLabel: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
     fontSize: Typography.xl,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.3,
     marginTop: Spacing[5],
     marginBottom: Spacing[3],
     marginLeft: Spacing[4],
@@ -506,8 +547,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   allContactsLabel: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
     fontSize: Typography.xl,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.3,
     marginTop: Spacing[5],
     marginBottom: Spacing[3],
     marginLeft: Spacing[4],

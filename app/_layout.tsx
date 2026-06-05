@@ -19,6 +19,12 @@ import { Satisfy_400Regular } from '@expo-google-fonts/satisfy';
 import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
 import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
 import { Bangers_400Regular } from '@expo-google-fonts/bangers';
+import { Merriweather_400Regular } from '@expo-google-fonts/merriweather';
+import { loadAsync as loadFontAsync } from 'expo-font';
+import { Oswald_400Regular } from '@expo-google-fonts/oswald';
+import { RobotoSlab_400Regular } from '@expo-google-fonts/roboto-slab';
+import { SpaceMono_400Regular } from '@expo-google-fonts/space-mono';
+import { PlayfairDisplay_400Regular } from '@expo-google-fonts/playfair-display';
 import {
   BeVietnamPro_300Light,
   BeVietnamPro_400Regular,
@@ -34,6 +40,7 @@ import { Colors } from '@constants/theme';
 import { useThemeStore } from '../src/stores/themeStore';
 import { savePushToken } from '../src/services/pot.service';
 import { ToastRenderer } from '../src/components/ui/Toast';
+import { useNavigationLogger } from '../src/hooks/useNavigationLogger';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -45,6 +52,11 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function NavigationLogger() {
+  useNavigationLogger();
+  return null;
+}
 
 // Synchronise la langue i18n depuis le profil Supabase
 function LanguageSync() {
@@ -109,7 +121,7 @@ function AuthGate({ onReady }: { onReady: () => void }) {
     const inReactionPage  = (segments[0] as string) === 'reaction';
     const inGuestbookPage = (segments[0] as string) === 'guestbook';
     if (!session && !inAuthGroup && !inCardGroup && !inGroupPage && !inReactionPage && !inGuestbookPage) {
-      router.replace('/(auth)/onboarding');
+      router.replace('/(auth)/login');
       onReady();
     } else if (session && inAuthGroup) {
       // Connexion depuis l'écran auth → toujours montrer le welcome
@@ -136,6 +148,22 @@ export default function RootLayout() {
   const [navigationReady, setNavigationReady] = useState(false);
 
   useEffect(() => { loadTheme(); }, [loadTheme]);
+
+  // Fonts custom (Windows TTF) — chargement non-bloquant
+  useEffect(() => {
+    loadFontAsync({
+      TimesNewRoman:          require('../assets/fonts/TimesNewRoman.ttf'),
+      ComicSansMS:            require('../assets/fonts/ComicSansMS.ttf'),
+      Verdana:                require('../assets/fonts/Verdana.ttf'),
+      BookAntiqua:            require('../assets/fonts/BookAntiqua.ttf'),
+      Merriweather_400Regular: require('@expo-google-fonts/merriweather/400Regular/Merriweather_400Regular.ttf'),
+      Oswald_400Regular:       require('@expo-google-fonts/oswald/400Regular/Oswald_400Regular.ttf'),
+      RobotoSlab_400Regular:   require('@expo-google-fonts/roboto-slab/400Regular/RobotoSlab_400Regular.ttf'),
+      SpaceMono_400Regular:    require('@expo-google-fonts/space-mono/400Regular/SpaceMono_400Regular.ttf'),
+      PlayfairDisplay_400Regular: require('@expo-google-fonts/playfair-display/400Regular/PlayfairDisplay_400Regular.ttf'),
+    }).catch(() => { /* silent — fonts non critiques */ });
+  }, []);
+
 
   const [fontsLoaded] = useFonts({
     PlusJakartaSans_700Bold,
@@ -173,15 +201,16 @@ export default function RootLayout() {
     <StripeProvider publishableKey={Config.stripePublishableKey}>
       <QueryClientProvider client={queryClient}>
         <AuthGate onReady={() => setNavigationReady(true)} />
+        <NavigationLogger />
         <LanguageSync />
         <StatusBar style="auto" backgroundColor={Colors.background} />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(app)" />
           <Stack.Screen name="welcome" />
-          <Stack.Screen name="card" />
-          <Stack.Screen name="reaction" />
-          <Stack.Screen name="guestbook" />
+          <Stack.Screen name="card/[id]" />
+          <Stack.Screen name="reaction/[id]" />
+          <Stack.Screen name="guestbook/[token]" />
         </Stack>
         <ToastRenderer />
       </QueryClientProvider>

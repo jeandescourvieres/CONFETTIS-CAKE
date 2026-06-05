@@ -11,7 +11,8 @@ type Occasion =
   | 'birthday' | 'nameday' | 'wedding' | 'engagement' | 'birth'
   | 'baptism' | 'communion'
   | 'graduation' | 'promotion' | 'thanks' | 'newyear' | 'support' | 'custom'
-  | 'christmas' | 'easter' | 'valentines' | 'mothersday' | 'fathersday' | 'halloween' | 'retirement';
+  | 'christmas' | 'easter' | 'valentines' | 'mothersday' | 'fathersday' | 'halloween' | 'retirement'
+  | 'greetings';
 
 interface OccasionExtras {
   partner1Name?: string;
@@ -23,30 +24,38 @@ interface OccasionExtras {
   thankReason?: string;
   customOccasionLabel?: string;
   supportType?: 'bereavement' | 'illness' | 'breakup' | 'hardtime' | 'encouragement';
+  childName?: string;
+  childAge?: number;
+  childFromName?: string;
+  childFromAge?: number;
 }
 
 type AppLanguage = 'fr' | 'en' | 'de' | 'es' | 'it' | 'pt';
 
 interface GenerateRequest {
   format: 'song' | 'poem' | 'message' | 'joke';
-  tone: 'humorous' | 'touching' | 'poetic' | 'playful' | 'professional';
+  tone: 'humorous' | 'touching' | 'poetic' | 'playful' | 'professional' | 'childlike';
   relation: string;
   contact_name: string;
   age?: number | null;
   memories?: string | null;
   personality_tags?: string[];
-  favourite_color?: string | null; // couleur préférée du contact (optionnel)
+  favourite_color?: string | null;
   occasion: Occasion;
   late_mode?: boolean;
   extras?: OccasionExtras;
-  style_hint?: string; // 'Court' | 'Moyen' | 'Long'
-  language?: AppLanguage; // langue de génération (défaut: 'fr')
-  is_regeneration?: boolean; // true = pas de déduction de crédit
-  sender_civilite?: 'M.' | 'Mme' | null; // Civilité de l'expéditeur → accord grammatical
-  // Mode spécial : message écrit à la 1ère personne par l'animal
+  style_hint?: string;
+  language?: AppLanguage;
+  is_regeneration?: boolean;
+  sender_civilite?: 'M.' | 'Mme' | null;
+  contact_civilite?: 'M.' | 'Mme' | null;
   pet_from_mode?: boolean;
-  pet_from_name?: string; // nom de l'animal (ex: "Rex")
-  pet_from_type?: string; // type d'animal (ex: "chien", "chat"…)
+  pet_from_name?: string;
+  pet_from_type?: string;
+  // Mode traduction : traduit un texte existant sans générer
+  text_to_translate?: string;
+  // Mode réécriture en poème : transforme un texte existant en poème
+  text_to_rewrite_as_poem?: string;
 }
 
 // Noms complets des langues pour le prompt Claude
@@ -87,6 +96,7 @@ const TONE_FR: Record<string, string> = {
   humorous: 'humoristique et drôle', touching: 'touchant et émouvant',
   poetic: 'poétique et lyrique', playful: 'enjoué et taquin',
   professional: 'chaleureux mais professionnel',
+  childlike: 'magique et enfantin — mots simples, phrases courtes, images concrètes (étoiles, couleurs, câlins), rimes douces si possible, plein de tendresse et de magie',
 };
 
 /**
@@ -104,6 +114,53 @@ function extractFirstName(fullName: string): string {
   return fullName;
 }
 
+function getAgeGroupInstructions(age: number | null | undefined, firstName: string): string {
+  if (!age || age >= 18) return '';
+  if (age <= 2) {
+    const months = age === 0 ? 'quelques mois' : age === 1 ? '1 an' : '2 ans';
+    return `
+**⚠️ ADAPTATION ÂGE CRITIQUE — Bébé (${months}) :**
+- ${firstName} est un très jeune enfant/bébé. Il/elle ne peut pas lire ce message.
+- Adresse le message UNIQUEMENT aux parents, pas à l'enfant.
+- Ton : tendre, chaleureux, plein d'émerveillement pour ce petit être.
+- Parle de ${firstName} à la 3ème personne ("le petit ${firstName}", "ta petite ${firstName}").
+- Célèbre autant les parents que l'enfant — c'est aussi leur "anniversaire" de parents.
+- Exemple de ton : "Un an déjà que ${firstName} illumine votre vie ! Cette première bougie, c'est aussi la vôtre..."
+- Émojis : 👶 🍼 💛 🌟 ✨`;
+  }
+  if (age <= 6) {
+    return `
+**⚠️ ADAPTATION ÂGE — Jeune enfant (${age} ans) :**
+- ${firstName} est un jeune enfant. Utilise un vocabulaire très simple, des phrases courtes.
+- Sois joyeux, coloré, amusant. Parle de choses concrètes qu'un enfant comprend : jouets, gâteau, bougies, fête, cadeaux.
+- Tu peux adresser le message à l'enfant ET aux parents selon le ton.
+- Évite toute abstraction, métaphore complexe ou vocabulaire adulte.
+- Exemple de ton : "Tu as ${age} ans aujourd'hui ! C'est ÉNORME ! ${age} bougies sur ton gâteau !"
+- Émojis festifs et colorés : 🎂 🎈 🎁 ⭐ 🌈 🎉`;
+  }
+  if (age <= 12) {
+    return `
+**⚠️ ADAPTATION ÂGE — Enfant (${age} ans) :**
+- ${firstName} est un enfant. Sois fun, dynamique et enjoué.
+- Vocabulaire simple mais pas bébé. Ton complice, légèrement taquin.
+- Parle de ses passions si connues (sport, jeux, école, amis).
+- Évite les références trop adultes (travail, amour romantique, nostalgie).
+- Exemple de ton : "Alors comme ça tu as ${age} ans ? Impressionnant !"
+- Émojis : 🎂 🎮 ⚽ 🎁 🎉 😄`;
+  }
+  if (age <= 17) {
+    return `
+**⚠️ ADAPTATION ÂGE — Ado (${age} ans) :**
+- ${firstName} est un adolescent. Sois décontracté et complice, sans être condescendant.
+- Évite le ton trop enfantin ET trop formel. Ni "câlins" ni "chère madame".
+- Humour bienvenu, références à sa vie sociale, ses projets.
+- Évite les clichés ados (jeux vidéo, réseaux sociaux à tout prix).
+- Exemple de ton : "${age} ans — l'âge où tout est encore possible (et où le gâteau est OBLIGATOIRE)."
+- Émojis modérés et cool : 🎂 ✨ 🔥 🎉`;
+  }
+  return '';
+}
+
 function buildOccasionContext(req: GenerateRequest): string {
   // Utiliser uniquement le prénom dans les prompts (le nom de famille perturbe l'IA)
   const firstName = extractFirstName(req.contact_name);
@@ -117,13 +174,41 @@ function buildOccasionContext(req: GenerateRequest): string {
     case 'birthday': {
       const isPetBirthday = req.relation.includes('(animal de compagnie)');
       if (isPetBirthday) {
-        const animalType = req.relation.split('(')[0].trim(); // 'chien', 'chat', 'autre'
+        const animalType = req.relation.split('(')[0].trim();
         return `l'anniversaire de ${firstName}, ${animalType} de l'utilisateur.${lateMention}`;
+      }
+      if (extras.childFromName) {
+        const age = extras.childFromAge;
+        const tonEnfant = !age ? "un enfant qui écrit à son parent avec tendresse"
+          : age <= 3  ? "un tout-petit de moins de 4 ans : phrases très courtes, mots simples (maman/papa), plein d'amour, style presque maladroit et attendrissant"
+          : age <= 6  ? "un enfant de maternelle : phrases courtes, vocabulaire simple, beaucoup de câlins et de cœurs, orthographe phonétique bienvenue"
+          : age <= 10 ? "un enfant de primaire : sincère, direct, un peu maladroit mais touchant, quelques détails concrets du quotidien"
+          : age <= 14 ? "un ado qui essaie de cacher ses émotions mais les montre malgré lui, ton un peu cool mais vraiment tendre au fond"
+          : "un grand ado ou jeune adulte : message mature mais avec la chaleur d'un enfant qui parle à son parent";
+        const childDesc = age ? `${extras.childFromName} (${age} ans)` : extras.childFromName;
+        return `l'anniversaire de ${firstName}. Le message est rédigé à la première personne comme si c'était ${childDesc}, son enfant, qui l'avait écrit. Style attendu : ${tonEnfant}.${lateMention}`;
+      }
+      if (extras.childName) {
+        return `l'anniversaire de ${extras.childName}${extras.childAge ? ` qui fête ses ${extras.childAge} ans` : ''}, enfant de ${firstName}. Le message est adressé à ${firstName} pour célébrer cet anniversaire avec lui/elle.${lateMention}`;
       }
       return `l'anniversaire de ${firstName}${req.age ? ` qui fête ses ${req.age} ans` : ''}. C'est ${relation} de l'utilisateur.${lateMention}`;
     }
 
     case 'nameday':
+      if (extras.childFromName) {
+        const age = extras.childFromAge;
+        const tonEnfant = !age ? "un enfant qui écrit à son parent avec tendresse"
+          : age <= 3  ? "un tout-petit : phrases très courtes, mots simples, plein d'amour"
+          : age <= 6  ? "un enfant de maternelle : phrases courtes, vocabulaire simple, beaucoup de câlins"
+          : age <= 10 ? "un enfant de primaire : sincère, direct, un peu maladroit mais touchant"
+          : age <= 14 ? "un ado qui essaie de cacher ses émotions mais les montre malgré lui"
+          : "un grand ado ou jeune adulte avec la chaleur d'un enfant pour son parent";
+        const childDesc = age ? `${extras.childFromName} (${age} ans)` : extras.childFromName;
+        return `la fête de ${firstName}. Le message est rédigé à la première personne comme si c'était ${childDesc}, son enfant, qui l'avait écrit. Style attendu : ${tonEnfant}.${lateMention}`;
+      }
+      if (extras.childName) {
+        return `la fête de ${extras.childName}, enfant de ${firstName}. Le message est adressé à ${firstName} pour célébrer la fête de son enfant.${lateMention}`;
+      }
       return `la fête (saint prénom) de ${firstName}. C'est ${relation} de l'utilisateur.${lateMention}`;
 
     case 'wedding':
@@ -186,6 +271,9 @@ function buildOccasionContext(req: GenerateRequest): string {
       return `${supportCtx}. C'est ${relation} de l'utilisateur.`;
     }
 
+    case 'greetings':
+      return `envoyer un message de salutation amicale, un petit coucou spontané et chaleureux à ${firstName}. C'est ${relation} de l'utilisateur.`;
+
     case 'custom':
       return `${extras.customOccasionLabel ? extras.customOccasionLabel : `célébrer un événement spécial avec ${firstName}`}. C'est ${relation} de l'utilisateur.`;
 
@@ -233,22 +321,23 @@ function buildOccasionGuidelines(req: GenerateRequest): string {
 - Émojis conseillés : 🐾 🎂 ❤️ 🎉`;
         }
       }
+      const ageGroupInstructions = getAgeGroupInstructions(req.age, firstName);
       return `**Consignes spécifiques anniversaire :**
-- Commence par une salutation adaptée à la relation (ex: "Hey frérot !" pour un frère, "Salut mon cœur !" pour un partenaire, "Cher [Prénom]" pour un collègue).
 - **OBLIGATOIRE — Mention de l'âge :** ${req.age ? `${firstName} fête ses ${req.age} ans. Tu DOIS mentionner ce chiffre de façon naturelle dans le message (ex: "pour tes ${req.age} ans", "en ce beau jour de tes ${req.age} printemps", "tes ${req.age} ans méritent d'être célébrés", etc.). Ne l'omets sous aucun prétexte.` : `L'âge n'est pas connu — ne l'invente pas et ne mets pas de chiffre.`}
 - Si des détails personnels sont fournis (personnalité, souvenirs), intègre-les naturellement dans le texte — ne les liste pas.
 - **INTERDIT : n'invente AUCUN détail personnel** (voyage, hobby, souvenir, anecdote) qui n'est pas explicitement fourni. Si aucune info personnelle n'est disponible, génère un message chaleureux et sincère mais générique.
-- Ajoute une suggestion d'activité ou de cadeau en fin de message si pertinent et si le ton s'y prête.`;
+- Ajoute une suggestion d'activité ou de cadeau en fin de message si pertinent et si le ton s'y prête.${ageGroupInstructions}`;
     }
 
-    case 'nameday':
+    case 'nameday': {
+      const ageGroupInstructionsNameday = getAgeGroupInstructions(req.age, firstName);
       return `**Consignes spécifiques fête du prénom :**
-- Commence par une référence directe à la fête (ex: "Aujourd'hui c'est TA journée, [prénom] ! 🎉").
 - Intègre si possible une anecdote ou tradition liée au saint/sainte du jour (ex: "Savais-tu que les Catherine sont célébrées depuis le Moyen Âge ?"). Si tu n'as pas d'anecdote précise, reste sur une touche festive générale.
 - Ajoute une touche personnelle liée à la personnalité ou aux notes du contact si disponibles.
 - Termine par un vœu joyeux et chaleureux adapté à la relation.
 - Utilise des émojis festifs : 🎉 👑 🍰 🌸
-- Pour un ton humoristique : joue sur l'idée que c'est "officiellement sa journée" et qu'il/elle peut en abuser.`;
+- Pour un ton humoristique : joue sur l'idée que c'est "officiellement sa journée" et qu'il/elle peut en abuser.${ageGroupInstructionsNameday}`;
+    }
 
     case 'wedding':
       return `**Consignes spécifiques mariage :**
@@ -293,7 +382,6 @@ function buildOccasionGuidelines(req: GenerateRequest): string {
 
     case 'promotion':
       return `**Consignes spécifiques promotion professionnelle :**
-- Commence par une félicitation claire et enthousiaste.
 - Souligne les compétences ou efforts concrets qui ont mené à cette promotion — si le nouveau poste ou un parcours est mentionné dans les notes, cite-les naturellement.
 - Mentionne un défi futur avec optimisme et confiance (ex: "Je sais que tu vas exceller dans ce nouveau rôle").
 - Termine par une offre de soutien sincère et chaleureuse, adaptée à la relation (collègue, ami, famille).
@@ -312,7 +400,6 @@ function buildOccasionGuidelines(req: GenerateRequest): string {
     case 'christmas':
     case 'easter':
       return `**Consignes spécifiques fête :**
-- Commence par une référence directe à la fête (ex: "Cette année, Noël sera encore plus spécial…").
 - Si des traditions ou souvenirs sont mentionnés, intègre-les naturellement.
 - Ajoute un vœu personnalisé adapté à la relation (ex: "Que cette nouvelle année t'apporte autant de joie que tu m'en donnes").`;
 
@@ -330,7 +417,6 @@ function buildOccasionGuidelines(req: GenerateRequest): string {
 
     case 'mothersday':
       return `**Consignes spécifiques fête des Mères :**
-- Commence par un terme affectueux adapté à la relation (ex: "Ma chère maman", "Bonne-maman adorée", "Belle-maman").
 - Évoque 1 à 2 qualités ou souvenirs concrets si disponibles dans les notes — tisse-les naturellement dans le texte.
 - Exprime une gratitude profonde, visible et invisible (ex: "Merci pour tout ce que tu fais, vu et invisible").
 - Termine par un vœu tendre et personnel pour elle (ex: "Je te souhaite une journée aussi douce que tes câlins").
@@ -339,7 +425,6 @@ function buildOccasionGuidelines(req: GenerateRequest): string {
 
     case 'fathersday':
       return `**Consignes spécifiques fête des Pères :**
-- Commence par un terme affectueux adapté à la relation (ex: "Mon cher papa", "Beau-père adoré", "Papi").
 - Évoque 1 à 2 qualités ou souvenirs concrets si disponibles dans les notes — tisse-les naturellement dans le texte.
 - Exprime reconnaissance et admiration pour sa présence et son soutien (ex: "Merci pour tout ce que tu m'as transmis, en actes et en silence").
 - Termine par un vœu chaleureux et personnel pour lui (ex: "Je te souhaite une journée aussi belle que tout ce que tu nous as offert").
@@ -369,7 +454,6 @@ function buildOccasionGuidelines(req: GenerateRequest): string {
 
     case 'halloween':
       return `**Consignes spécifiques Halloween :**
-- Commence par une accroche thématique percutante (ex: "🎃 BOO ! [prénom], prépare-toi…").
 - Intègre une référence concrète à Halloween : fantômes, bonbons, déguisements, films d'horreur — adapte selon les notes ou la personnalité du contact.
 - Ajoute une touche personnelle si des traditions ou anecdotes sont mentionnées (ex: "Toi qui adores les films d'horreur, tu dois être aux anges !").
 - Termine par une invitation festive ou un vœu amusant (ex: "Soirée films d'horreur ? On se retrouve si tu l'oses !").
@@ -453,11 +537,18 @@ Génère ${format} pour ${occasionContext}
 **Ton :** ${tone}
 **LANGUE DE GÉNÉRATION OBLIGATOIRE :** Génère le message UNIQUEMENT en ${langName}. Ne mélange pas les langues.
 **IMPORTANT — Relation :** Utilise uniquement la relation indiquée ci-dessus. N'invente pas de lien de parenté ou d'affection non spécifié (ne suppose pas que c'est une cousine, sœur, etc. si ce n'est pas précisé).
-**IMPORTANT — Point de vue :** Le message est écrit par UNE SEULE personne, à la première personne du singulier ("je", "mon", "ma", "mes"). N'utilise jamais "nous", "notre", "nos" sauf si le contexte l'impose explicitement (ex: mariage).`;
+**IMPORTANT — Point de vue :** Le message est écrit par UNE SEULE personne, à la première personne du singulier ("je", "mon", "ma", "mes"). N'utilise jamais "nous", "notre", "nos" sauf si le contexte l'impose explicitement (ex: mariage).
+**RÈGLE ABSOLUE — Pas de formule d'ouverture :** Ne commence JAMAIS le message par une formule d'appel ou une salutation directe ("Bonjour [prénom]", "Salut [prénom]", "Cher [prénom]", "Hey [prénom]", "Coucou [prénom]", etc.). La formule d'ouverture est gérée séparément. Commence directement par le contenu du message.
+**RÈGLE ABSOLUE — Accords de genre :** N'utilise JAMAIS les formes épicènes avec tiret ("heureux-se", "content-e", "ému-e", "ravi-e", etc.) NI avec parenthèses ("fort(e)", "déterminé(e)", "fier(ère)", etc.). Accorde toujours au genre de l'expéditeur.`;
 
-  if (req.sender_civilite) {
-    const genre = req.sender_civilite === 'M.' ? 'masculin' : 'féminin';
-    prompt += `\n**Genre de l'expéditeur :** ${req.sender_civilite} — accorde le message au genre ${genre} pour l'expéditeur (ex : "je suis content" vs "je suis contente", "heureux" vs "heureuse", etc.).`;
+  const genre = req.sender_civilite === 'Mme' ? 'féminin' : 'masculin';
+  prompt += `\n**Genre de l'expéditeur :** ${genre} — accorde tous les adjectifs et participes passés qui se rapportent à l'expéditeur en conséquence (ex : "${genre === 'masculin' ? 'heureux, content, fier, ravi' : 'heureuse, contente, fière, ravie'}").`;
+
+  const genreDestinataire = req.contact_civilite === 'Mme' ? 'féminin' : req.contact_civilite === 'M.' ? 'masculin' : null;
+  if (genreDestinataire) {
+    prompt += `\n**Genre du destinataire :** ${genreDestinataire} — accorde tous les adjectifs et participes passés qui se rapportent au destinataire en conséquence (ex : "${genreDestinataire === 'masculin' ? 'entouré, aimé, gâté, comblé' : 'entourée, aimée, gâtée, comblée'}").`;
+  } else {
+    prompt += `\n**Genre du destinataire :** inconnu — utilise des formulations neutres ou épicènes qui ne nécessitent pas d'accord de genre pour le destinataire.`;
   }
 
   prompt += `\n**Formule de clôture :** Termine toujours le message par une formule chaleureuse et sincère adaptée au ton (ex: "Je t'embrasse", "Avec toute mon affection", "Bien à toi", "Plein de bisous"...). Ne mets pas de signature ni de prénom.`;
@@ -592,6 +683,48 @@ Deno.serve(async (req: Request) => {
     }
 
     const body: GenerateRequest = await req.json();
+
+    // ── Mode traduction : texte existant → traduction ────────────────────────
+    if (body.text_to_translate) {
+      if (!body.language) {
+        return new Response(JSON.stringify({ error: 'Langue cible manquante' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const langName = LANGUAGE_NAMES[body.language] ?? body.language;
+      const translatePrompt = `Traduis le texte suivant en ${langName}. Conserve exactement le même ton, le même style, les mêmes émojis et la même structure (sauts de ligne, strophes). Ne change rien d'autre que la langue. Retourne UNIQUEMENT le texte traduit, sans commentaire ni introduction.\n\n${body.text_to_translate}`;
+
+      const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mistralApiKey}` },
+        body: JSON.stringify({
+          model: MISTRAL_MODEL,
+          messages: [{ role: 'user', content: translatePrompt }],
+          temperature: 0.3,
+          max_tokens: 1000,
+        }),
+      });
+      const mistralJson = await mistralRes.json();
+      const translated = mistralJson.choices?.[0]?.message?.content?.trim() ?? '';
+      return new Response(JSON.stringify({ content: translated }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── Mode réécriture en poème ─────────────────────────────────────────────
+    if (body.text_to_rewrite_as_poem) {
+      const poemPrompt = `Réécris le texte suivant sous forme de poème en français. Conserve le sens, le destinataire et les émojis. Crée 2 à 3 strophes de 4 vers avec des rimes. Le résultat doit être touchant et fluide. Retourne UNIQUEMENT le poème, sans titre ni commentaire.\n\n${body.text_to_rewrite_as_poem}`;
+      const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mistralApiKey}` },
+        body: JSON.stringify({ model: MISTRAL_MODEL, messages: [{ role: 'user', content: poemPrompt }], temperature: 0.7, max_tokens: 600 }),
+      });
+      const mistralJson = await mistralRes.json();
+      const poem = mistralJson.choices?.[0]?.message?.content?.trim() ?? '';
+      return new Response(JSON.stringify({ content: poem }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!body.contact_name || !body.format || !body.tone || !body.relation || !body.occasion) {
       return new Response(JSON.stringify({ error: 'Paramètres manquants' }), {

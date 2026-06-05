@@ -145,14 +145,24 @@ export async function uploadContactAvatar(localUri: string): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Non authentifié');
 
-  const response = await fetch(localUri);
-  const blob = await response.blob();
-  const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
+  // XHR arraybuffer — plus fiable que fetch().blob() sur Android
+  const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', localUri);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload  = () => resolve(xhr.response as ArrayBuffer);
+    xhr.onerror = () => reject(new Error('Lecture du fichier image échouée'));
+    xhr.send();
+  });
+
+  const lower = localUri.toLowerCase();
+  const ext = lower.includes('.png') ? 'png' : lower.includes('.webp') ? 'webp' : 'jpg';
+  const contentType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
   const path = `${user.id}/${Date.now()}.${ext}`;
 
   const { data, error } = await supabase.storage
     .from('contact-avatars')
-    .upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: true });
+    .upload(path, arrayBuffer, { contentType, upsert: true });
 
   if (error) throw error;
 

@@ -117,7 +117,7 @@ export default function UpcomingEventsScreen() {
       setContact(event.contact.id, event.contact.name, event.contact.relation);
       setOccasion(event.eventType === 'birthday' ? 'birthday' : 'nameday');
       router.push({
-        pathname: '/(app)/create/index',
+        pathname: '/(app)/create',
         params: { contactId: event.contact.id },
       } as never);
     },
@@ -130,6 +130,15 @@ export default function UpcomingEventsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <BackHeader title="Événements à venir" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* Bouton créer un événement */}
+        <TouchableOpacity
+          style={styles.createEventBtn}
+          onPress={() => router.push('/(app)/calendar/new-event' as never)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.createEventBtnText}>＋ Créer un événement</Text>
+        </TouchableOpacity>
 
         {isEmpty ? (
           <View style={styles.emptyState}>
@@ -216,6 +225,22 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
     content: { paddingBottom: 80, paddingHorizontal: Spacing[4] },
+
+    createEventBtn: {
+      marginTop: Spacing[4],
+      marginBottom: Spacing[2],
+      backgroundColor: C.primary,
+      borderRadius: Radii.full,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      alignSelf: 'center' as const,
+      ...Shadows.sm,
+    },
+    createEventBtnText: {
+      fontFamily: 'BeVietnamPro_700Bold',
+      fontSize: Typography.md,
+      color: Colors.white,
+    },
 
     sectionTitle: {
       fontFamily: 'PlusJakartaSans_700Bold',

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réagis au message 💛 — Confettis &amp; Cake</title>
+  <meta property="og:title"       content="💌 Un message t'attend !">
+  <meta property="og:description" content="Quelqu'un t'a envoyé un message — réagis en quelques secondes 💛">
+  <meta property="og:type"        content="website">
+  <meta property="og:image"       content="https://confetticake.fr/og-vocal.png">
+  <meta name="twitter:card"       content="summary_large_image">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px 20px;
+      background: linear-gradient(160deg, #f5f0ff 0%, #fff0f6 100%);
+      transition: background 0.6s ease;
+      position: relative; overflow: hidden;
+    }
+
+    /* ── Particules ────────────────────────────── */
+    #particles {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 0; overflow: hidden;
+    }
+    .particle {
+      position: absolute; bottom: -40px;
+      animation: floatUp linear infinite; opacity: 0;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(0) rotate(0deg);    opacity: 0; }
+      12%  { opacity: 0.9; }
+      80%  { opacity: 0.6; }
+      100% { transform: translateY(-115vh) rotate(25deg); opacity: 0; }
+    }
+
+    /* ── Carte ─────────────────────────────────── */
+    .card {
+      position: relative; z-index: 1;
+      background: white; border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(155,107,181,0.18);
+      padding: 32px 24px 28px;
+      max-width: 400px; width: 100%; text-align: center;
+    }
+    .logo {
+      font-size: 13px; color: #9b6bb5; letter-spacing: 1px;
+      text-transform: uppercase; font-weight: 700; margin-bottom: 18px;
+    }
+    .main-emoji { font-size: 52px; display: block; margin-bottom: 14px; }
+    .title  { font-size: 20px; font-weight: 800; color: #1a1a2e; margin-bottom: 6px; line-height: 1.3; }
+    .subtitle { font-size: 14px; color: #888; margin-bottom: 28px; line-height: 1.5; }
+
+    /* ── Grille emojis ─────────────────────────── */
+    .emoji-grid {
+      display: flex; gap: 10px; justify-content: center;
+      flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .emoji-btn {
+      width: 54px; height: 54px; border-radius: 50%;
+      border: 2px solid #e8e0f5; background: #faf8ff;
+      font-size: 26px; cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .emoji-btn:hover  { transform: scale(1.12); border-color: #c084fc; }
+    .emoji-btn.active {
+      transform: scale(1.18);
+      border-color: #9b6bb5;
+      box-shadow: 0 4px 16px rgba(155,107,181,0.35);
+      background: #f5f0ff;
+    }
+
+    /* ── Champ note ───────────────────────────── */
+    .note-wrap { margin-bottom: 16px; }
+    .note-input {
+      width: 100%; border: 1.5px solid #e0d8f5; border-radius: 12px;
+      padding: 10px 14px; font-size: 14px; font-family: inherit;
+      color: #333; resize: none; outline: none;
+      background: #fafafe; transition: border-color 0.15s;
+    }
+    .note-input:focus { border-color: #9b6bb5; }
+    .note-char { font-size: 11px; color: #ccc; text-align: right; margin-top: 3px; }
+
+    /* ── Bouton envoyer ───────────────────────── */
+    .send-btn {
+      width: 100%; padding: 14px; border: none; border-radius: 99px;
+      background: linear-gradient(135deg, #9b6bb5, #c084fc);
+      color: white; font-size: 16px; font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(155,107,181,0.35);
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .send-btn:disabled { opacity: 0.45; cursor: default; }
+    .send-btn:active:not(:disabled) { transform: scale(0.97); }
+
+    /* ── Confirmation ─────────────────────────── */
+    .success-emoji { font-size: 64px; display: block; margin-bottom: 14px; }
+    .success-title { font-size: 22px; font-weight: 800; color: #1a1a2e; margin-bottom: 10px; }
+    .success-sub   { font-size: 14px; color: #888; line-height: 1.6; }
+
+    /* ── Footer ───────────────────────────────── */
+    .footer { margin-top: 24px; font-size: 11px; color: #bbb; }
+    .footer a { color: #c084fc; text-decoration: none; }
+
+    /* ── Chargement ───────────────────────────── */
+    .dots { display: inline-flex; gap: 6px; margin-top: 10px; }
+    .dots span {
+      width: 8px; height: 8px; background: #c084fc; border-radius: 50%;
+      animation: dot 1.2s ease-in-out infinite;
+    }
+    .dots span:nth-child(2) { animation-delay: .2s; }
+    .dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes dot { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+  </style>
+</head>
+<body>
+  <div id="particles"></div>
+
+  <div class="card">
+    <div class="logo">🎂 Confettis &amp; Cake</div>
+
+    <!-- Chargement -->
+    <div id="stateLoading">
+      <span class="main-emoji">💌</span>
+      <div class="dots"><span></span><span></span><span></span></div>
+    </div>
+
+    <!-- Formulaire -->
+    <div id="stateForm" style="display:none">
+      <span class="main-emoji" id="mainEmoji">💌</span>
+      <div class="title" id="mainTitle">Quelqu'un pense à toi 💛</div>
+      <div class="subtitle">Choisis ta réaction pour lui faire signe 😊</div>
+
+      <div class="emoji-grid" id="emojiGrid"></div>
+
+      <div class="note-wrap">
+        <textarea class="note-input" id="noteInput" rows="2" maxlength="200"
+          placeholder="Ajoute un petit mot… (optionnel)"></textarea>
+        <div class="note-char"><span id="charCount">0</span>&thinsp;/&thinsp;200</div>
+      </div>
+
+      <button class="send-btn" id="sendBtn" disabled onclick="sendReaction()">
+        Envoyer ma réaction
+      </button>
+    </div>
+
+    <!-- Confirmation -->
+    <div id="stateSuccess" style="display:none">
+      <span class="success-emoji" id="successEmoji">🎉</span>
+      <div class="success-title">Réaction envoyée ! 💛</div>
+      <div class="success-sub">
+        Ta réaction a bien été transmise.<br>
+        <em>Ça va lui faire chaud au cœur 😊</em>
+      </div>
+    </div>
+
+    <!-- Erreur -->
+    <div id="stateError" style="display:none">
+      <span class="main-emoji">😕</span>
+      <div class="title">Lien invalide</div>
+      <div class="subtitle">Ce lien n'est plus valide ou le message a été supprimé.</div>
+    </div>
+
+    <div class="footer">
+      Envoyé avec <a href="https://confetticake.fr" target="_blank">Confettis &amp; Cake 🎂</a>
+    </div>
+  </div>
+
+  <script>
+    var SUPABASE_URL = 'https://rlwxcbnsqokpirhzzurj.supabase.co';
+
+    var BG_THEMES = {
+      auto:     { bg: 'linear-gradient(160deg,#f0e8ff 0%,#fff0f6 100%)', particles: ['🎉','✨','🎊','⭐'] },
+      birthday: { bg: 'linear-gradient(160deg,#fff3e0 0%,#fff8f0 100%)', particles: ['🎉','🎊','🥳','🎈'] },
+      petales:  { bg: 'linear-gradient(160deg,#fce4ec 0%,#fff0f5 100%)', particles: ['🌸','🌺','🌼','💐'] },
+      flocons:  { bg: 'linear-gradient(160deg,#e3f2fd 0%,#f0f8ff 100%)', particles: ['❄️','⛄','🌨','✨'] },
+      coeurs:   { bg: 'linear-gradient(160deg,#fce4ec 0%,#fff0f5 100%)', particles: ['💝','💖','❤️','💕'] },
+      etoiles:  { bg: 'linear-gradient(160deg,#f3e5f5 0%,#fdf5ff 100%)', particles: ['⭐','🌟','✨','💫'] },
+    };
+
+    var EMOJIS = ['❤️','😂','😍','🙏','😭','🎉'];
+    var selectedEmoji = null;
+    var msgId = new URLSearchParams(window.location.search).get('id') || '';
+
+    if (!msgId) {
+      // Essai en chemin : /reaction/UUID
+      var pathParts = window.location.pathname.split('/').filter(Boolean);
+      msgId = pathParts[pathParts.length - 1] || '';
+    }
+
+    if (!msgId) {
+      show('stateError');
+    } else {
+      fetch(SUPABASE_URL + '/functions/v1/handle-reaction?id=' + encodeURIComponent(msgId))
+        .then(function(r) { if (!r.ok) throw new Error('not_found'); return r.json(); })
+        .then(function(data) { init(data); })
+        .catch(function() { show('stateError'); });
+    }
+
+    function init(data) {
+      var theme = BG_THEMES[data.bg_theme];
+      if (theme) {
+        document.body.style.background = theme.bg;
+        spawnParticles(theme.particles);
+        setMainEmoji(data.bg_theme);
+      }
+      if (data.recipient) {
+        document.getElementById('mainTitle').textContent = data.recipient + ', quelqu\'un pense à toi 💛';
+      }
+
+      // Grille emojis
+      var grid = document.getElementById('emojiGrid');
+      EMOJIS.forEach(function(e) {
+        var btn = document.createElement('button');
+        btn.className = 'emoji-btn';
+        btn.textContent = e;
+        btn.onclick = function() {
+          document.querySelectorAll('.emoji-btn').forEach(function(b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          selectedEmoji = e;
+          document.getElementById('sendBtn').disabled = false;
+        };
+        grid.appendChild(btn);
+      });
+
+      document.getElementById('noteInput').addEventListener('input', function() {
+        document.getElementById('charCount').textContent = this.value.length;
+      });
+
+      show('stateForm');
+    }
+
+    function setMainEmoji(theme) {
+      var map = { auto:'🎊', birthday:'🎂', petales:'🌸', flocons:'❄️', coeurs:'❤️', etoiles:'⭐' };
+      var e = map[theme];
+      if (e) document.getElementById('mainEmoji').textContent = e;
+    }
+
+    function sendReaction() {
+      if (!selectedEmoji) return;
+      var note = document.getElementById('noteInput').value.trim();
+      var btn  = document.getElementById('sendBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Envoi…';
+
+      fetch(SUPABASE_URL + '/functions/v1/handle-reaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: msgId, emoji: selectedEmoji, note: note || null }),
+      })
+        .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function() {
+          document.getElementById('successEmoji').textContent = selectedEmoji;
+          show('stateSuccess');
+        })
+        .catch(function() {
+          btn.disabled = false;
+          btn.textContent = 'Réessayer';
+        });
+    }
+
+    function show(id) {
+      ['stateLoading','stateForm','stateSuccess','stateError'].forEach(function(s) {
+        document.getElementById(s).style.display = s === id ? 'block' : 'none';
+      });
+    }
+
+    function spawnParticles(particles) {
+      var container = document.getElementById('particles');
+      for (var i = 0; i < 18; i++) {
+        var el  = document.createElement('span');
+        el.className   = 'particle';
+        el.textContent = particles[i % particles.length];
+        el.style.left             = (4 + Math.random() * 92) + 'vw';
+        el.style.fontSize         = (16 + Math.random() * 18) + 'px';
+        el.style.animationDelay    = (Math.random() * 5) + 's';
+        el.style.animationDuration = (3.5 + Math.random() * 3) + 's';
+        container.appendChild(el);
+      }
+    }
+  </script>
+</body>
+</html>

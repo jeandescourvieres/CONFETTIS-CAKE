@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback } from 'react';
+import React, { useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMyPots } from '../../../src/hooks/usePot';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
@@ -125,7 +125,6 @@ export default function PotListScreen() {
 
   const styles = useMemo(() => makeStyles(C), [C]);
   const scrollRef = useRef<FlatList>(null);
-  useFocusEffect(useCallback(() => { scrollRef.current?.scrollToOffset({ offset: 0, animated: false }); }, []));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -134,8 +133,8 @@ export default function PotListScreen() {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
         style={styles.header}
       >
-        <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-          <Text style={{ fontSize: 28, color: '#fff', lineHeight: 32 }}>‹</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
         <View>
           <Text style={styles.headerTitle}>Cagnottes 🎁</Text>
@@ -189,6 +188,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[5],
   },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.25)' },
+  backBtnText: { fontSize: 34, color: Colors.white, lineHeight: 38 },
   headerTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.white },
   headerSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   createBtn: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: Radii.full, backgroundColor: Colors.white },

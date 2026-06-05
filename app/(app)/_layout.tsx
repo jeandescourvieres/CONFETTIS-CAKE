@@ -1,22 +1,30 @@
 import { Tabs, useRouter, useSegments } from 'expo-router';
+import type React from 'react';
+const TabsAny = Tabs as React.ComponentType<any>;
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Typography, Radii, Spacing } from '@constants/theme';
 import { useThemeStore } from '../../src/stores/themeStore';
+import { scrollToTopRegistry } from '../../src/utils/scrollRegistry';
 
 // ── Tabs visibles (13 items dans l'ordre demandé) ─────────────────────────────
 const VISIBLE_TABS: { routeName: string; emoji: string; label: string }[] = [
   { routeName: 'index',           emoji: '🏠', label: 'Accueil'        },
   { routeName: 'dashboard',       emoji: '📊', label: 'Tableau de bord'},
-  { routeName: 'profile',         emoji: '👤', label: 'Mon profil'     },
+  { routeName: 'create/index',    emoji: '✨', label: 'Créer message'  },
+  { routeName: 'cards/index',     emoji: '✨', label: 'Animation'     },
   { routeName: 'contacts/index',  emoji: '👥', label: 'Contacts'       },
+  { routeName: 'profile',         emoji: '👤', label: 'Mon profil'     },
+  { routeName: 'notes',           emoji: '📝', label: 'Notes'          },
   { routeName: 'creations',       emoji: '💬', label: 'Messages'       },
   { routeName: 'agenda',          emoji: '📅', label: 'Agenda'         },
   { routeName: 'search/index',    emoji: '🔍', label: 'Recherche'      },
   { routeName: 'compat/index',    emoji: '💑', label: 'Compatibilité'  },
   { routeName: 'explore',         emoji: '🔭', label: 'Explorer'       },
   { routeName: 'numerologie',     emoji: '🔢', label: 'Numérologie'    },
+  { routeName: 'zodiac-season',   emoji: '⭐', label: 'Zodiaque'       },
   { routeName: 'animaux',         emoji: '🐾', label: 'Animaux'        },
+  { routeName: 'pot/index',       emoji: '🎁', label: 'Cagnotte'       },
   { routeName: 'help',            emoji: '📖', label: 'Aide'           },
   { routeName: 'settings',        emoji: '⚙️', label: 'Paramètres'    },
 ];
@@ -52,6 +60,10 @@ function PersistentTabBar() {
           }
 
           const onPress = () => {
+            if (isFocused) {
+              scrollToTopRegistry.trigger(tab.routeName);
+              return;
+            }
             if (tab.routeName === 'index') {
               router.navigate('/(app)/' as never);
             } else {
@@ -100,23 +112,23 @@ const tabStyles = StyleSheet.create({
   scrollContent: {
     flexDirection: 'row',
     paddingHorizontal: Spacing[2],
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 5,
+    paddingBottom: 3,
     gap: 4,
   },
   item: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: Radii.md,
-    minWidth: 64,
-    gap: 2,
+    minWidth: 60,
+    gap: 1,
   },
   itemActive: {
     backgroundColor: Colors.surfaceContainerLow,
   },
-  emoji: { fontSize: 20 },
+  emoji: { fontSize: 18 },
   label: {
     fontFamily: 'BeVietnamPro_600SemiBold',
     fontSize: 10,
@@ -129,7 +141,7 @@ const tabStyles = StyleSheet.create({
 });
 
 // Hauteur fixe de la tab bar (emoji + label + padding, hors safe area)
-export const TAB_BAR_CONTENT_HEIGHT = 56;
+export const TAB_BAR_CONTENT_HEIGHT = 48;
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 export default function AppLayout() {
@@ -138,15 +150,17 @@ export default function AppLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
-      <Tabs
+      <TabsAny
         tabBar={() => null}
         screenOptions={{ headerShown: false }}
         sceneContainerStyle={{ paddingBottom: tabBarTotalHeight }}
+        backBehavior="history"
       >
         {/* ── 13 onglets visibles ────────────────────────── */}
         <Tabs.Screen name="index" />
         <Tabs.Screen name="dashboard" />
         <Tabs.Screen name="contacts/index" />
+        <Tabs.Screen name="notes" />
         <Tabs.Screen name="creations" />
         <Tabs.Screen name="agenda" />
         <Tabs.Screen name="search/index" />
@@ -154,18 +168,21 @@ export default function AppLayout() {
         <Tabs.Screen name="explore/index" />
         <Tabs.Screen name="explore/prenoms"           options={{ href: null }} />
         <Tabs.Screen name="numerologie" />
+        <Tabs.Screen name="zodiac-season" />
         <Tabs.Screen name="animaux" />
         <Tabs.Screen name="help" />
         <Tabs.Screen name="profile" />
         <Tabs.Screen name="settings" />
 
         {/* ── Écrans sans onglet ─────────────────────────── */}
-        <Tabs.Screen name="create/index"           options={{ href: null }} />
+        <Tabs.Screen name="create/index" />
         <Tabs.Screen name="calendar"               options={{ href: null }} />
         <Tabs.Screen name="calendar/new-event"     options={{ href: null }} />
         <Tabs.Screen name="contact/[id]"           options={{ href: null }} />
         <Tabs.Screen name="contacts/new"           options={{ href: null }} />
         <Tabs.Screen name="contacts/import"        options={{ href: null }} />
+        <Tabs.Screen name="contacts/share"         options={{ href: null }} />
+        <Tabs.Screen name="glossaire"              options={{ href: null }} />
         <Tabs.Screen name="create/preview"         options={{ href: null }} />
         <Tabs.Screen name="create/studio"          options={{ href: null }} />
         <Tabs.Screen name="create/sent"            options={{ href: null }} />
@@ -181,11 +198,16 @@ export default function AppLayout() {
         <Tabs.Screen name="pot/contribute/[id]"    options={{ href: null }} />
         <Tabs.Screen name="couple/index"           options={{ href: null }} />
         <Tabs.Screen name="animaux/new"             options={{ href: null }} />
-        <Tabs.Screen name="cards/index"            options={{ href: null }} />
+        <Tabs.Screen name="animal-message"         options={{ href: null }} />
+        <Tabs.Screen name="animal-message-library" options={{ href: null }} />
+        <Tabs.Screen name="youth-message-library"   options={{ href: null }} />
+        <Tabs.Screen name="deteste-message-library" options={{ href: null }} />
+        <Tabs.Screen name="ado-parent-library"      options={{ href: null }} />
+        <Tabs.Screen name="mode-jeune"              options={{ href: null }} />
+        <Tabs.Screen name="cards/index"            options={{}} />
         <Tabs.Screen name="cards/[id]"             options={{ href: null }} />
         <Tabs.Screen name="cards/ai-create"        options={{ href: null }} />
         <Tabs.Screen name="upcoming-events"        options={{ href: null }} />
-        <Tabs.Screen name="zodiac-season"          options={{ href: null }} />
         <Tabs.Screen name="auto-sends/index"       options={{ href: null }} />
         <Tabs.Screen name="auto-sends/new"         options={{ href: null }} />
         <Tabs.Screen name="contact-timeline/[id]"  options={{ href: null }} />
@@ -195,10 +217,17 @@ export default function AppLayout() {
         <Tabs.Screen name="explore/noms"           options={{ href: null }} />
         <Tabs.Screen name="reactions/index"        options={{ href: null }} />
         <Tabs.Screen name="guestbook/index"        options={{ href: null }} />
+        <Tabs.Screen name="features-intro"          options={{ href: null }} />
+        <Tabs.Screen name="message-guide"           options={{ href: null }} />
+        <Tabs.Screen name="cagnotte-guide"          options={{ href: null }} />
         <Tabs.Screen name="studio/index"           options={{ href: null }} />
+        <Tabs.Screen name="cremaillere-library"    options={{ href: null }} />
+        <Tabs.Screen name="depart-library"         options={{ href: null }} />
+        <Tabs.Screen name="dix-huit-ans-library"   options={{ href: null }} />
+        <Tabs.Screen name="timide-library"         options={{ href: null }} />
         <Tabs.Screen name="preview/index"          options={{ href: null }} />
         <Tabs.Screen name="sent/index"             options={{ href: null }} />
-      </Tabs>
+      </TabsAny>
       <PersistentTabBar />
     </View>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   ScrollView, StyleSheet, Alert, Platform,
@@ -10,6 +10,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useCreateCustomEvent, useUpdateCustomEvent } from '../../../src/hooks/useCustomEvents';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { scheduleCustomEventReminders } from '../../../src/services/notifications.service';
+import Constants from 'expo-constants';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 
@@ -86,7 +87,9 @@ export default function NewEventScreen() {
           remind_before: remindBefore,
         });
 
-        scheduleCustomEventReminders(title.trim(), eventDateISO, remindBefore).catch(() => {});
+        if (Constants.appOwnership !== 'expo') {
+          scheduleCustomEventReminders(title.trim(), eventDateISO, remindBefore).catch(() => {});
+        }
       }
 
       await queryClient.refetchQueries({ queryKey: ['custom_events', userId] });
@@ -108,8 +111,8 @@ export default function NewEventScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Topbar */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>
           {isEditing ? 'Modifier l\'événement' : 'Nouvel événement'}
@@ -124,6 +127,16 @@ export default function NewEventScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
+        {/* Intro -- création uniquement */}
+        {!isEditing && (
+          <View style={styles.introCard}>
+            <Text style={styles.introTitle}>📅 Un événement personnel</Text>
+            <Text style={styles.introText}>
+              {'Ajoute ici tout ce que tu veux retrouver dans ton agenda : un voyage, une réunion de famille, un anniversaire de mariage, une soirée entre amis…\n\nL\'appli t\'envoie une notification au moment choisi pour ne jamais l\'oublier.'}
+            </Text>
+          </View>
+        )}
 
         {/* Titre */}
         <Text style={styles.label}>Titre *</Text>
@@ -225,17 +238,45 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   topbarTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface },
   saveBtn: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: Radii.full, backgroundColor: C.primary },
   saveBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.white },
 
   content: { padding: Spacing[5], paddingBottom: 80 },
+
+  introCard: {
+    backgroundColor: C.primaryContainer,
+    borderRadius: Radii.xl,
+    padding: Spacing[4],
+    marginBottom: Spacing[4],
+    gap: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: C.primary,
+  },
+  introTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.xl,
+    color: C.primary,
+  },
+  introText: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.md,
+    color: Colors.onSurface,
+    lineHeight: 22,
+  },
   label: {
-    fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs,
-    textTransform: 'uppercase', letterSpacing: 0.8,
-    color: Colors.onSurfaceVariant, marginBottom: Spacing[2], marginTop: Spacing[4],
+    borderLeftWidth: 3,
+    borderLeftColor: C.primary,
+    paddingLeft: 8,
+    paddingVertical: 4,    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: C.primary,
+    marginTop: Spacing[4],
+    marginBottom: Spacing[2],
   },
   input: {
     backgroundColor: Colors.white, borderWidth: 0.5, borderColor: C.primaryContainer,

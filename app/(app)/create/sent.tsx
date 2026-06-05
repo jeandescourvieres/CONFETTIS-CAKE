@@ -61,8 +61,8 @@ export default function SentScreen() {
     ? `${nameParts.slice(1).join(' ')} ${nameParts[0]}`
     : nameParts[0];
   const subtitle = displayName
-    ? `Ton ${formatLabel[format] ?? 'message'} pour ${displayName} a été partagé ! 🎉`
-    : `Ton ${formatLabel[format] ?? 'message'} a été partagé ! 🎉`;
+    ? `Ton ${formatLabel[format] ?? 'message'} pour ${displayName} a été envoyé ! 🎉`
+    : `Ton ${formatLabel[format] ?? 'message'} a été envoyé ! 🎉`;
 
   const styles = useMemo(() => makeStyles(C), [C]);
 

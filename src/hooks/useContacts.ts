@@ -135,3 +135,21 @@ export function usePetsByOwnerName(ownerName: string) {
     (c) => c.relation === 'pet' && c.pet_owner_name?.toLowerCase() === lower,
   );
 }
+
+// ── Enfants rattachés à un contact parent ──────────
+export function useChildrenByParentName(parentName: string) {
+  const { data: contacts = [] } = useContacts();
+  if (!parentName.trim()) return [];
+  const lower = parentName.trim().toLowerCase();
+  return contacts.filter(
+    (c) => c.relation === 'child_of' && c.child_parent_name?.toLowerCase() === lower,
+  );
+}
+
+// ── Animaux appartenant à l'utilisateur (créés sans propriétaire contact) ──
+export function useMyPets() {
+  const { data: contacts = [] } = useContacts();
+  return contacts.filter(
+    (c) => c.relation === 'pet' && !c.pet_owner_contact_id && !c.pet_owner_name,
+  );
+}

@@ -34,12 +34,16 @@ export default function AuthCallbackScreen() {
       const refreshToken = Array.isArray(params['refresh_token']) ? params['refresh_token'][0] : params['refresh_token'];
 
       if (accessToken && refreshToken) {
-        const { error } = await supabase.auth.setSession({
+        const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
         if (!error) {
-          router.replace('/(app)');
+          if (params['type'] === 'recovery') {
+            router.replace('/(auth)/reset-password' as never);
+          } else {
+            router.replace('/(app)');
+          }
           return;
         }
       }

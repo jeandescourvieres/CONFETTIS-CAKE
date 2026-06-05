@@ -8,6 +8,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import {
   useReminders, useToggleReminder, useDeleteReminder, recurrenceLabel,
+  type Reminder,
 } from '../../../src/hooks/useReminders';
 import { BackHeader } from '../../../src/components/ui/BackHeader';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
@@ -30,6 +31,22 @@ export default function RemindersScreen() {
   useFocusEffect(useCallback(() => { refetch(); }, [refetch]));
 
   const activeCount = reminders.filter((r) => r.is_active).length;
+
+  const handleEdit = (r: Reminder) => {
+    router.push({
+      pathname: '/(app)/reminders/new',
+      params: {
+        editId:         r.id,
+        editTitle:      r.title,
+        editRecurrence: r.recurrence,
+        editDayOfWeek:  r.day_of_week  ?? '',
+        editDayOfMonth: r.day_of_month ?? '',
+        editMonth:      r.month        ?? '',
+        editOnceDate:   r.once_date    ?? '',
+        editContactId:  r.contact_id   ?? '',
+      },
+    } as never);
+  };
 
   const handleDelete = (id: string, title: string) => {
     Alert.alert(
@@ -61,13 +78,15 @@ export default function RemindersScreen() {
 
         {/* Intro explicative */}
         <FeatureIntroCard
-          introText={"Un rappel, c'est une notification que tu programmes toi-même, en dehors des anniversaires et fêtes automatiques — pour ne jamais oublier ce qui compte 📌"}
+          introText={"Parce que les petites attentions régulières sont souvent celles qui comptent le plus 💛 Les rappels personnalisés te permettent de programmer toi-même les moments où tu veux penser à tes proches — en dehors des anniversaires et fêtes automatiques. Hebdomadaire, mensuel, annuel ou ponctuel : tu choisis quand et à quelle fréquence être alerté, pour ne jamais laisser passer ce qui compte vraiment ⏰✨"}
           modeEmploiLines={[
-            "📞 Appeler papa tous les dimanches",
-            "💐 Envoyer des fleurs à maman en mai",
-            "🎗 Penser à écrire à un ami chaque mois",
-            "📌 Une date unique à ne pas oublier",
-            "⚙️ Tu choisis le titre, la date, la fréquence (une fois, hebdo, mensuel, annuel)",
+            "⏰ Appuie sur « + Nouveau rappel » pour créer ton premier rappel en quelques secondes",
+            "✏️ Donne-lui un titre parlant — ex : « Appeler papa », « Fleurs pour maman »",
+            "📅 Choisis la date de départ et la fréquence : une seule fois, chaque semaine, chaque mois ou chaque année",
+            "🔔 Tu reçois une notification le jour J pour ne jamais oublier",
+            "✅ Active ou désactive chaque rappel d'un simple tap sur le bouton — sans le supprimer",
+            "🗑️ Supprime un rappel définitivement en appuyant sur la corbeille",
+            "💡 Exemples : appeler un proche chaque dimanche · envoyer des fleurs en mai · écrire à un ami chaque mois · une date unique à ne pas rater 💛✨",
           ]}
         />
 
@@ -113,12 +132,28 @@ export default function RemindersScreen() {
               </View>
             </View>
             <View style={styles.cardRight}>
+              {r.contact_id && (
+                <TouchableOpacity
+                  onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: r.contact_id } } as never)}
+                  style={styles.deleteBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.deleteBtnText}>💬</Text>
+                </TouchableOpacity>
+              )}
               <Switch
                 value={r.is_active}
                 onValueChange={(val) => toggle({ id: r.id, is_active: val })}
                 trackColor={{ false: Colors.outlineVariant, true: C.primary }}
                 thumbColor="#fff"
               />
+              <TouchableOpacity
+                onPress={() => handleEdit(r)}
+                style={styles.deleteBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.deleteBtnText}>✏️</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleDelete(r.id, r.title)}
                 style={styles.deleteBtn}
@@ -205,6 +240,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       borderRadius: Radii.full,
       paddingVertical: 13,
       alignItems: 'center',
+      marginTop: 16,
       marginBottom: 20,
     },
     createBtnText: {

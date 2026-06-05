@@ -1,393 +1,191 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
-import {
-  View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Dimensions,
-} from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { useCardTemplates } from '../../../src/hooks/useCards';
-import { CardThumbnail } from '../../../src/components/cards/CardThumbnail';
-import { useAuthStore } from '../../../src/stores/authStore';
-import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { supabase } from '../../../src/services/supabase';
+import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
-import { HelpModal } from '../../../src/components/ui/HelpModal';
-
-const { width: W } = Dimensions.get('window');
-const CARD_W = (W - Spacing[5] * 2 - 8) / 2;
+import { BackHeader } from '../../../src/components/ui/BackHeader';
 
 const OCCASIONS = [
-  { key: 'all',        label: 'Toutes',       emoji: '✨' },
-  { key: 'birthday',   label: 'Anniversaire', emoji: '🎁' },
-  { key: 'wedding',    label: 'Mariage',      emoji: '💍' },
-  { key: 'newyear',    label: 'Nouvel An',    emoji: '🎆' },
-  { key: 'birth',      label: 'Naissance',    emoji: '👶' },
-  { key: 'graduation', label: 'Diplôme',      emoji: '🎓' },
-  { key: 'thanks',     label: 'Merci',        emoji: '🙏' },
-  { key: 'universal',  label: 'Universel',    emoji: '🌟' },
+  { key: 'birthday',      emoji: '🎂', label: 'Anniversaire',     color: '#E91E63', bg: '#FCE4EC' },
+  { key: 'nameday',       emoji: '🌸', label: 'Bonne fête',        color: '#9C27B0', bg: '#F3E5F5' },
+  { key: 'valentines',    emoji: '💕', label: 'Saint-Valentin',    color: '#E91E63', bg: '#FCE4EC' },
+  { key: 'wedding',       emoji: '💍', label: 'Mariage',           color: '#9C27B0', bg: '#EDE7F6' },
+  { key: 'birth',         emoji: '👶', label: 'Naissance',         color: '#2196F3', bg: '#E3F2FD' },
+  { key: 'graduation',    emoji: '🎓', label: 'Diplôme',           color: '#FF9800', bg: '#FFF3E0' },
+  { key: 'mothersday',    emoji: '💐', label: 'Fête des mères',    color: '#E91E63', bg: '#FCE4EC' },
+  { key: 'fathersday',    emoji: '👔', label: 'Fête des pères',    color: '#1565C0', bg: '#E3F2FD' },
+  { key: 'christmas',     emoji: '🎄', label: 'Noël',              color: '#388E3C', bg: '#E8F5E9' },
+  { key: 'newyear',       emoji: '🎆', label: 'Nouvel An',         color: '#F57F17', bg: '#FFFDE7' },
+  { key: 'support',       emoji: '🤗', label: 'Soutien',           color: '#0288D1', bg: '#E1F5FE' },
+  { key: 'thanks',        emoji: '🙏', label: 'Merci',             color: '#558B2F', bg: '#F1F8E9' },
+  { key: 'birthday_late', emoji: '🎂', label: 'Anniversaire tardif', color: '#795548', bg: '#EFEBE9' },
+  { key: 'courage',       emoji: '💪', label: 'Bon courage',       color: '#E65100', bg: '#FBE9E7' },
+  { key: 'weekend',       emoji: '🌞', label: 'Bon weekend',       color: '#F9A825', bg: '#FFFDE7' },
+  { key: 'universal',     emoji: '🌟', label: 'Universel',         color: '#6A1B9A', bg: '#F3E5F5' },
 ];
 
-type CardMode = 'browse' | 'ai';
-
-export default function CardsGalleryScreen() {
+export default function CardsOccasionScreen() {
   const C = useColors();
   const router = useRouter();
   const params = useLocalSearchParams<{ occasion?: string; contactName?: string; contactId?: string }>();
-  const profile = useAuthStore((s) => s.profile);
-  const isPremium = !!(profile as Record<string, unknown> | null)?.is_premium;
-
-  const [mode, setMode] = useState<CardMode | null>(null);
-  const [selectedOccasion, setSelectedOccasion] = useState(params.occasion ?? 'all');
-  const { data: templates = [], isLoading, error } = useCardTemplates(selectedOccasion);
-  const scrollRef = useRef<FlatList>(null);
-  useFocusEffect(useCallback(() => {
-    scrollRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, []));
-
-  const handleSelect = useCallback((templateId: string) => {
-    router.push({
-      pathname: '/(app)/cards/[id]',
-      params: {
-        id: templateId,
-        contactName: params.contactName ?? '',
-        contactId:   params.contactId   ?? '',
-      },
-    } as never);
-  }, [router, params.contactName, params.contactId]);
-
-  const handlePressLocked = useCallback(() => {
-    router.push('/(app)/profile/premium' as never);
-  }, [router]);
-
+  const [loading, setLoading] = useState<string | null>(null);
   const styles = useMemo(() => makeStyles(C), [C]);
 
-  const renderCard = useCallback(({ item, index }: { item: typeof templates[0]; index: number }) => (
-    <View style={[styles.cardCell, index % 2 === 0 ? styles.cardLeft : styles.cardRight]}>
-      <CardThumbnail
-        template={item}
-        isPremium={isPremium}
-        onPress={() => handleSelect(item.id)}
-        onPressLocked={handlePressLocked}
-      />
-    </View>
-  ), [isPremium, handleSelect, handlePressLocked, styles]);
+  const handleOccasion = useCallback(async (occasionKey: string) => {
+    setLoading(occasionKey);
+    try {
+      const { data } = await supabase
+        .from('card_templates')
+        .select('id')
+        .eq('occasion', occasionKey)
+        .eq('active', true)
+        .order('sort_order')
+        .limit(1)
+        .single() as { data: { id: string } | null; error: unknown };
+
+      if (data?.id) {
+        router.push({
+          pathname: '/(app)/cards/[id]',
+          params: {
+            id: data.id,
+            contactName: params.contactName ?? '',
+            contactId:   params.contactId   ?? '',
+          },
+        } as never);
+      }
+    } catch {
+      // Aucun template trouvé — on essaie universal
+      const { data: fallback } = await supabase
+        .from('card_templates')
+        .select('id')
+        .eq('active', true)
+        .order('sort_order')
+        .limit(1)
+        .single() as { data: { id: string } | null; error: unknown };
+      if (fallback?.id) {
+        router.push({ pathname: '/(app)/cards/[id]', params: { id: fallback.id, contactName: params.contactName ?? '', contactId: params.contactId ?? '' } } as never);
+      }
+    } finally {
+      setLoading(null);
+    }
+  }, [router, params]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => mode ? setMode(null) : router.back()}
-          style={styles.backBtn}
+      <BackHeader title="Message festif animé 🎴" />
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Intro */}
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.onSurface }}>
+            🎉 Surprends tes proches avec un message qui s'anime !
+          </Text>
+          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 14, color: Colors.onSurfaceVariant, lineHeight: 22, fontStyle: 'italic' }}>
+            {'Imagine : tu envoies un lien à quelqu\'un. Il clique. Sur son téléphone s\'ouvre une page toute colorée, avec son prénom en grand, une animation festive, une musique, et ton message personnel.\n\nPas besoin que le destinataire ait l\'appli. Un simple lien, et c\'est la fête.\n\nC\'est ça, le Message Festif Animé — bien plus sympa qu\'un SMS ou un mail, et une attention dont on se souvient.'}
+          </Text>
+        </View>
+
+        {/* Explication hero */}
+        <LinearGradient
+          colors={['#7C3AED', '#9b6bb5', '#c084fc']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.infoCard}
         >
-          <Text style={styles.backBtnText}>‹</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.title}>Cartes Animées</Text>
-          {mode === 'browse' && (
-            <Text style={styles.subtitle}>
-              {isLoading ? '…' : `${templates.length} carte${templates.length > 1 ? 's' : ''}`}
-            </Text>
-          )}
-        </View>
-        <HelpModal
-          title="Cartes Animées"
-          content={"Deux façons de créer ta carte :\n\n🃏 Parcourir la galerie — choisis une carte existante parmi nos modèles animés (confettis, ballons, feux d'artifice…). Elle s'anime avec le prénom de ton proche. Partage le lien, pas besoin d'app pour la voir.\n\n✨ Carte IA personnalisée — décris ce que tu veux, l'IA crée une carte unique rien que pour toi et ton proche.\n\n⭐ Les cartes Pro sont accessibles avec l'abonnement premium."}
-        />
-      </View>
-
-      {/* ── Choix du mode ──────────────────────────────── */}
-      {mode === null && (
-        <View style={styles.modePickerContent}>
-          <Text style={styles.modePickerTitle}>Comment veux-tu créer ta carte ?</Text>
-
-          {/* Option 1 — Galerie existante */}
-          <TouchableOpacity
-            style={[styles.modeCard, { borderColor: C.primary }]}
-            onPress={() => setMode('browse')}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.modeCardIcon, { backgroundColor: C.primaryContainer }]}>
-              <Text style={styles.modeCardEmoji}>🃏</Text>
-            </View>
-            <View style={styles.modeCardBody}>
-              <Text style={[styles.modeCardTitle, { color: C.primary }]}>
-                Je sélectionne une carte existante
-              </Text>
-              <Text style={styles.modeCardSub}>
-                Parcours notre galerie de cartes animées — confettis, ballons, feux d'artifice… Elle s'anime avec le prénom de ton proche.
-              </Text>
-            </View>
-            <Text style={[styles.modeCardArrow, { color: C.primary }]}>›</Text>
-          </TouchableOpacity>
-
-          {/* Option 2 — Carte IA */}
-          <TouchableOpacity
-            style={[styles.modeCard, { borderColor: '#7C4DFF' }]}
-            onPress={() => router.push('/(app)/cards/ai-create' as never)}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.modeCardIcon, { backgroundColor: '#EDE7F6' }]}>
-              <Text style={styles.modeCardEmoji}>✨</Text>
-            </View>
-            <View style={styles.modeCardBody}>
-              <Text style={[styles.modeCardTitle, { color: '#7C4DFF' }]}>
-                Je crée une carte IA personnalisée
-              </Text>
-              <Text style={styles.modeCardSub}>
-                Décris ce que tu veux, l'IA génère une carte unique rien que pour toi et ton proche. 100% original.
-              </Text>
-            </View>
-            <Text style={[styles.modeCardArrow, { color: '#7C4DFF' }]}>›</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* ── Mode 1 : Galerie ───────────────────────────── */}
-      {mode === 'browse' && (
-        <>
-          {/* Filtres occasion */}
-          <View style={styles.filtersRow}>
-            {OCCASIONS.map((o) => {
-              const active = selectedOccasion === o.key;
-              return (
-                <TouchableOpacity
-                  key={o.key}
-                  style={[styles.filterChip, active && styles.filterChipActive]}
-                  onPress={() => setSelectedOccasion(o.key)}
-                  activeOpacity={0.75}
-                >
-                  <Text style={styles.filterEmoji}>{o.emoji}</Text>
-                  <Text style={[styles.filterLabel, active && styles.filterLabelActive]}>
-                    {o.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 20, color: '#fff', marginBottom: 6 }}>
+            ✨ Comment ça marche ?
+          </Text>
+          <View style={{ gap: 10 }}>
+            {[
+              { n: '1', emoji: '🎯', text: 'Choisis l\'occasion ci-dessous' },
+              { n: '2', emoji: '✍️', text: 'Personnalise ton message avec une animation et une musique' },
+              { n: '3', emoji: '📲', text: 'Envoie le lien — ton proche voit l\'animation sur son téléphone, sans avoir l\'appli' },
+            ].map((step) => (
+              <View key={step.n} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 12, color: '#fff' }}>{step.n}</Text>
+                </View>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                  <Text style={{ fontSize: 16 }}>{step.emoji}</Text>
+                  <Text style={{ flex: 1, fontFamily: 'BeVietnamPro_400Regular', fontSize: 13, color: 'rgba(255,255,255,0.92)', lineHeight: 19 }}>{step.text}</Text>
+                </View>
+              </View>
+            ))}
           </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+            {[['🎉','Animation'], ['🎵','Musique'], ['💌','Message'], ['📲','Lien direct']].map(([emoji, label]) => (
+              <View key={label} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radii.lg, paddingVertical: 8, alignItems: 'center', gap: 3 }}>
+                <Text style={{ fontSize: 16 }}>{emoji}</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 9, color: '#fff', textAlign: 'center' }}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        </LinearGradient>
 
-          {/* Grille */}
-          {isLoading ? (
-            <View style={styles.center}>
-              <ActivityIndicator color={C.primary} size="large" />
-              <Text style={styles.loadingText}>Chargement des cartes…</Text>
-            </View>
-          ) : error ? (
-            <View style={styles.center}>
-              <Text style={styles.emptyEmoji}>⚠️</Text>
-              <Text style={styles.emptyTitle}>Erreur de chargement</Text>
-              <Text style={styles.emptySub}>{String((error as Error)?.message ?? error)}</Text>
-            </View>
-          ) : templates.length === 0 ? (
-            <View style={styles.center}>
-              <Text style={styles.emptyEmoji}>🃏</Text>
-              <Text style={styles.emptyTitle}>Aucune carte pour cette occasion</Text>
-              <Text style={styles.emptySub}>D'autres cartes arrivent bientôt ✨</Text>
-            </View>
-          ) : (
-            <FlatList
-              ref={scrollRef}
-              data={templates}
-              renderItem={renderCard}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              contentContainerStyle={styles.grid}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
+        <Text style={styles.sectionTitle}>Pour quelle occasion ?</Text>
 
-          {/* Bandeau Pro (si non premium) */}
-          {!isPremium && (
+        <View style={styles.grid}>
+          {OCCASIONS.map((occ) => (
             <TouchableOpacity
-              style={styles.proBanner}
-              onPress={() => router.push('/(app)/profile/premium' as never)}
-              activeOpacity={0.9}
+              key={occ.key}
+              style={[styles.tile, { backgroundColor: occ.bg, borderColor: occ.color + '40' }]}
+              onPress={() => handleOccasion(occ.key)}
+              activeOpacity={0.8}
+              disabled={!!loading}
             >
-              <Text style={styles.proBannerText}>⭐ Débloquer toutes les cartes Pro</Text>
-              <Text style={styles.proBannerArrow}>›</Text>
+              {loading === occ.key ? (
+                <ActivityIndicator size="small" color={occ.color} />
+              ) : (
+                <Text style={styles.tileEmoji}>{occ.emoji}</Text>
+              )}
+              <Text style={[styles.tileLabel, { color: occ.color }]}>{occ.label}</Text>
             </TouchableOpacity>
-          )}
-        </>
-      )}
+          ))}
+        </View>
 
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing[4],
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.surfaceContainerHighest,
-  },
-  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  title: {
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: Typography.xl,
-    color: Colors.onSurface,
-  },
-  subtitle: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.xs,
-    color: Colors.onSurfaceVariant,
-    marginTop: 1,
-  },
-
-  // ── Choix du mode ──────────────────────────────────────────────────────────
-  modePickerContent: {
-    flex: 1,
-    paddingHorizontal: Spacing[5],
-    paddingTop: Spacing[6],
-    gap: 16,
-  },
-  modePickerTitle: {
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: Typography['2xl'],
-    color: Colors.onSurface,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  modeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: Radii.xl,
-    borderWidth: 2,
-    padding: Spacing[4],
-    gap: 14,
-    ...Shadows.md,
-  },
-  modeCardIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: Radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modeCardEmoji: { fontSize: 28 },
-  modeCardBody: { flex: 1, gap: 4 },
-  modeCardTitle: {
-    fontFamily: 'PlusJakartaSans_700Bold',
-    fontSize: Typography.md,
-  },
-  modeCardSub: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.sm,
-    color: Colors.onSurfaceVariant,
-    lineHeight: 20,
-  },
-  modeCardArrow: {
-    fontSize: 26,
-    lineHeight: 30,
-    fontFamily: 'BeVietnamPro_700Bold',
-  },
-
-  // ── Galerie ────────────────────────────────────────────────────────────────
-  filtersRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: Spacing[4],
-    paddingVertical: 10,
-    gap: 8,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: Radii.full,
-    borderWidth: 1,
-    borderColor: Colors.surfaceContainerHighest,
-    backgroundColor: Colors.white,
-  },
-  filterChipActive: {
-    backgroundColor: C.primary,
-    borderColor: C.primary,
-  },
-  filterEmoji: { fontSize: 14 },
-  filterLabel: {
-    fontFamily: 'BeVietnamPro_600SemiBold',
-    fontSize: Typography.sm,
-    color: Colors.onSurfaceVariant,
-  },
-  filterLabelActive: { color: Colors.white },
-
-  grid: {
-    paddingHorizontal: Spacing[5] - 4,
-    paddingTop: 4,
-    paddingBottom: 100,
-  },
-  cardCell: { flex: 1 },
-  cardLeft:  { paddingRight: 2 },
-  cardRight: { paddingLeft: 2 },
-
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.md,
-    color: Colors.onSurfaceVariant,
-  },
-  emptyEmoji: { fontSize: 52 },
-  emptyTitle: {
-    fontFamily: 'PlusJakartaSans_700Bold',
-    fontSize: Typography.xl,
-    color: Colors.onSurface,
-    textAlign: 'center',
-  },
-  emptySub: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.md,
-    color: Colors.onSurfaceVariant,
-  },
-
-  proBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: C.primary,
-    paddingVertical: 13,
-    paddingHorizontal: Spacing[5],
-  },
-  proBannerText: {
-    fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.md,
-    color: Colors.white,
-  },
-  proBannerArrow: {
-    fontSize: 22,
-    color: Colors.white,
-    lineHeight: 26,
-  },
-
-  // ── Carte IA placeholder ──────────────────────────────────────────────────
-  aiPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    paddingHorizontal: Spacing[6],
-  },
-  aiPlaceholderEmoji: { fontSize: 64 },
-  aiPlaceholderTitle: {
-    fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: Typography['2xl'],
-    color: '#7C4DFF',
-    textAlign: 'center',
-  },
-  aiPlaceholderSub: {
-    fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.md,
-    color: Colors.onSurfaceVariant,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
+    container: { flex: 1, backgroundColor: Colors.background },
+    content:   { padding: Spacing[4], gap: Spacing[4], paddingBottom: 80 },
+    infoCard:  { borderRadius: Radii.xl, padding: Spacing[4], gap: 12, shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 14, elevation: 8 },
+    infoTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.base },
+    infoText:  { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, lineHeight: 20 },
+    sectionTitle: {
+      fontFamily: 'PlusJakartaSans_800ExtraBold',
+      fontSize: Typography['2xl'],
+      color: Colors.onSurface,
+      marginTop: Spacing[2],
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    tile: {
+      width: '30%',
+      borderRadius: Radii.lg,
+      borderWidth: 1.5,
+      paddingVertical: Spacing[3],
+      paddingHorizontal: Spacing[2],
+      alignItems: 'center',
+      gap: 5,
+      minHeight: 72,
+      justifyContent: 'center',
+    },
+    tileEmoji: { fontSize: 24 },
+    tileLabel: {
+      fontFamily: 'BeVietnamPro_600SemiBold',
+      fontSize: Typography.xs,
+      textAlign: 'center',
+      lineHeight: 14,
+    },
   });
 }

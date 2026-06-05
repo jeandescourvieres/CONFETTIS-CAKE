@@ -42,18 +42,23 @@ export function LottieEffect({ effect, recipientName }: Props) {
   const [source, setSource] = useState<unknown>(null);
 
   useEffect(() => {
-    if (effect.effect_type === 'none') return;
+    if (effect.effect_type === 'none' || !effect.lottie_url) return;
 
-    fetch(effect.lottie_url)
+    const controller = new AbortController();
+
+    fetch(effect.lottie_url, { signal: controller.signal })
       .then((r) => r.json())
       .then((json) => {
+        if (controller.signal.aborted) return;
         const patched =
           effect.has_name_layer && effect.name_layer_id
             ? patchLottieName(json, effect.name_layer_id, recipientName)
             : json;
         setSource(patched);
       })
-      .catch(() => {/* silencieux — l'effet est optionnel */});
+      .catch(() => {/* effet optionnel — silencieux */});
+
+    return () => controller.abort();
   }, [effect.lottie_url, effect.name_layer_id, recipientName, effect.effect_type, effect.has_name_layer]);
 
   if (!source) return null;

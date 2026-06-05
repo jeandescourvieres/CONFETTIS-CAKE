@@ -4,10 +4,10 @@ import {
   TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {
-  useCreateReminder,
+  useCreateReminder, useUpdateReminder,
   DOW_FR, DOW_FULL, MONTH_FR,
   type Recurrence,
 } from '../../../src/hooks/useReminders';
@@ -38,18 +38,30 @@ export default function NewReminderScreen() {
   const router  = useRouter();
   const C       = useColors();
   const styles  = useMemo(() => makeStyles(C), [C]);
+  const params  = useLocalSearchParams<{
+    editId?: string; editTitle?: string; editRecurrence?: string;
+    editDayOfWeek?: string; editDayOfMonth?: string; editMonth?: string;
+    editOnceDate?: string; editContactId?: string;
+  }>();
 
-  const { mutateAsync: create, isPending } = useCreateReminder();
-  const { data: contacts = [] }             = useContacts();
+  const isEditing = !!params.editId;
 
-  // Form state
-  const [title,       setTitle]       = useState('');
-  const [contactId,   setContactId]   = useState<string | null>(null);
-  const [recurrence,  setRecurrence]  = useState<Recurrence>('weekly');
-  const [dayOfWeek,   setDayOfWeek]   = useState(1);           // lundi par défaut
-  const [dayOfMonth,  setDayOfMonth]  = useState(1);
-  const [month,       setMonth]       = useState(1);
-  const [onceDate,    setOnceDate]    = useState(new Date());
+  const { mutateAsync: create, isPending: creating } = useCreateReminder();
+  const { mutateAsync: update, isPending: updating  } = useUpdateReminder();
+  const isPending = creating || updating;
+  const { data: contacts = [] } = useContacts();
+
+  // Form state — pré-rempli si édition
+  const [title,       setTitle]       = useState(params.editTitle ?? '');
+  const [contactId,   setContactId]   = useState<string | null>(params.editContactId || null);
+  const [recurrence,  setRecurrence]  = useState<Recurrence>((params.editRecurrence as Recurrence) ?? 'weekly');
+  const [dayOfWeek,   setDayOfWeek]   = useState(params.editDayOfWeek ? Number(params.editDayOfWeek) : 1);
+  const [dayOfMonth,  setDayOfMonth]  = useState(params.editDayOfMonth ? Number(params.editDayOfMonth) : 1);
+  const [month,       setMonth]       = useState(params.editMonth ? Number(params.editMonth) : 1);
+  const [onceDate,    setOnceDate]    = useState(() => {
+    if (params.editOnceDate) { try { return new Date(params.editOnceDate); } catch { /* */ } }
+    return new Date();
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
 
@@ -59,19 +71,24 @@ export default function NewReminderScreen() {
 
   const handleSave = async () => {
     if (!canSave) return;
+    const payload = {
+      title:        title.trim(),
+      contact_id:   contactId,
+      recurrence,
+      day_of_week:  recurrence === 'weekly'  ? dayOfWeek  : null,
+      day_of_month: recurrence === 'monthly' || recurrence === 'yearly' ? dayOfMonth : null,
+      month:        recurrence === 'yearly'  ? month      : null,
+      once_date:    recurrence === 'once'    ? toISO(onceDate) : null,
+    };
     try {
-      await create({
-        title:        title.trim(),
-        contact_id:   contactId,
-        recurrence,
-        day_of_week:  recurrence === 'weekly'  ? dayOfWeek  : null,
-        day_of_month: recurrence === 'monthly' || recurrence === 'yearly' ? dayOfMonth : null,
-        month:        recurrence === 'yearly'  ? month      : null,
-        once_date:    recurrence === 'once'    ? toISO(onceDate) : null,
-      });
+      if (isEditing) {
+        await update({ id: params.editId!, ...payload });
+      } else {
+        await create(payload);
+      }
       router.back();
     } catch (e: unknown) {
-      Alert.alert('Erreur', e instanceof Error ? e.message : 'Impossible de créer le rappel');
+      Alert.alert('Erreur', e instanceof Error ? e.message : isEditing ? 'Impossible de modifier le rappel' : 'Impossible de créer le rappel');
     }
   };
 
@@ -83,7 +100,7 @@ export default function NewReminderScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.pageTitle}>Nouveau rappel</Text>
+        <Text style={styles.pageTitle}>{isEditing ? 'Modifier le rappel' : 'Nouveau rappel'}</Text>
 
         {/* ── Titre ───────────────────────────────────────── */}
         <Text style={styles.label}>De quoi veux-tu te rappeler ?</Text>
@@ -276,7 +293,7 @@ export default function NewReminderScreen() {
           activeOpacity={0.85}
         >
           <Text style={styles.saveBtnText}>
-            {isPending ? 'Enregistrement...' : '⏰ Créer le rappel'}
+            {isPending ? 'Enregistrement...' : isEditing ? '✅ Enregistrer les modifications' : '⏰ Créer le rappel'}
           </Text>
         </TouchableOpacity>
 

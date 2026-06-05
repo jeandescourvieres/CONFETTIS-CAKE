@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Avatar } from './ui/Avatar';
 import { Colors, Typography, Spacing, Radii } from '../constants/theme';
-import { daysUntilBirthday, isUrgent } from '../utils/dateHelpers';
+import { daysUntilBirthday, isUrgent, getAge } from '../utils/dateHelpers';
+import { extractFirstName } from '../utils/nameHelpers';
 import type { Contact, UpcomingEvent } from '../types/models';
 
 interface ContactRowProps {
@@ -11,10 +12,42 @@ interface ContactRowProps {
   onPress: () => void;
   onCreateMessage?: () => void;
   isPartnerContact?: boolean;
+  allContacts?: Contact[];
 }
 
-export function ContactRow({ contact, upcomingEvent, onPress, onCreateMessage, isPartnerContact }: ContactRowProps) {
+function buildChildLabel(child: Contact, allContacts: Contact[]): string {
+  const gender = (child as any).child_gender;
+  const role = gender === 'female' ? 'Fille de' : gender === 'male' ? 'Fils de' : 'Enfant de';
+
+  const fmt = (c: Contact) => {
+    const firstName = extractFirstName(c.name);
+    const initial   = firstName.charAt(0).toUpperCase();
+    return { lastName: c.name, initial };
+  };
+
+  const parentContact = allContacts.find((c) => c.id === (child as any).child_parent_contact_id);
+  if (!parentContact) return role + ' ' + ((child as any).child_parent_name ?? '');
+
+  const p1 = fmt(parentContact);
+  const partnerContact = allContacts.find((c) => c.id === (parentContact as any).partner_contact_id);
+
+  if (!partnerContact) return `${role} ${p1.initial}. ${p1.lastName}`;
+
+  const p2 = fmt(partnerContact);
+
+  // Père (M.) en premier, mère (Mme) en second
+  const isCivP1Male = parentContact.civilite === 'M.';
+  const [pere, mere] = isCivP1Male ? [p1, p2] : [p2, p1];
+
+  if (pere.lastName === mere.lastName) {
+    return `${role} ${pere.initial}. et ${mere.initial}. ${pere.lastName}`;
+  }
+  return `${role} ${pere.initial}. ${pere.lastName} et ${mere.initial}. ${mere.lastName}`;
+}
+
+export function ContactRow({ contact, upcomingEvent, onPress, onCreateMessage, isPartnerContact, allContacts = [] }: ContactRowProps) {
   const isHighlighted = upcomingEvent && isUrgent(upcomingEvent.daysUntil);
+  const age = contact.birthday && contact.relation !== 'pet' ? getAge(contact.birthday) : null;
 
   return (
     <TouchableOpacity
@@ -33,12 +66,19 @@ export function ContactRow({ contact, upcomingEvent, onPress, onCreateMessage, i
 
       <View style={styles.info}>
         <View style={styles.nameRow}>
-          <Text style={styles.name}>{contact.name}</Text>
+          <Text style={styles.name} numberOfLines={1}>{contact.name}</Text>
+          {age !== null && age >= 0 && (
+            <Text style={styles.ageBadge}>{age} ans</Text>
+          )}
           {isPartnerContact && <Text style={styles.partnerBadge}>💑</Text>}
         </View>
         <Text style={[styles.sub, isHighlighted && styles.subHighlighted]}>
           {contact.relation === 'pet' && contact.pet_owner_name
             ? `🐾 Animal de ${contact.pet_owner_name}`
+            : contact.relation === 'child_of'
+            ? `👶 ${buildChildLabel(contact, allContacts)}`
+            : contact.relation === 'family'
+            ? (extractFamilyLink(contact.notes) ?? 'Famille')
             : RELATION_LABELS[contact.relation]}
           {upcomingEvent
             ? ` · ${formatEventLabel(upcomingEvent)}`
@@ -84,7 +124,7 @@ function formatEventLabel(event: UpcomingEvent): string {
 
 function formatBirthday(birthday: string): string {
   const [, mm, dd] = birthday.split('-');
-  const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
+  const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
   return `${parseInt(dd)} ${months[parseInt(mm) - 1]}`;
 }
 
@@ -96,6 +136,14 @@ const RELATION_LABELS: Record<string, string> = {
   colleague: 'Collègue',
   other: 'Autre',
 };
+
+function extractFamilyLink(notes: string | null | undefined): string | null {
+  if (!notes) return null;
+  const m = notes.match(/^Lien\s*:\s*(.+?)(\n|$)/);
+  if (!m) return null;
+  const link = m[1].trim();
+  return link.charAt(0).toUpperCase() + link.slice(1);
+}
 
 const styles = StyleSheet.create({
   row: {
@@ -129,6 +177,15 @@ const styles = StyleSheet.create({
   },
   partnerBadge: {
     fontSize: 13,
+  },
+  ageBadge: {
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: 11,
+    color: Colors.onSurfaceVariant,
+    backgroundColor: Colors.surfaceContainerHighest,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: Radii.full,
   },
   name: {
     fontFamily: 'BeVietnamPro_600SemiBold',

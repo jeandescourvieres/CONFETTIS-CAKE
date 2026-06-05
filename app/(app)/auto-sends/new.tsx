@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, TextInput, ActivityIndicator,
@@ -117,13 +117,13 @@ export default function NewAutoSendScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => (step > 1 ? setStep((s) => (s - 1) as Step) : router.back())} style={{ padding: 4 }}>
-          <Text style={{ fontSize: 28, color: Colors.primary, lineHeight: 32 }}>‹</Text>
+        <TouchableOpacity onPress={() => (step > 1 ? setStep((s) => (s - 1) as Step) : router.back())} style={styles.backLink}>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>
           {step === 1 ? '1/3 — Modèle de message' : step === 2 ? '2/3 — Contacts' : '3/3 — Déclencheur'}
         </Text>
-        <View style={{ width: 36 }} />
+        <View style={{ minWidth: 70 }} />
       </View>
 
       {/* Progress bar */}
@@ -384,6 +384,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
       backgroundColor: Colors.surfaceContainerLow,
     },
+    backLink: { justifyContent: 'center', minWidth: 70 },
+    backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
     topbarTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.md, color: Colors.onSurface, flex: 1, textAlign: 'center' },
 
     progressBar: { height: 3, backgroundColor: Colors.surfaceContainerHighest },
@@ -525,11 +527,16 @@ function makeStyles(C: ReturnType<typeof useColors>) {
 
     // ── Step 3
     sectionLabel: {
-      fontFamily: 'PlusJakartaSans_700Bold',
+      borderLeftWidth: 3,
+      borderLeftColor: C.primary,
+      paddingLeft: 8,
+      paddingVertical: 4,      fontFamily: 'BeVietnamPro_700Bold',
       fontSize: Typography.md,
-      color: Colors.onSurface,
-      marginBottom: Spacing[2],
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      color: C.primary,
       marginTop: Spacing[4],
+      marginBottom: Spacing[2],
     },
     optionRow: { flexDirection: 'row', gap: Spacing[3] },
     optionChip: {

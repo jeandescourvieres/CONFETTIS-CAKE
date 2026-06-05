@@ -44,9 +44,9 @@ export const Colors = {
   onErrorContainer: '#510017',
 
   // ── Surface & Background
-  background: '#faf4fc',
-  surface: '#faf4fc',
-  surfaceBright: '#faf4fc',
+  background: '#F5F2EE',
+  surface: '#F5F2EE',
+  surfaceBright: '#F5F2EE',
   surfaceDim: '#d8d2dd',
   surfaceVariant: '#e1dbe5',
   surfaceTint: '#FF6B9D',
@@ -152,6 +152,6 @@ export const Gradients = {
   hero: ['#FF6B9D', '#FF8C42', '#FF6B9D'] as const,
   onboarding: ['#FF6B9D', '#e84f7d', '#FF8C42'] as const,
   secondary: ['#fdd34d', '#c97d10'] as const,
-  surface: ['#FFE8F2', '#FFF5F8'] as const,
+  surface: ['#F5F2EE', '#FFFFFF'] as const,
   success: ['#EAF3DE', '#f5eff7'] as const,
 } as const;

@@ -50,10 +50,16 @@ export default function CompatScreen() {
   // ── Données de l'utilisateur ──────────────────────────────────────────────
   const myName = profile?.full_name ?? '';
   const myBirthday = profile?.birthday ?? null;
-  // Profil utilisateur stocké en "Prénom Nom" (ordre normal, pas "NOM Prénom" comme les contacts)
-  const myNameParts = myName.trim().split(' ');
-  const myFirstName = myNameParts[0] ?? '';
-  const myLastName  = myNameParts.slice(1).join(' ');
+  // Extrait le prénom depuis full_name quelle que soit l'ordre stocké.
+  // Heuristique : un prénom est en Title Case (Jean), un nom de famille est souvent EN MAJUSCULES.
+  // On cherche le premier token en Title Case ; sinon on prend le premier token.
+  const myNameParts = myName.trim().split(/\s+/).filter(Boolean);
+  const myFirstName = (
+    myNameParts.find((p) => p.length > 0 && p[0] === p[0].toUpperCase() && p.slice(1) === p.slice(1).toLowerCase())
+    ?? myNameParts[0]
+    ?? ''
+  );
+  const myLastName = myNameParts.filter((p) => p !== myFirstName).join(' ');
 
   // ── Données du contact ────────────────────────────────────────────────────
   const contactName = contact?.name ?? '';
@@ -113,8 +119,8 @@ export default function CompatScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Topbar */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>Compatibilité 💫</Text>
         <TouchableOpacity onPress={() => setHelpVisible(true)} style={styles.helpBtn}>
@@ -475,12 +481,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.primaryContainer,
-  },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   topbarTitle: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
     fontSize: Typography['2xl'],

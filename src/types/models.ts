@@ -19,6 +19,7 @@ export interface Profile {
   notif_pot: boolean;
   birthday: string | null;  // "YYYY-MM-DD" ou "0000-MM-DD" (jour/mois sans année)
   civilite: 'M.' | 'Mme' | null;
+  email?: string | null;
   created_at: string;
 }
 
@@ -31,6 +32,7 @@ export type Relation =
   | 'partner'
   | 'colleague'
   | 'pet'
+  | 'child_of'
   | 'other';
 
 export interface Contact {
@@ -50,10 +52,16 @@ export interface Contact {
   preferred_send_time: 'morning' | 'afternoon' | 'evening' | 'anytime' | null;
   pet_owner_name: string | null;        // ex: "Michel" — affiché sous le nom du pet
   pet_owner_contact_id: string | null;  // id du contact propriétaire
-  pet_type: 'chien' | 'chat' | 'lapin' | 'perroquet' | 'hamster' | 'poisson' | 'cheval' | 'oiseau' | 'autre' | null;
+  pet_type: 'chien' | 'chat' | 'lapin' | 'perroquet' | 'hamster' | 'poisson' | 'cheval' | 'oiseau' | 'cochon_d_inde' | 'souris' | 'tortue' | 'autre' | null;
   pet_gender: 'male' | 'female' | null; // genre de l'animal
+  breed: string | null;                  // race de l'animal
+  child_parent_name?: string | null;      // ex: "Sophie" — parent du contact enfant
+  child_parent_contact_id?: string | null; // id du contact parent
+  child_gender?: 'male' | 'female' | null; // genre de l'enfant
+  partner_contact_id?: string | null;     // id du contact partenaire/conjoint
   preferred_language: AppLanguage | null; // langue du message IA pour ce contact
   favourite_color: string | null;          // couleur préférée (saisie libre)
+  civilite?: 'M.' | 'Mme' | null;         // civilité du contact (optionnel)
   created_at: string;
 }
 
@@ -73,7 +81,8 @@ export type MessageTone =
   | 'touching'
   | 'poetic'
   | 'playful'
-  | 'professional';
+  | 'professional'
+  | 'childlike';
 export type MessageStatus = 'draft' | 'sent';
 export type SentVia = 'sms' | 'email' | 'whatsapp' | 'copy' | null;
 export type MusicStatus = 'none' | 'pending' | 'generating' | 'ready' | 'failed' | 'queued';

@@ -273,7 +273,7 @@ export default function CardPreviewScreen() {
             </Text>
             {/* Message personnel en direct */}
             {!!personalMessage.trim() && (
-              <View style={{ backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 8, marginTop: 2, maxWidth: '100%' }}>
+              <View style={{ backgroundColor: ({ violet:'rgba(60,0,80,0.75)', rouge:'rgba(120,0,30,0.78)', rose:'rgba(120,0,80,0.75)', bleu:'rgba(0,20,100,0.78)', vert:'rgba(0,65,30,0.78)', or:'rgba(85,55,0,0.80)', noir:'rgba(12,12,12,0.82)' } as Record<string,string>)[cardMsgBg] ?? 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 8, marginTop: 2, maxWidth: '100%' }}>
                 <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.9)', textAlign: 'center', lineHeight: 16 }} numberOfLines={3}>
                   {personalMessage.trim()}
                 </Text>

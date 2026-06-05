@@ -68,6 +68,7 @@ const RELATIONS: { value: Relation; label: string; emoji: string }[] = [
   { value: 'family', label: 'Famille', emoji: '👨‍👩‍👧' },
   { value: 'partner', label: 'Partenaire', emoji: '💑' },
   { value: 'colleague', label: 'Collègue', emoji: '💼' },
+  { value: 'child_of', label: 'Enfant de…', emoji: '👶' },
   { value: 'pet', label: 'Animal de compagnie', emoji: '🐾' },
   { value: 'other', label: 'Connaissance', emoji: '👤' },
 ];
@@ -112,10 +113,18 @@ export default function NewContactScreen() {
   const [preferredSendTime, setPreferredSendTime] = useState<'morning' | 'afternoon' | 'evening' | 'anytime' | null>(null);
   const [petOwnerName, setPetOwnerName] = useState(ownerNameParam ?? '');
   const [petType, setPetType] = useState<'chien' | 'chat' | 'lapin' | 'perroquet' | 'hamster' | 'poisson' | 'cheval' | 'oiseau' | 'autre' | null>(null);
+  const [petGender, setPetGender] = useState<'male' | 'female' | null>(null);
+  const [petBreed, setPetBreed] = useState<string>('');
   const petSoundRef = useRef<Audio.Sound | null>(null);
   const [preferredLanguage, setPreferredLanguage] = useState<string | null>(null);
   const [favouriteColor, setFavouriteColor] = useState<string>('');
+  const [civilite, setCivilite] = useState<'M.' | 'Mme' | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [childGender, setChildGender] = useState<'male' | 'female' | null>(null);
+  const [childParentContactId, setChildParentContactId] = useState<string | null>(null);
+  const [childParentName, setChildParentName] = useState<string>('');
+  const [showChildParentPicker, setShowChildParentPicker] = useState(false);
+  const [childParentSearch, setChildParentSearch] = useState('');
   const [birthday, setBirthday] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [nameDay, setNameDay] = useState<Date | null>(null);
@@ -167,6 +176,7 @@ export default function NewContactScreen() {
       setAvatarUri(null);
       setPreferredLanguage(null);
       setFavouriteColor('');
+      setCivilite(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey, editId]);
@@ -175,7 +185,8 @@ export default function NewContactScreen() {
   useEffect(() => {
     if (!isEditing || !existingContact || existingContact.id !== editId) return;
     const parts = existingContact.name.split(' ');
-    setLastName(formatLastName(parts[0] ?? ''));
+    const isPetContact = existingContact.relation === 'pet';
+    setLastName(isPetContact ? (parts[0] ?? '') : formatLastName(parts[0] ?? ''));
     setFirstName(formatFirstName(parts.slice(1).join(' ')));
     setRelation(existingContact.relation);
     const linkMatch = existingContact.notes?.match(/^Lien\s*:\s*(.+?)(\n|$)/);
@@ -190,8 +201,11 @@ export default function NewContactScreen() {
     setPreferredSendTime(existingContact.preferred_send_time ?? null);
     setPetOwnerName(existingContact.pet_owner_name ?? '');
     setPetType((existingContact as { pet_type?: 'chien' | 'chat' | 'lapin' | 'oiseau' | 'autre' | null }).pet_type ?? null);
+    setPetGender((existingContact.pet_gender as 'male' | 'female' | null) ?? null);
+    setPetBreed((existingContact as any).breed ?? '');
     setPreferredLanguage(existingContact.preferred_language ?? null);
     setFavouriteColor(existingContact.favourite_color ?? '');
+    setCivilite((existingContact as { civilite?: 'M.' | 'Mme' | null }).civilite ?? null);
     if (existingContact.birthday) {
       const raw = existingContact.birthday.startsWith('0000-')
         ? existingContact.birthday.replace('0000-', '2000-')
@@ -306,12 +320,23 @@ export default function NewContactScreen() {
   const styles = useMemo(() => makeStyles(C), [C]);
 
   const handleSave = async () => {
-    if (!lastName.trim()) {
-      Alert.alert('Nom requis', 'Veuillez entrer le nom du contact.');
-      return;
+    const missing: string[] = [];
+    if (!lastName.trim())
+      missing.push(relation === 'pet' ? '• Nom de l\'animal' : '• Nom de famille');
+    if (relation !== 'pet') {
+      if (!firstName.trim())           missing.push('• Prénom');
+      if (!civilite && relation !== 'child_of') missing.push('• Civilité (M. ou Mme)');
+      if (relation === 'child_of' && !childParentContactId) missing.push('• Contact parent');
+      if (relation === 'child_of' && !childGender)          missing.push('• Genre (fille ou garçon)');
+      if (!birthday)                   missing.push('• Date de naissance');
+      if (relation === 'family' && !familyLink.trim()) missing.push('• Lien de parenté (ex : Oncle, Belle-fille…)');
     }
-    if (!firstName.trim()) {
-      Alert.alert('Prénom requis', 'Veuillez entrer le prénom du contact.');
+    if (missing.length > 0) {
+      Alert.alert(
+        'Champs obligatoires manquants',
+        'L\'enregistrement n\'est pas possible tant que les champs suivants ne sont pas renseignés :\n\n' + missing.join('\n'),
+        [{ text: 'OK' }]
+      );
       return;
     }
     const fullName = [lastName.trim(), firstName.trim()].filter(Boolean).join(' ');
@@ -384,9 +409,12 @@ export default function NewContactScreen() {
             preferred_send_time: preferredSendTime,
             pet_owner_name: relation === 'pet' ? (petOwnerName.trim() || null) : null,
             pet_type: relation === 'pet' ? (petType ?? null) : null,
+            pet_gender: relation === 'pet' ? (petGender ?? null) : null,
+            breed: relation === 'pet' ? (petBreed.trim() || null) : null,
             preferred_language: (preferredLanguage as import('../../../src/types/models').AppLanguage | null) ?? null,
             avatar_url: finalAvatarUrl,
             favourite_color: favouriteColor.trim() || null,
+            civilite: civilite ?? null,
           },
         });
         return editId;
@@ -408,9 +436,14 @@ export default function NewContactScreen() {
           pet_type: relation === 'pet' ? (petType ?? null) : null,
           preferred_language: (preferredLanguage as import('../../../src/types/models').AppLanguage | null) ?? null,
           favourite_color: favouriteColor.trim() || null,
+          civilite: civilite ?? null,
           pet_gender: null,
           pet_owner_contact_id: null,
-        });
+          breed: relation === 'pet' ? (petBreed.trim() || null) : null,
+          child_gender: relation === 'child_of' ? (childGender ?? null) : undefined,
+          child_parent_name: relation === 'child_of' ? (childParentName || null) : undefined,
+          child_parent_contact_id: relation === 'child_of' ? (childParentContactId ?? null) : undefined,
+        } as any);
         return created.id;
       }
     } catch (err: unknown) {
@@ -424,8 +457,8 @@ export default function NewContactScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Topbar */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>{isEditing ? 'Modifier le contact' : 'Nouveau contact'}</Text>
         <View style={styles.topbarRight}>
@@ -435,15 +468,15 @@ export default function NewContactScreen() {
           />
           <TouchableOpacity
             onPress={handleSave}
-            disabled={isPending || !firstName.trim() || !lastName.trim()}
-            style={[styles.saveBtn, (!firstName.trim() || !lastName.trim() || isPending) && { opacity: 0.4 }]}
+            disabled={isPending}
+            style={[styles.saveBtn, isPending && { opacity: 0.4 }]}
           >
             <Text style={styles.saveBtnText}>Enregistrer</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Avatar */}
         <TouchableOpacity style={styles.avatarPickerWrap} onPress={pickAvatar} activeOpacity={0.8}>
           <View style={{ position: 'relative' }}>
@@ -466,30 +499,67 @@ export default function NewContactScreen() {
         </TouchableOpacity>
 
         {/* Nom + Prénom */}
-        <View style={styles.labelWrap}><Text style={styles.label}>Nom *</Text></View>
+        <View style={styles.labelWrap}>
+          <Text style={styles.label}>{relation === 'pet' ? '🐾 Nom de l\'animal *' : 'Nom *'}</Text>
+        </View>
         <TextInput
           style={styles.input}
           value={lastName}
-          onChangeText={(v) => setLastName(formatLastName(v))}
-          placeholder="Ex: DUPONT"
+          onChangeText={(v) => setLastName(relation === 'pet' ? v : formatLastName(v))}
+          placeholder={relation === 'pet' ? 'Ex: Rex' : 'Ex: DUPONT'}
           placeholderTextColor={Colors.outlineVariant}
-          autoCapitalize="characters"
+          autoCapitalize={relation === 'pet' ? 'words' : 'characters'}
           returnKeyType="next"
         />
 
-        <View style={styles.labelWrap}><Text style={styles.label}>Prénom *</Text></View>
-        <TextInput
-          style={styles.input}
-          value={firstName}
-          onChangeText={(v) => setFirstName(formatFirstName(v))}
-          placeholder="Ex: Marie"
-          placeholderTextColor={Colors.outlineVariant}
-          autoCapitalize="none"
-          returnKeyType="next"
-        />
+        {relation !== 'pet' && (
+          <>
+            <View style={styles.labelWrap}><Text style={styles.label}>Prénom *</Text></View>
+            <TextInput
+              style={styles.input}
+              value={firstName}
+              onChangeText={(v) => setFirstName(formatFirstName(v))}
+              placeholder="Ex: Marie"
+              placeholderTextColor={Colors.outlineVariant}
+              autoCapitalize="none"
+              returnKeyType="next"
+            />
+          </>
+        )}
+
+        {/* Civilité — humains seulement */}
+        {relation !== 'pet' && (
+          <>
+            <View style={styles.labelWrap}>
+              <Text style={styles.label}>Civilité <Text style={{ color: Colors.error }}>*</Text></Text>
+            </View>
+            <View style={[
+              styles.civiliteRow,
+              !civilite && lastName.trim() && { padding: 6, borderRadius: Radii.lg, borderWidth: 1.5, borderColor: Colors.error },
+            ]}>
+              {(['M.', 'Mme'] as const).map((val) => (
+                <TouchableOpacity
+                  key={val}
+                  style={[styles.civiliteBtn, civilite === val && styles.civiliteBtnActive]}
+                  onPress={() => setCivilite(prev => prev === val ? null : val)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.civiliteBtnText, civilite === val && styles.civiliteBtnTextActive]}>
+                    {val === 'M.' ? '👨 Monsieur' : '👩 Madame'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {!civilite && lastName.trim() && (
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.error, marginTop: 2 }}>
+                ⚠ La civilité est obligatoire — elle permet d'adapter les occasions (Fête des mères / pères)
+              </Text>
+            )}
+          </>
+        )}
 
         {/* Date de naissance */}
-        <View style={styles.labelWrap}><Text style={styles.label}>Date de naissance</Text></View>
+        <View style={styles.labelWrap}><Text style={styles.label}>Date de naissance <Text style={{ color: Colors.error }}>*</Text></Text></View>
         <TouchableOpacity
           style={styles.input}
           onPress={() => setShowDatePicker(true)}
@@ -500,29 +570,50 @@ export default function NewContactScreen() {
               : 'Sélectionner une date'}
           </Text>
         </TouchableOpacity>
-        {showDatePicker && (
-          <View style={styles.pickerWrap}>
-            <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>Date de naissance</Text>
-              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                <Text style={styles.pickerOk}>OK</Text>
-              </TouchableOpacity>
-            </View>
-            <DateTimePicker
-              value={birthday ?? new Date(1990, 0, 1)}
-              mode="date"
-              display="spinner"
-              minimumDate={new Date(1900, 0, 1)}
-              maximumDate={new Date()}
-              textColor={Colors.primary}
-              accentColor={Colors.primary}
-              style={{ width: '100%' }}
-              onChange={(_event: unknown, date?: Date) => {
-                if (Platform.OS === 'android') setShowDatePicker(false);
-                if (date) setBirthday(date);
-              }}
-            />
-          </View>
+        {!birthday && lastName.trim() && relation !== 'pet' && (
+          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.error, marginTop: 2 }}>
+            ⚠ La date de naissance est obligatoire pour les rappels automatiques
+          </Text>
+        )}
+        {showDatePicker && Platform.OS === 'ios' && (
+          <Modal transparent animationType="slide" visible={showDatePicker} onRequestClose={() => setShowDatePicker(false)}>
+            <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowDatePicker(false)}>
+              <View style={styles.pickerSheet}>
+                <View style={styles.pickerHeader}>
+                  <Text style={styles.pickerTitle}>Date de naissance</Text>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.pickerOk}>OK ✓</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={birthday ?? new Date(1985, 0, 1)}
+                  mode="date"
+                  display="spinner"
+                  minimumDate={new Date(new Date().getFullYear() - 100, 0, 1)}
+                  maximumDate={new Date()}
+                  textColor={Colors.primary}
+                  accentColor={Colors.primary}
+                  style={{ width: '100%', height: 215 }}
+                  onChange={(_event: unknown, date?: Date) => {
+                    if (date) setBirthday(date);
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
+        {showDatePicker && Platform.OS === 'android' && (
+          <DateTimePicker
+            value={birthday ?? new Date(1985, 0, 1)}
+            mode="date"
+            display="spinner"
+            minimumDate={new Date(new Date().getFullYear() - 100, 0, 1)}
+            maximumDate={new Date()}
+            onChange={(_event: unknown, date?: Date) => {
+              setShowDatePicker(false);
+              if (date) setBirthday(date);
+            }}
+          />
         )}
 
         {/* Fête */}
@@ -547,32 +638,49 @@ export default function NewContactScreen() {
             </Text>
           </TouchableOpacity>
         )}
-        {showNameDayPicker && (
-          <View style={styles.pickerWrap}>
-            <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>Jour et mois de la fête</Text>
-              <TouchableOpacity onPress={() => setShowNameDayPicker(false)}>
-                <Text style={styles.pickerOk}>OK</Text>
-              </TouchableOpacity>
-            </View>
-            <DateTimePicker
-              value={nameDay ?? new Date(2000, 3, 1)}
-              mode="date"
-              display="spinner"
-              minimumDate={new Date(2000, 0, 1)}
-              maximumDate={new Date(2000, 11, 31)}
-              textColor={Colors.primary}
-              accentColor={Colors.primary}
-              style={{ width: '100%' }}
-              onChange={(_event: unknown, date?: Date) => {
-                if (Platform.OS === 'android') setShowNameDayPicker(false);
-                if (date) setNameDay(date);
-              }}
-            />
-          </View>
+        {showNameDayPicker && Platform.OS === 'ios' && (
+          <Modal transparent animationType="slide" visible={showNameDayPicker} onRequestClose={() => setShowNameDayPicker(false)}>
+            <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowNameDayPicker(false)}>
+              <View style={styles.pickerSheet}>
+                <View style={styles.pickerHeader}>
+                  <Text style={styles.pickerTitle}>Jour et mois de la fête</Text>
+                  <TouchableOpacity onPress={() => setShowNameDayPicker(false)}>
+                    <Text style={styles.pickerOk}>OK ✓</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={nameDay ?? new Date(2000, 3, 1)}
+                  mode="date"
+                  display="spinner"
+                  minimumDate={new Date(2000, 0, 1)}
+                  maximumDate={new Date(2000, 11, 31)}
+                  textColor={Colors.primary}
+                  accentColor={Colors.primary}
+                  style={{ width: '100%', height: 215 }}
+                  onChange={(_event: unknown, date?: Date) => {
+                    if (date) setNameDay(date);
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
+        {showNameDayPicker && Platform.OS === 'android' && (
+          <DateTimePicker
+            value={nameDay ?? new Date(2000, 3, 1)}
+            mode="date"
+            display="spinner"
+            minimumDate={new Date(2000, 0, 1)}
+            maximumDate={new Date(2000, 11, 31)}
+            onChange={(_event: unknown, date?: Date) => {
+              setShowNameDayPicker(false);
+              if (date) setNameDay(date);
+            }}
+          />
         )}
 
-        {/* Téléphone */}
+        {/* Téléphone — masqué pour les animaux */}
+        {relation !== 'pet' && <>
         <View style={styles.labelWrap}><Text style={styles.label}>Téléphone</Text></View>
         <TextInput
           style={styles.input}
@@ -582,8 +690,10 @@ export default function NewContactScreen() {
           placeholderTextColor={Colors.outlineVariant}
           keyboardType="phone-pad"
         />
+        </>}
 
-        {/* Email */}
+        {/* Email — masqué pour les animaux */}
+        {relation !== 'pet' && <>
         <View style={styles.labelWrap}><Text style={styles.label}>Email</Text></View>
         <TextInput
           style={styles.input}
@@ -594,8 +704,10 @@ export default function NewContactScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
         />
+        </>}
 
-        {/* Relation */}
+        {/* Relation — masqué pour les animaux */}
+        {relation !== 'pet' && <>
         <View style={styles.labelWrap}><Text style={styles.label}>Nature de ta relation</Text></View>
         <View style={styles.relationGrid}>
           {RELATIONS.map((r) => (
@@ -614,10 +726,13 @@ export default function NewContactScreen() {
 
         {/* Précisez le lien — famille */}
         {relation === 'family' && (
-          <View style={styles.familyLinkBox}>
-            <Text style={styles.familyLinkTitle}>Précisez le lien 👨‍👩‍👧</Text>
+          <View style={[styles.familyLinkBox, !familyLink.trim() && styles.familyLinkBoxRequired]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.familyLinkTitle}>Précisez le lien 👨‍👩‍👧</Text>
+              <Text style={styles.familyLinkRequired}>obligatoire</Text>
+            </View>
             <View style={styles.familyLinkChips}>
-              {['Frère', 'Sœur', 'Beau-frère', 'Belle-sœur', 'Père', 'Mère', 'Grand-père', 'Grand-mère', 'Oncle', 'Tante', 'Cousin', 'Cousine', 'Fils', 'Fille', 'Petit-fils', 'Petite-fille'].map((sub) => (
+              {['Frère', 'Sœur', 'Beau-frère', 'Belle-sœur', 'Père', 'Mère', 'Grand-père', 'Grand-mère', 'Oncle', 'Tante', 'Cousin', 'Cousine', 'Fils', 'Fille', 'Belle-fille', 'Gendre', 'Petit-fils', 'Petite-fille'].map((sub) => (
                 <TouchableOpacity
                   key={sub}
                   style={[styles.tagBtn, familyLink === sub.toLowerCase() && styles.tagBtnActive]}
@@ -637,6 +752,42 @@ export default function NewContactScreen() {
               placeholderTextColor={Colors.outlineVariant}
               autoCapitalize="none"
             />
+          </View>
+        )}
+        </>}
+
+        {/* Champs spécifiques enfant */}
+        {relation === 'child_of' && (
+          <View style={{ gap: 12, marginTop: 4 }}>
+            {/* Genre */}
+            <View>
+              <Text style={styles.label}>Fille ou garçon ?</Text>
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
+                {([{ value: 'female', label: '👧 Fille' }, { value: 'male', label: '👦 Garçon' }] as const).map((g) => (
+                  <TouchableOpacity
+                    key={g.value}
+                    style={[styles.relationBtn, childGender === g.value && styles.relationBtnActive, { flex: 1, justifyContent: 'center', paddingVertical: 10 }]}
+                    onPress={() => setChildGender(g.value)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.relationLabel, childGender === g.value && styles.relationLabelActive]}>{g.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            {/* Sélecteur parent */}
+            <View>
+              <Text style={styles.label}>Parent (contact existant)</Text>
+              <TouchableOpacity
+                style={[styles.input, { justifyContent: 'center', marginTop: 6 }]}
+                onPress={() => { setChildParentSearch(''); setShowChildParentPicker(true); }}
+                activeOpacity={0.75}
+              >
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 15, color: childParentName ? Colors.onSurface : Colors.outlineVariant }}>
+                  {childParentName || 'Sélectionner un parent 👆'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -673,6 +824,43 @@ export default function NewContactScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Genre */}
+            <View style={styles.labelWrap}>
+              <Text style={styles.label}>♂♀ Genre</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              {([
+                { value: 'male',   label: '♂ Mâle',   emoji: '🔵' },
+                { value: 'female', label: '♀ Femelle', emoji: '🟣' },
+              ] as const).map((g) => (
+                <TouchableOpacity
+                  key={g.value}
+                  style={[styles.relationBtn, petGender === g.value && styles.relationBtnActive, { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}
+                  onPress={() => setPetGender(g.value)}
+                  activeOpacity={0.8}
+                >
+                  <Text>{g.emoji}</Text>
+                  <Text style={[styles.relationLabel, petGender === g.value && styles.relationLabelActive]}>{g.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Race (chien ou chat uniquement) */}
+            {(petType === 'chien' || petType === 'chat') && (
+              <>
+                <View style={styles.labelWrap}>
+                  <Text style={styles.label}>{petType === 'chien' ? '🐶 Race' : '🐱 Race'}</Text>
+                </View>
+                <TextInput
+                  style={styles.input}
+                  value={petBreed}
+                  onChangeText={setPetBreed}
+                  placeholder={petType === 'chien' ? 'Ex : Labrador, Berger allemand…' : 'Ex : Maine Coon, Siamois…'}
+                  placeholderTextColor={Colors.onSurfaceVariant}
+                />
+              </>
+            )}
 
           </>
         )}
@@ -725,6 +913,9 @@ export default function NewContactScreen() {
             />
           </>
         )}
+
+        {/* Canal, langue, moment — masqués pour les animaux */}
+        {relation !== 'pet' && <>
 
         {/* Canal préféré */}
         <View style={styles.labelWrap}><Text style={styles.label}>Son canal de communication préféré</Text></View>
@@ -786,12 +977,36 @@ export default function NewContactScreen() {
             </TouchableOpacity>
           ))}
         </View>
+        </>}
 
         {/* Animal de compagnie */}
         {relation !== 'pet' && (
           <>
             <View style={styles.labelWrap}>
               <Text style={styles.label}>🐾 Animal de compagnie</Text>
+            </View>
+            <View style={{ backgroundColor: '#FFF7ED', borderRadius: 12, padding: 14, gap: 8, borderLeftWidth: 4, borderLeftColor: '#D97706', marginBottom: 4 }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans_700Bold', fontSize: 13, color: '#92400E' }}>
+                {'Saviez-vous ? 🐾 Une fonction unique !'}
+              </Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#92400E', lineHeight: 18 }}>
+                {'Si ce contact a un animal, tu peux :'}
+              </Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#92400E', lineHeight: 18 }}>
+                {'📬 '}
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{'Écrire à l\'animal'}</Text>
+                {' — un message tendre ou drôle directement adressé à Rex, Minou ou Coco.'}
+              </Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#92400E', lineHeight: 18 }}>
+                {'🐾 '}
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{'Faire écrire l\'animal à son maître'}</Text>
+                {' — l\'IA rédige un message comme si c\'était l\'animal qui prenait la plume ! Hilarant et attendrissant 💛'}
+              </Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#92400E', lineHeight: 18 }}>
+                {'✍️ '}
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{'Faire écrire l\'animal à quelqu\'un d\'autre'}</Text>
+                {' — l\'animal peut aussi écrire à un ami de la famille ou un proche !'}
+              </Text>
             </View>
             {isEditing && linkedPets.length > 0 && (
               <View style={styles.petList}>
@@ -830,17 +1045,20 @@ export default function NewContactScreen() {
           </>
         )}
 
-        {/* Bouton enregistrer */}
+      </ScrollView>
+
+      {/* Bouton enregistrer — fixé en bas */}
+      <View style={styles.submitBar}>
         <TouchableOpacity
-          style={[styles.submitBtn, (!firstName.trim() || !lastName.trim() || isPending) && { opacity: 0.42 }]}
+          style={[styles.submitBtn, isPending && { opacity: 0.42 }]}
           onPress={handleSave}
-          disabled={isPending || !firstName.trim() || !lastName.trim()}
+          disabled={isPending}
         >
           <Text style={styles.submitBtnText}>
             {isPending ? 'Enregistrement...' : isEditing ? '✓ Enregistrer les modifications' : '✓ Enregistrer le contact'}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
 
       {/* ── Phase 10 — Popup prénom composé ── */}
       <Modal
@@ -906,6 +1124,79 @@ export default function NewContactScreen() {
         </TouchableOpacity>
       </Modal>
 
+      {/* Modal sélection parent pour child_of */}
+      <Modal visible={showChildParentPicker} animationType="slide" transparent onRequestClose={() => setShowChildParentPicker(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: Colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '75%' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 0.5, borderBottomColor: Colors.surfaceContainerHighest }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans_700Bold', fontSize: 16, color: Colors.onSurface }}>👶 Choisir le parent</Text>
+              <TouchableOpacity onPress={() => setShowChildParentPicker(false)}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 15, color: Colors.primary }}>Fermer</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ padding: 12 }}>
+              <TextInput
+                style={[styles.input, { marginBottom: 0 }]}
+                placeholder="Rechercher un contact…"
+                placeholderTextColor={Colors.outlineVariant}
+                value={childParentSearch}
+                onChangeText={setChildParentSearch}
+                autoCapitalize="words"
+              />
+            </View>
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+              {(() => {
+                const filtered = allContacts.filter((c) => c.relation !== 'pet' && c.relation !== 'child_of' && (!childParentSearch.trim() || c.name.toLowerCase().includes(childParentSearch.toLowerCase())));
+                return (
+                  <>
+                    {filtered.map((c) => (
+                      <TouchableOpacity
+                        key={c.id}
+                        style={{ paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: Colors.surfaceContainerHighest, flexDirection: 'row', alignItems: 'center', gap: 12 }}
+                        onPress={() => {
+                          setChildParentContactId(c.id);
+                          setChildParentName(c.name);
+                          setShowChildParentPicker(false);
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 15, color: Colors.onSurface, flex: 1 }}>{c.name}</Text>
+                        <Text style={{ color: Colors.primary, fontSize: 13 }}>Choisir ›</Text>
+                      </TouchableOpacity>
+                    ))}
+                    {filtered.length === 0 && (
+                      <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 14, color: Colors.onSurfaceVariant, textAlign: 'center', paddingVertical: 16, fontStyle: 'italic' }}>
+                        Aucun contact trouvé
+                      </Text>
+                    )}
+                    {/* Créer un nouveau contact parent */}
+                    <TouchableOpacity
+                      style={{ marginTop: 16, backgroundColor: Colors.primary + '15', borderRadius: 12, borderWidth: 1.5, borderColor: Colors.primary + '40', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                      onPress={() => {
+                        setShowChildParentPicker(false);
+                        router.push('/(app)/contacts/new' as never);
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={{ fontSize: 20 }}>➕</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 14, color: Colors.primary }}>
+                          Créer un nouveau contact parent
+                        </Text>
+                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant, marginTop: 2 }}>
+                          Reviens ensuite pour le sélectionner ici
+                        </Text>
+                      </View>
+                      <Text style={{ color: Colors.primary, fontSize: 16 }}>›</Text>
+                    </TouchableOpacity>
+                  </>
+                );
+              })()}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -953,17 +1244,21 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing[4],
-    paddingVertical: 12,
+    paddingTop: 16,
+    paddingBottom: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: C.primaryContainer,
     backgroundColor: Colors.surfaceContainerLow,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
-  backBtnText: { fontSize: 34, color: C.primary, lineHeight: 38 },
+  backLink: { justifyContent: 'center', minWidth: 70 },
+  backLinkText: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm },
   topbarTitle: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
-    fontSize: Typography['2xl'],
+    fontSize: Typography.xl,
     color: Colors.onSurface,
+    flex: 1,
+    textAlign: 'center',
+    marginTop: 4,
   },
   topbarRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   saveBtn: {
@@ -978,7 +1273,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: C.onPrimary,
   },
 
-  content: { padding: Spacing[5], paddingBottom: 80 },
+  content: { padding: Spacing[5], paddingBottom: 20 },
 
   avatarPickerWrap: { alignItems: 'center', marginTop: Spacing[3], marginBottom: Spacing[2], gap: 6 },
   avatarCircle: {
@@ -1004,19 +1299,16 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
 
   labelWrap: {
-    borderLeftWidth: 3,
+    borderLeftWidth: 2,
     borderLeftColor: C.primary,
     paddingLeft: 8,
     marginTop: Spacing[4],
     marginBottom: Spacing[2],
-    justifyContent: 'center',
   },
   label: {
-    fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    color: Colors.onSurface,
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: C.primary,
   },
   input: {
     backgroundColor: Colors.white,
@@ -1042,21 +1334,27 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   textArea: { height: 80, textAlignVertical: 'top', paddingTop: 10 },
 
-  pickerWrap: {
-    backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    borderColor: C.primaryContainer,
-    overflow: 'hidden',
-    marginTop: 8,
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 24,
+    overflow: 'visible',
   },
   pickerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     backgroundColor: C.primaryContainer,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   pickerTitle: {
     fontFamily: 'BeVietnamPro_700Bold',
@@ -1141,10 +1439,24 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     padding: Spacing[4],
     gap: 10,
   },
+  familyLinkBoxRequired: {
+    borderWidth: 1.5,
+    borderColor: Colors.primary + '80',
+  },
   familyLinkTitle: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.md,
     color: Colors.onSurface,
+  },
+  familyLinkRequired: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: 11,
+    color: Colors.primary,
+    backgroundColor: C.primaryContainer,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: Radii.full,
+    overflow: 'hidden',
   },
   familyLinkChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagBtn: {
@@ -1204,8 +1516,30 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     textAlign: 'center',
   },
 
+  civiliteRow: { flexDirection: 'row', gap: 10 },
+  civiliteBtn: {
+    paddingVertical: 10, paddingHorizontal: 20,
+    borderRadius: Radii.full,
+    borderWidth: 1.5, borderColor: Colors.surfaceContainerHighest,
+    backgroundColor: Colors.white,
+  },
+  civiliteBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
+  civiliteBtnText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.base,
+    color: Colors.onSurfaceVariant,
+  },
+  civiliteBtnTextActive: { color: Colors.white },
+
+  submitBar: {
+    paddingHorizontal: Spacing[5],
+    paddingVertical: Spacing[3],
+    paddingBottom: Spacing[5],
+    backgroundColor: Colors.background,
+    borderTopWidth: 1,
+    borderTopColor: Colors.surfaceContainerHighest,
+  },
   submitBtn: {
-    marginTop: Spacing[6],
     paddingVertical: 15,
     borderRadius: Radii.full,
     backgroundColor: C.primary,

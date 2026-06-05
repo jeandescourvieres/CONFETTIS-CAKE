@@ -1,95 +1,49 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Easing,
   Dimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
+import * as SecureStore from 'expo-secure-store';
 import { Radii, Typography } from '../src/constants/theme';
-import { useThemeStore } from '../src/stores/themeStore';
 
 const { width: W, height: H } = Dimensions.get('window');
 const IMG_W = Math.round(W * 0.70);
 const IMG_H = IMG_W; // format carré
 
-// ── Photos du gâteau (rotation aléatoire à chaque lancement) ─────────────────
-// Pour ajouter une photo : glisser le fichier dans assets/cakes/ puis ajouter
-// une ligne require() ci-dessous. Le require() DOIT être statique (pas de variable).
-const CAKE_IMAGES = [
-  require('../assets/cakes/cake-01.jpg'),
-  require('../assets/cakes/cake-02.jpg'),
-  require('../assets/cakes/cake-03.jpg'),
-  require('../assets/cakes/cake-04.jpg'),
-  require('../assets/cakes/cake-05.jpg'),
-  require('../assets/cakes/cake-06.jpg'),
-  require('../assets/cakes/cake-07.jpg'),
-  require('../assets/cakes/cake-08.jpg'),
-  require('../assets/cakes/cake-09.jpg'),
-  require('../assets/cakes/cake-10.jpg'),
-];
-const CAKE_IMAGE = CAKE_IMAGES[Math.floor(Math.random() * CAKE_IMAGES.length)];
-
-// ── Playlists saisonnières (libres de droits) ─────────────────────────────────
-//  • Kevin MacLeod — incompetech.com  (CC BY 4.0)
-//  • Bensound       — bensound.com     (CC BY-ND)
-
-// Kevin MacLeod — CC BY 4.0 — incompetech.com
-// Toutes les playlists : morceaux entraînants, joyeux, rythmés
-
-const CHRISTMAS_PLAYLIST = [
-  // Noël rythmé — versions swing / upbeat
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Deck%20the%20Halls%20B.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Jingle%20Bells%20B.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Joy%20to%20the%20World.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/We%20Wish%20You%20a%20Merry%20Christmas.mp3',
-];
-const NEW_YEAR_PLAYLIST = [
-  // Fête & rythme pour le Nouvel An
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Poppers%20and%20Prosecco.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Celebration.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Pixel%20Peeker%20Polka%20-%20faster.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Monkeys%20Spinning%20Monkeys.mp3',
-];
-const VALENTINES_PLAYLIST = [
-  // Saint-Valentin : romantique mais vivant
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Romantic%20Adventure.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Friendly%20Day.mp3',
-];
-const FESTIVE_PLAYLIST = [
-  // Upbeat, entraînant, festif — Kevin MacLeod CC BY 4.0
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Monkeys%20Spinning%20Monkeys.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Happy%20Bee.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Funkorama.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Pixelland.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sneaky%20Snitch.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Pixel%20Peeker%20Polka%20-%20faster.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fluffing%20a%20Duck.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Scheming%20Weasel%20%28faster%20version%29.mp3',
-  'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Cipher.mp3',
+// ── Photos de fond (rotation aléatoire à chaque lancement) ──────────────────
+const HERO_IMAGES = [
+  require('../assets/heroes/hero1.png'),
+  require('../assets/heroes/hero2.png'),
+  require('../assets/heroes/hero3.png'),
+  require('../assets/heroes/hero4.png'),
+  require('../assets/heroes/hero5.png'),
+  require('../assets/heroes/hero6.png'),
+  require('../assets/heroes/hero7.png'),
+  require('../assets/heroes/hero8.png'),
+  require('../assets/heroes/hero9.png'),
+  require('../assets/heroes/hero10.png'),
 ];
 
-function getSeasonalPlaylist(): string[] {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const day   = now.getDate();
-  if (month === 12)               return CHRISTMAS_PLAYLIST;
-  if (month === 1  && day <= 15)  return NEW_YEAR_PLAYLIST;
-  if (month === 2  && day === 14) return VALENTINES_PLAYLIST;
-  return FESTIVE_PLAYLIST;
-}
-function pickRandom(arr: string[]): string {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
+// ── Playlist locale — libres de droits ───────────────────────────────────────
+const WELCOME_PLAYLIST = [
+  require('../assets/sounds/welcome1.mp3'),
+  require('../assets/sounds/welcome2.mp3'),
+  require('../assets/sounds/welcome3.mp3'),
+  require('../assets/sounds/welcome4.mp3'),
+  require('../assets/sounds/welcome5.mp3'),
+  require('../assets/sounds/welcome6.mp3'),
+  require('../assets/sounds/welcome7.mp3'),
+  require('../assets/sounds/welcome8.mp3'),
+];
 
 // ── Confettis flottants ───────────────────────────────────────────────────────
 const CONFETTI = [
@@ -138,34 +92,24 @@ export default function WelcomeScreen() {
   const router     = useRouter();
   const soundRef   = useRef<Audio.Sound | null>(null);
   const mountedRef = useRef(true);
-  const appTheme   = useThemeStore((s) => s.theme);
+  const [heroImage] = useState(() => HERO_IMAGES[Math.floor(Math.random() * HERO_IMAGES.length)]);
 
-  // Musique saisonnière — essaie les pistes dans un ordre aléatoire jusqu'à succès
+  // Musique aléatoire locale à chaque lancement
   useEffect(() => {
-    const playlist = getSeasonalPlaylist();
-    // Mélange à partir d'un index aléatoire pour varier à chaque lancement
-    const startIdx = Math.floor(Math.random() * playlist.length);
-    const shuffled = [...playlist.slice(startIdx), ...playlist.slice(0, startIdx)];
-
+    const track = WELCOME_PLAYLIST[Math.floor(Math.random() * WELCOME_PLAYLIST.length)];
     (async () => {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      for (const uri of shuffled) {
-        if (!mountedRef.current) break;
-        try {
-          const { sound } = await Audio.Sound.createAsync(
-            { uri },
-            { shouldPlay: true, isLooping: true, volume: 0.7 },
-          );
-          if (mountedRef.current) {
-            soundRef.current = sound;
-          } else {
-            await sound.unloadAsync();
-          }
-          return; // succès — on arrête
-        } catch {
-          // Cette piste a échoué — on essaie la suivante
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          track,
+          { shouldPlay: true, isLooping: true, volume: 0.7 },
+        );
+        if (mountedRef.current) {
+          soundRef.current = sound;
+        } else {
+          await sound.unloadAsync();
         }
-      }
+      } catch { /* silent */ }
     })();
     return () => {
       mountedRef.current = false;
@@ -173,27 +117,6 @@ export default function WelcomeScreen() {
     };
   }, []);
 
-  // Lévitation douce du gâteau
-  const floatAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, { toValue: -10, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(floatAnim, { toValue: 0,   duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    ).start();
-  }, [floatAnim]);
-
-  // Halo pulsant derrière le gâteau
-  const glowAnim = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, { toValue: 1.08, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(glowAnim, { toValue: 1,    duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    ).start();
-  }, [glowAnim]);
 
   // Fade-in général
   const fadeOpacity = useRef(new Animated.Value(0)).current;
@@ -206,7 +129,7 @@ export default function WelcomeScreen() {
   }, [fadeOpacity, fadeY]);
 
   const stopAndEnter = async () => {
-    mountedRef.current = false; // empêche le son de se stocker s'il charge encore
+    mountedRef.current = false;
     try {
       if (soundRef.current) {
         await soundRef.current.stopAsync();
@@ -214,53 +137,56 @@ export default function WelcomeScreen() {
         soundRef.current = null;
       }
     } catch { /* silent */ }
-    router.replace('/(app)' as never);
+    // Si le mode est déjà choisi → home directement, sinon → features-intro
+    const mode = await SecureStore.getItemAsync('cc_home_mode');
+    if (mode === 'simple' || mode === 'advanced') {
+      router.replace('/(app)' as never);
+    } else {
+      router.replace('/(app)/features-intro' as never);
+    }
   };
 
   return (
-    <LinearGradient colors={appTheme.gradient} style={styles.gradient}>
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <View style={styles.gradient}>
+      {/* Image pleine largeur, pas de zoom/crop */}
+      <Image source={heroImage} style={styles.heroImage} resizeMode="contain" />
 
-        {/* Photo du gâteau avec halo et lévitation */}
-        <Animated.View style={[styles.cakeArea, { opacity: fadeOpacity, transform: [{ translateY: fadeY }] }]}>
-          {/* Halo pulsant */}
-          <Animated.View style={[styles.cakeGlow, { transform: [{ scale: glowAnim }] }]} />
-          {/* Photo flottante */}
-          <Animated.View style={{ transform: [{ translateY: floatAnim }] }}>
-            <Image source={CAKE_IMAGE} style={styles.cakeImage} resizeMode="cover" />
-          </Animated.View>
-        </Animated.View>
+      {/* Confettis flottants */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {CONFETTI.map((c, i) => (
+          <FloatingParticle key={i} emoji={c.emoji} xRatio={c.x} delay={c.delay} />
+        ))}
+      </View>
 
-        {/* Texte + Bouton groupés */}
+      {/* Boutons collés en bas, par-dessus l'image */}
+      <SafeAreaView style={styles.safe} edges={['bottom']} pointerEvents="box-none">
         <Animated.View style={[styles.bottomGroup, { opacity: fadeOpacity, transform: [{ translateY: fadeY }] }]}>
-          <View style={styles.textWrap}>
-            <Text style={styles.title}>ConfettiCake</Text>
-            <Text style={styles.titleBy}>by Confettis & Cake</Text>
-            <Text style={styles.taglineLine2}>L'application IA{'\n'}pour ne plus jamais rater{'\n'}un anniversaire,</Text>
-            <Text style={styles.taglineLine3}>une fête ou un événement{'\n'}qui compte pour toi.{'\n'}Et pour les autres !</Text>
-          </View>
           <View style={styles.btnWrap}>
             <TouchableOpacity style={styles.btn} onPress={stopAndEnter} activeOpacity={0.85}>
               <Text style={styles.btnText}>C'est parti ! 🎉</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
-
-        {/* Confettis flottants — par-dessus tout */}
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          {CONFETTI.map((c, i) => (
-            <FloatingParticle key={i} emoji={c.emoji} xRatio={c.x} delay={c.delay} />
-          ))}
-        </View>
-
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  safe:     { flex: 1, justifyContent: 'space-between', paddingBottom: 56 },
+  gradient: { flex: 1, backgroundColor: '#ffffff' },
+  heroImage: {
+    position: 'absolute',
+    top: -Math.round(H * 0.03),
+    left: 0,
+    width: W,
+    height: H,
+  },
+  safe: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
 
   particle: {
     position: 'absolute',
@@ -272,20 +198,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 48,
-  },
-
-  // Halo blanc semi-transparent derrière la photo
-  cakeGlow: {
-    position: 'absolute',
-    width: IMG_W + 28,
-    height: IMG_H + 28,
-    borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 24,
-    elevation: 0,
   },
 
   cakeImage: {
@@ -303,8 +215,7 @@ const styles = StyleSheet.create({
 
   bottomGroup: {
     alignItems: 'center',
-    gap: 24,
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
   textWrap: {
     alignItems: 'center',
@@ -315,18 +226,15 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'Pacifico_400Regular',
     fontSize: 38,
-    color: '#FFD700',
+    color: '#E8357A',
     textAlign: 'center',
     letterSpacing: 0.5,
     marginBottom: 4,
-    textShadowColor: 'rgba(0,0,0,0.25)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
   },
   titleBy: {
     fontFamily: 'BeVietnamPro_300Light',
     fontSize: Typography.sm,
-    color: 'rgba(255,215,0,0.65)',
+    color: 'rgba(232,53,122,0.6)',
     textAlign: 'center',
     letterSpacing: 3,
     textTransform: 'uppercase',
@@ -342,14 +250,14 @@ const styles = StyleSheet.create({
   taglineLine2: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.lg + 3,
-    color: '#fff',
+    color: '#1A1A2E',
     textAlign: 'center',
     lineHeight: 30,
   },
   taglineLine3: {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.lg + 3,
-    color: '#fff',
+    color: '#1A1A2E',
     textAlign: 'center',
     lineHeight: 30,
   },
@@ -387,27 +295,57 @@ const styles = StyleSheet.create({
     color: '#a5d6a7',
   },
 
+  noFautesBadge: {
+    alignSelf: 'center',
+    backgroundColor: '#FFF0F6',
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderWidth: 1.5,
+    borderColor: '#F9A8D4',
+    shadowColor: '#E8357A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  noFautesBadgeText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.base,
+    color: '#4A1040',
+    textAlign: 'center',
+  },
+  noFautesBadgeStrike: {
+    textDecorationLine: 'line-through',
+    color: '#E8357A',
+    fontFamily: 'BeVietnamPro_700Bold',
+  },
+  noFautesBadgeCorrect: {
+    color: '#16A34A',
+    fontFamily: 'BeVietnamPro_800ExtraBold',
+  },
+
   btnWrap: {
     width: '50%',
     alignSelf: 'center',
   },
 
   btn: {
-    backgroundColor: '#fff',
+    backgroundColor: '#E8357A',
     borderRadius: Radii.full,
     paddingVertical: 8,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: '#E8357A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
   },
 
   btnText: {
     fontFamily: 'PlusJakartaSans_800ExtraBold',
     fontSize: Typography.base,
-    color: '#FF6B9D',
+    color: '#fff',
     letterSpacing: 0.5,
   },
 });

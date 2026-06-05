@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+﻿import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
+  Dimensions,
   TouchableOpacity,
   StyleSheet,
   Switch,
@@ -13,19 +14,27 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useMessages } from '../../src/hooks/useAIGenerate';
-import { useContacts } from '../../src/hooks/useContacts';
+import { useContacts, useMyPets } from '../../src/hooks/useContacts';
 import { useMyPots } from '../../src/hooks/usePot';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 import { SUPPORTED_LANGUAGES, type AppLanguage } from '../../src/i18n';
 import { useThemeStore } from '../../src/stores/themeStore';
 import { APP_THEMES } from '../../src/constants/appThemes';
 import { useColors } from '../../src/hooks/useColors';
+import { schedulePetBirthdayReminders } from '../../src/services/notifications.service';
+import Constants from 'expo-constants';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+// settingsCard : marginH=16×2, themeGrid : padding=16×2, gap=12×2 (entre 3 colonnes)
+const SWATCH_W = Math.floor((SCREEN_WIDTH - 32 - 32 - 24) / 3);
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 function StatCard({ value, label, emoji }: { value: number; label: string; emoji: string }) {
@@ -93,7 +102,7 @@ export default function ProfileScreen() {
   const C = useColors();
   const router = useRouter();
   const { t, i18n } = useTranslation();
-  const { profile, signOut, updateProfile } = useAuthStore();
+  const { profile, user, signOut, updateProfile } = useAuthStore();
   const { data: messages = [] } = useMessages();
   const { data: contacts = [] } = useContacts();
   const { data: pots = [] } = useMyPots();
@@ -106,10 +115,11 @@ export default function ProfileScreen() {
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-  useFocusEffect(useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []));
+  useTabScrollToTop('profile', () => scrollRef.current?.scrollTo({ y: 0, animated: false }));
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
-  const [editBirthday, setEditBirthday] = useState('');
+  const [editBirthday, setEditBirthday] = useState<Date | null>(null);
+  const [showBirthdayPicker, setShowBirthdayPicker] = useState(false);
   const [editCivilite, setEditCivilite] = useState<'M.' | 'Mme' | null>(null);
   const [showSignature, setShowSignature] = useState(profile?.show_signature !== false);
 
@@ -143,6 +153,15 @@ export default function ProfileScreen() {
 
   const sentMessages = messages.filter((m) => m.status === 'sent').length;
   const activePots = pots.filter((p) => p.status !== 'closed').length;
+  const myPets = useMyPets();
+
+  // Planifie les rappels anniversaire pour les animaux (build natif uniquement)
+  useEffect(() => {
+    if (Constants.appOwnership === 'expo') return; // pas disponible dans Expo Go
+    const petsWithBirthday = myPets.filter((p) => !!p.birthday);
+    if (petsWithBirthday.length === 0) return;
+    schedulePetBirthdayReminders(petsWithBirthday).catch(() => {});
+  }, [myPets.map((p) => p.id + p.birthday).join(',')]);
 
   const handleSignOut = () => {
     Alert.alert(t('profile.signOutTitle'), t('profile.signOutConfirm'), [
@@ -160,21 +179,36 @@ export default function ProfileScreen() {
   };
 
   const handleSaveProfile = async () => {
-    const fullName = [editFirstName.trim(), editLastName.trim()].filter(Boolean).join(' ');
-    const parseBirthday = (raw: string): string | null => {
-      const parts = raw.trim().split('/');
-      if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-      if (parts.length === 2) return `0000-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-      return null;
-    };
-    const birthday = editBirthday.trim() ? parseBirthday(editBirthday) : null;
-    const updates: Parameters<typeof updateProfile>[0] = {};
-    if (fullName) updates.full_name = fullName;
-    if (birthday !== null) updates.birthday = birthday;
-    if (editCivilite) updates.civilite = editCivilite;
-    if (Object.keys(updates).length > 0) await updateProfile(updates);
-    setShowEditProfile(false);
+    const missing: string[] = [];
+    if (!editLastName.trim())  missing.push('• Nom de famille');
+    if (!editFirstName.trim()) missing.push('• Prénom');
+    if (!editCivilite)         missing.push('• Civilité (M. ou Mme)');
+    if (!editBirthday)         missing.push('• Date de naissance');
+    if (missing.length > 0) {
+      Alert.alert(
+        'Champs obligatoires manquants',
+        'L\'enregistrement n\'est pas possible tant que les champs suivants ne sont pas renseignés :\n\n' + missing.join('\n'),
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    try {
+      const fullName = [editFirstName.trim(), editLastName.trim()].filter(Boolean).join(' ');
+      const birthdayStr = `${editBirthday!.getFullYear()}-${String(editBirthday!.getMonth() + 1).padStart(2,'0')}-${String(editBirthday!.getDate()).padStart(2,'0')}`;
+      await updateProfile({ full_name: fullName, birthday: birthdayStr, civilite: editCivilite });
+      setShowEditProfile(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+      Alert.alert('Erreur de sauvegarde', msg);
+    }
   };
+
+  const formatFirstName = (raw: string) =>
+    raw.split(/(-| )/).map((p) =>
+      p === '-' || p === ' ' ? p : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
+    ).join('');
+
+  const formatLastName = (raw: string) => raw.toUpperCase();
 
   const handleSelectLanguage = async (code: AppLanguage) => {
     await i18n.changeLanguage(code);
@@ -186,7 +220,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={styles.scroll}>
 
         {/* ── Hero profil ───────────────────────────── */}
         <LinearGradient
@@ -194,10 +228,16 @@ export default function ProfileScreen() {
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.hero}
         >
+          <TouchableOpacity onPress={() => router.back()} style={{ position: 'absolute', top: 14, left: 16 }} activeOpacity={0.75}>
+            <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 15, color: 'rgba(255,255,255,0.9)' }}>‹ Retour</Text>
+          </TouchableOpacity>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
           <Text style={styles.heroName}>{profile?.full_name ?? t('profile.user')}</Text>
+          {user?.email ? (
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>{user.email}</Text>
+          ) : null}
           <Text style={styles.heroSelfie}>C'est moi ! 🙋‍♂️✨😎</Text>
           <View style={styles.planBadge}>
             <Text style={styles.planBadgeText}>
@@ -236,15 +276,111 @@ export default function ProfileScreen() {
         {profile?.referral_code && (
           <View style={styles.referralCard}>
             <View style={styles.referralLeft}>
-              <Text style={styles.referralTitle}>{t('profile.referral.title')}</Text>
+              <Text style={styles.referralTitle}>🎁 {t('profile.referral.title')}</Text>
               <Text style={styles.referralCode}>{profile.referral_code}</Text>
-              <Text style={styles.referralSub}>{t('profile.referral.sub')}</Text>
             </View>
-            <TouchableOpacity style={styles.referralShareBtn} onPress={handleShareReferral}>
-              <Text style={styles.referralShareBtnText}>{t('profile.referral.share')}</Text>
-            </TouchableOpacity>
+            <View style={styles.referralActions}>
+              <TouchableOpacity style={styles.referralShareBtn} onPress={handleShareReferral}>
+                <Text style={styles.referralShareBtnText}>{t('profile.referral.share')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.referralInfoBtn}
+                onPress={() => router.push('/(app)/referral' as never)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.referralInfoBtnText}>ℹ️</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
+
+        {/* ── Ma famille ───────────────────────────── */}
+        {(() => {
+          const familyContacts = contacts.filter((c) => c.relation === 'family' || c.relation === 'partner');
+          if (familyContacts.length === 0) return null;
+          return (
+            <>
+              <Text style={styles.sectionTitle}>👨‍👩‍👧 Ma famille</Text>
+              <View style={{ backgroundColor: Colors.white, borderRadius: Radii.xl, padding: Spacing[4], gap: 8, ...Shadows.sm }}>
+                {familyContacts.map((contact) => {
+                  const linkMatch = contact.notes?.match(/^Lien\s*:\s*(.+?)(\n|$)/);
+                  const link = linkMatch ? linkMatch[1].trim() : contact.relation === 'partner' ? 'Partenaire' : 'Famille';
+                  const nameParts = contact.name.trim().split(' ');
+                  const displayName = nameParts.length > 1
+                    ? `${nameParts.slice(1).join(' ')} ${nameParts[0]}`
+                    : nameParts[0];
+                  return (
+                    <TouchableOpacity
+                      key={contact.id}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.primaryContainer + '40', borderRadius: Radii.lg, padding: Spacing[3] }}
+                      onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: contact.id } } as never)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 22 }}>{contact.relation === 'partner' ? '💑' : '👨‍👩‍👧'}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.onSurface }}>{displayName}</Text>
+                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, textTransform: 'capitalize' }}>{link}</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={{ backgroundColor: C.primary, borderRadius: Radii.full, paddingVertical: 6, paddingHorizontal: 12 }}
+                        onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: contact.id } } as never)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: Colors.white }}>✉ Écrire</Text>
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          );
+        })()}
+
+        {/* ── Mes animaux ──────────────────────────── */}
+        <Text style={styles.sectionTitle}>🐾 Mes animaux</Text>
+        <View style={{ backgroundColor: Colors.white, borderRadius: Radii.xl, padding: Spacing[4], gap: 10, ...Shadows.sm }}>
+          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, lineHeight: 20 }}>
+            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', color: C.onSurface }}>{'Ton chien a des choses à dire.\nTon chat aussi — même s\'il fait semblant que non. 🐾\n\n'}</Text>
+            {'Ajoute tes animaux ici et laisse l\'IA parler en leur nom pour les occasions de tes contacts. Anniversaire, fête... '}
+            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', color: C.onSurface }}>C'est complètement dingue. C'est complètement génial.</Text>
+            {'\n\n'}
+            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', color: C.primary }}>Comment ça marche ?</Text>
+            {'\n→ Va sur la fiche d\'un contact\n→ Appuie sur '}
+            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', color: '#92400E' }}>"🐾 Un de mes animaux lui écrit"</Text>
+            {'\n→ Choisis ton animal\n→ L\'IA rédige le message comme si c\'était LUI qui l\'avait écrit 🤣'}
+          </Text>
+          {myPets.map((pet) => {
+            const petEmoji = ({ chien: '🐶', chat: '🐱', lapin: '🐰', oiseau: '🐦', cheval: '🐴', hamster: '🐹', perroquet: '🦜', cochon_d_inde: '🐾', souris: '🐭', poisson: '🐠', tortue: '🐢' } as Record<string, string>)[pet.pet_type ?? ''] ?? '🐾';
+            return (
+              <TouchableOpacity
+                key={pet.id}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.primaryContainer + '40', borderRadius: Radii.lg, padding: Spacing[3] }}
+                onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: pet.id } } as never)}
+                activeOpacity={0.8}
+              >
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 22 }}>{petEmoji}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.onSurface }}>{pet.name}</Text>
+                  {pet.pet_type && <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant }}>{pet.pet_type}</Text>}
+                </View>
+                <Text style={{ color: C.primary, fontSize: 20 }}>›</Text>
+              </TouchableOpacity>
+            );
+          })}
+          <TouchableOpacity
+            style={{ borderWidth: 1.5, borderColor: C.primary, borderRadius: Radii.full, paddingVertical: 11, alignItems: 'center' }}
+            onPress={() => router.push({ pathname: '/(app)/animaux/new', params: { myPet: '1' } } as never)}
+            activeOpacity={0.85}
+          >
+            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: C.primary }}>
+              🐾 {myPets.length === 0 ? 'Ajouter mon animal' : 'Ajouter un autre animal'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* ── Thème couleur ────────────────────────── */}
         <Text style={styles.sectionTitle}>Couleur de l'appli</Text>
@@ -314,12 +450,13 @@ export default function ProfileScreen() {
               const parts = (profile?.full_name ?? '').split(' ');
               setEditFirstName(parts[0] ?? '');
               setEditLastName(parts.slice(1).join(' ') ?? '');
-              // Pré-remplir le birthday au format JJ/MM/AAAA
+              // Pré-remplir le birthday
               if (profile?.birthday) {
                 const [y, m, d] = profile.birthday.split('-');
-                setEditBirthday(y === '0000' ? `${d}/${m}` : `${d}/${m}/${y}`);
+                const year = y === '0000' ? 1985 : parseInt(y, 10);
+                setEditBirthday(new Date(year, parseInt(m, 10) - 1, parseInt(d, 10)));
               } else {
-                setEditBirthday('');
+                setEditBirthday(null);
               }
               setEditCivilite(profile?.civilite ?? null);
               setShowEditProfile(true);
@@ -411,33 +548,77 @@ export default function ProfileScreen() {
                 <TextInput
                   style={styles.editInput}
                   value={editFirstName}
-                  onChangeText={setEditFirstName}
+                  onChangeText={(v) => setEditFirstName(formatFirstName(v))}
                   placeholder="Ton prénom"
                   placeholderTextColor={Colors.outlineVariant}
-                  autoCapitalize="words"
+                  autoCapitalize="none"
                   returnKeyType="next"
                 />
                 <Text style={styles.editLabel}>Nom</Text>
                 <TextInput
                   style={styles.editInput}
                   value={editLastName}
-                  onChangeText={setEditLastName}
+                  onChangeText={(v) => setEditLastName(formatLastName(v))}
                   placeholder="Ton nom de famille"
                   placeholderTextColor={Colors.outlineVariant}
-                  autoCapitalize="words"
+                  autoCapitalize="none"
                   returnKeyType="next"
                 />
                 <Text style={styles.editLabel}>Ta date de naissance ✨</Text>
-                <TextInput
+                <TouchableOpacity
                   style={styles.editInput}
-                  value={editBirthday}
-                  onChangeText={setEditBirthday}
-                  placeholder="JJ/MM/AAAA ou JJ/MM"
-                  placeholderTextColor={Colors.outlineVariant}
-                  keyboardType="numbers-and-punctuation"
-                  returnKeyType="done"
-                  onSubmitEditing={handleSaveProfile}
-                />
+                  onPress={() => setShowBirthdayPicker(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={editBirthday ? styles.editInputText : styles.editInputPlaceholder}>
+                    {editBirthday
+                      ? editBirthday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+                      : 'Sélectionner ta date de naissance'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Picker iOS — modal roue */}
+                {showBirthdayPicker && Platform.OS === 'ios' && (
+                  <Modal transparent animationType="slide" visible onRequestClose={() => setShowBirthdayPicker(false)}>
+                    <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowBirthdayPicker(false)}>
+                      <View style={styles.pickerSheet}>
+                        <View style={styles.pickerHeader}>
+                          <Text style={styles.pickerTitle}>Date de naissance</Text>
+                          <TouchableOpacity onPress={() => setShowBirthdayPicker(false)}>
+                            <Text style={styles.pickerOk}>OK ✓</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <DateTimePicker
+                          value={editBirthday ?? new Date(1985, 0, 1)}
+                          mode="date"
+                          display="spinner"
+                          minimumDate={new Date(new Date().getFullYear() - 100, 0, 1)}
+                          maximumDate={new Date()}
+                          textColor={Colors.primary}
+                          accentColor={Colors.primary}
+                          style={{ width: '100%', height: 215 }}
+                          onChange={(_e: unknown, date?: Date) => { if (date) setEditBirthday(date); }}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                  </Modal>
+                )}
+
+                {/* Picker Android — natif */}
+                {showBirthdayPicker && Platform.OS === 'android' && (
+                  <DateTimePicker
+                    value={editBirthday ?? new Date(1985, 0, 1)}
+                    mode="date"
+                    display="spinner"
+                    minimumDate={new Date(new Date().getFullYear() - 100, 0, 1)}
+                    maximumDate={new Date()}
+                    onChange={(_e: unknown, date?: Date) => {
+                      setShowBirthdayPicker(false);
+                      if (date) setEditBirthday(date);
+                    }}
+                  />
+                )}
+
                 <Text style={styles.editHint}>
                   🔮 Permet de calculer ta compatibilité zodiacale avec tes contacts !
                 </Text>
@@ -486,7 +667,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </Modal>
 
-        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -495,7 +675,7 @@ export default function ProfileScreen() {
 function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingBottom: 80 },
+  scroll: { paddingBottom: 16, paddingTop: 12 },
 
   hero: {
     padding: Spacing[6],
@@ -559,30 +739,42 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   referralCard: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: Spacing[4], marginBottom: Spacing[2],
-    padding: Spacing[4], borderRadius: Radii.xl,
+    paddingVertical: Spacing[3], paddingHorizontal: Spacing[4],
+    borderRadius: Radii.xl,
     backgroundColor: Colors.secondaryContainer,
     borderWidth: 1, borderColor: Colors.secondaryFixed,
+    gap: Spacing[3],
   },
-  referralLeft: { flex: 1, gap: 2, alignItems: 'center' },
-  referralTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.onSecondaryContainer },
-  referralCode: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.secondary, letterSpacing: 2 },
-  referralSub: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.secondary },
+  referralLeft: { flex: 1, gap: 2 },
+  referralTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSecondaryContainer },
+  referralCode: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.secondary, letterSpacing: 2 },
+  referralActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },
   referralShareBtn: {
-    paddingVertical: 8, paddingHorizontal: 16, borderRadius: Radii.full,
+    paddingVertical: 7, paddingHorizontal: 14, borderRadius: Radii.full,
     backgroundColor: Colors.secondary,
   },
-  referralShareBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.white },
+  referralShareBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.white },
+  referralInfoBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  referralInfoBtnText: { fontSize: 18 },
 
   // Sections
   sectionTitle: {
-    fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs,
-    textTransform: 'uppercase', letterSpacing: 0.8,
-    color: Colors.onSurfaceVariant,
-    marginTop: Spacing[5], marginBottom: Spacing[3],
-    marginLeft: Spacing[4],
     borderLeftWidth: 3,
-    borderLeftColor: Colors.outlineVariant,
-    paddingLeft: Spacing[3],
+    borderLeftColor: C.primary,
+    paddingLeft: 8,
+    paddingVertical: 4,    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: C.primary,
+    marginTop: Spacing[4],
+    marginBottom: Spacing[2],
+    marginLeft: Spacing[4],
+    marginRight: Spacing[4],
   },
   settingsCard: {
     marginHorizontal: Spacing[4], marginBottom: Spacing[3],
@@ -642,27 +834,30 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   themeSwatch: {
     alignItems: 'center',
-    gap: 6,
-    width: '28%',
+    justifyContent: 'flex-start',
+    gap: 5,
+    width: SWATCH_W,
+    minHeight: 58,
   },
   themeSwatchActive: {},
   themeCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },
   themeCheck: {
     color: Colors.white,
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: 'BeVietnamPro_700Bold',
   },
   themeLabel: {
     fontFamily: 'BeVietnamPro_600SemiBold',
-    fontSize: Typography.xs,
+    fontSize: Typography.sm,
     color: Colors.onSurfaceVariant,
     textAlign: 'center',
+    lineHeight: 16,
   },
 
   // Language selector
@@ -730,6 +925,38 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     marginBottom: 12,
     marginTop: 4,
   },
+  editInputText: {
+    fontSize: Typography.md,
+    fontFamily: 'BeVietnamPro_400Regular',
+    color: Colors.onSurface,
+  },
+  editInputPlaceholder: {
+    fontSize: Typography.md,
+    fontFamily: 'BeVietnamPro_400Regular',
+    color: Colors.outlineVariant,
+  },
+  pickerOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingBottom: 24,
+  },
+  pickerHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: Spacing[5], paddingVertical: 14,
+    borderBottomWidth: 0.5, borderBottomColor: Colors.surfaceContainerHighest,
+  },
+  pickerTitle: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.md, color: Colors.onSurface,
+  },
+  pickerOk: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.md, color: C.primary,
+  },
   editHint: {
     fontFamily: 'BeVietnamPro_400Regular',
     fontSize: Typography.xs,
@@ -761,7 +988,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: Spacing[5],
-    paddingTop: Spacing[5],
+    paddingTop: Spacing[8],
     paddingBottom: 40,
     gap: 6,
   },
@@ -773,9 +1000,10 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   modalSub: {
     fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.sm,
+    fontSize: Typography.md,
     color: Colors.onSurfaceVariant,
     marginBottom: 12,
+    lineHeight: 21,
   },
   langOption: {
     flexDirection: 'row',

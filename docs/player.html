@@ -115,12 +115,18 @@
       document.title = 'Un message pour ' + recipient + ' 💛 — Confettis & Cake';
     }
 
-    var voiceAudio = new Audio(ttsUrl);
+    var musicOnly  = !ttsUrl && !!bgUrl;
+    var voiceAudio = ttsUrl ? new Audio(ttsUrl) : null;
     var bgAudio    = bgUrl ? new Audio(bgUrl) : null;
     if (bgAudio) {
       bgAudio.loop   = true;
-      bgAudio.volume = 0.35;
+      bgAudio.volume = musicOnly ? 0.55 : 0.35;
       document.getElementById('musicBar').style.display = 'flex';
+    }
+    if (musicOnly) {
+      document.getElementById('titleEl').textContent = recipient ? 'Un message pour ' + recipient + ' 🎵' : 'Un message avec ambiance musicale 🎵';
+      document.querySelector('.subtitle').textContent = 'Appuie sur lecture pour démarrer la musique de fond';
+      document.getElementById('status').textContent = 'Appuie pour écouter la musique';
     }
 
     var isPlaying = false;
@@ -128,9 +134,10 @@
     var pauseIcon   = '<rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/>';
     var playIconSvg = '<polygon points="5,3 19,12 5,21"/>';
 
-    var INTRO_MS = 1800; // durée de l'intro musicale avant la voix
+    var INTRO_MS = 1800;
 
     function startVoice() {
+      if (!voiceAudio) return;
       document.getElementById('status').textContent = 'Lecture en cours...';
       var vp = voiceAudio.play();
       if (vp && typeof vp.catch === 'function') {
@@ -146,7 +153,7 @@
     }
 
     function togglePlay() {
-      if (!ttsUrl) {
+      if (!ttsUrl && !bgUrl) {
         document.getElementById('errorMsg').style.display = 'block';
         document.getElementById('errorMsg').textContent = '⚠️ Lien de message invalide.';
         return;
@@ -156,34 +163,32 @@
         document.getElementById('playIcon').innerHTML = pauseIcon;
         document.getElementById('wave').classList.add('playing');
 
-        if (bgAudio && !bgMuted) {
-          // Démarrer la musique immédiatement
+        if (musicOnly) {
+          // Mode musique seule : juste la musique de fond
+          if (bgAudio && !bgMuted) {
+            bgAudio.volume = 0.55;
+            var bp = bgAudio.play();
+            if (bp && typeof bp.catch === 'function') bp.catch(function(){});
+          }
+          document.getElementById('status').textContent = '🎵 Musique en cours...';
+        } else if (bgAudio && !bgMuted) {
+          // Mode vocal + musique
           bgAudio.volume = 0.35;
-          var bp = bgAudio.play();
-          if (bp && typeof bp.catch === 'function') bp.catch(function(){});
-
-          // iOS unlock : appeler play() puis pause() pour débloquer l'élément audio
+          var bp2 = bgAudio.play();
+          if (bp2 && typeof bp2.catch === 'function') bp2.catch(function(){});
           var unlock = voiceAudio.play();
           if (unlock && typeof unlock.then === 'function') {
             unlock.then(function() { voiceAudio.pause(); voiceAudio.currentTime = 0; }).catch(function(){});
           } else {
             voiceAudio.pause(); voiceAudio.currentTime = 0;
           }
-
-          // Lancer la voix après l'intro musicale
           document.getElementById('status').textContent = '🎵 Intro...';
-          setTimeout(function() {
-            if (!isPlaying) return;
-            startVoice();
-          }, INTRO_MS);
-
+          setTimeout(function() { if (isPlaying) startVoice(); }, INTRO_MS);
         } else {
-          // Pas de musique : démarrer la voix directement
           startVoice();
         }
-
       } else {
-        voiceAudio.pause();
+        if (voiceAudio) voiceAudio.pause();
         if (bgAudio) bgAudio.pause();
         isPlaying = false;
         document.getElementById('playIcon').innerHTML = playIconSvg;
@@ -199,37 +204,32 @@
         bgMuted = true;
         btn.textContent = 'Rétablir';
       } else {
-        if (bgAudio) bgAudio.volume = 0.35;
+        if (bgAudio) bgAudio.volume = musicOnly ? 0.55 : 0.35;
         bgMuted = false;
         btn.textContent = 'Couper';
       }
     }
 
-    voiceAudio.addEventListener('ended', function() {
-      isPlaying = false;
-      document.getElementById('playIcon').innerHTML = playIconSvg;
-      document.getElementById('status').textContent = '✓ Message écouté';
-      document.getElementById('wave').classList.remove('playing');
-      if (bgAudio) {
-        var startVol = bgAudio.volume;
-        var steps = 20;
-        var i = 0;
-        var fade = setInterval(function() {
-          i++;
-          bgAudio.volume = Math.max(0, startVol * (1 - i / steps));
-          if (i >= steps) {
-            clearInterval(fade);
-            bgAudio.pause();
-            bgAudio.currentTime = 0;
-            bgAudio.volume = startVol;
-          }
-        }, 80);
-      }
-    });
-
-    voiceAudio.addEventListener('error', function() {
-      document.getElementById('status').textContent = '⚠️ Impossible de lire le message';
-    });
+    if (voiceAudio) {
+      voiceAudio.addEventListener('ended', function() {
+        isPlaying = false;
+        document.getElementById('playIcon').innerHTML = playIconSvg;
+        document.getElementById('status').textContent = '✓ Message écouté';
+        document.getElementById('wave').classList.remove('playing');
+        if (bgAudio) {
+          var startVol = bgAudio.volume;
+          var steps = 20, i = 0;
+          var fade = setInterval(function() {
+            i++;
+            bgAudio.volume = Math.max(0, startVol * (1 - i / steps));
+            if (i >= steps) { clearInterval(fade); bgAudio.pause(); bgAudio.currentTime = 0; bgAudio.volume = startVol; }
+          }, 80);
+        }
+      });
+      voiceAudio.addEventListener('error', function() {
+        document.getElementById('status').textContent = '⚠️ Impossible de lire le message';
+      });
+    }
   </script>
 </body>
 </html>

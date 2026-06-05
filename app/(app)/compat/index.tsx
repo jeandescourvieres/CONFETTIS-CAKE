@@ -15,6 +15,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
@@ -54,8 +55,11 @@ export default function CompatIndexScreen() {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
 
-  const [firstNameA, setFirstNameA] = useState('');
-  const [lastNameA,  setLastNameA]  = useState('');
+  // Pré-remplissage depuis les paramètres URL (ex: depuis la fiche contact)
+  const { preA = '', nomA = '' } = useLocalSearchParams<{ preA?: string; nomA?: string }>();
+
+  const [firstNameA, setFirstNameA] = useState(preA);
+  const [lastNameA,  setLastNameA]  = useState(nomA);
   const [firstNameB, setFirstNameB] = useState('');
   const [lastNameB,  setLastNameB]  = useState('');
 
@@ -102,6 +106,14 @@ export default function CompatIndexScreen() {
           <Text style={styles.subtitle}>
             Saisis deux prénoms (et noms facultatifs) pour découvrir votre compatibilité numérologique ✨
           </Text>
+
+          {/* ── Intro ───────────────────────────────────── */}
+          <View style={styles.introCard}>
+            <Text style={styles.introTitle}>💡 Comment ça marche ?</Text>
+            <Text style={styles.introText}>
+              {'La compatibilité est calculée par numérologie : chaque lettre de vos prénoms (et noms) est converti en chiffre selon la méthode de Pythagore. La somme des valeurs donne un score unique entre 0 et 100.\n\nPlus le score est élevé, plus l\'harmonie vibratoire entre les deux personnes est forte — que ce soit en amour, en amitié ou en travail.'}
+            </Text>
+          </View>
 
           {/* ── Formulaire ──────────────────────────────── */}
           <View style={styles.form}>
@@ -291,6 +303,27 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       fontSize: Typography.base,
       color: Colors.onSurfaceVariant,
       textAlign: 'center',
+      lineHeight: 22,
+    },
+
+    introCard: {
+      backgroundColor: C.primaryContainer,
+      borderRadius: Radii.xl,
+      padding: Spacing[4],
+      borderLeftWidth: 4,
+      borderLeftColor: C.primary,
+      gap: 8,
+      marginBottom: Spacing[2],
+    },
+    introTitle: {
+      fontFamily: 'PlusJakartaSans_800ExtraBold',
+      fontSize: Typography.xl,
+      color: C.primary,
+    },
+    introText: {
+      fontFamily: 'BeVietnamPro_400Regular',
+      fontSize: Typography.md,
+      color: Colors.onSurface,
       lineHeight: 22,
     },
 
