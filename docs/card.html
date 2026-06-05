@@ -196,6 +196,19 @@
   var morseMode   = p.get('morse') === '1';
   var msgBgKey    = p.get('msg_bg')  || '';
   var customTitle = p.get('title')   || '';
+  var cardBgKey   = p.get('card_bg') || '';
+
+  var CARD_BG_COLORS = {
+    violet:    ['#7b2ff7', '#4a0e8f'],
+    bleu:      ['#1a3a6b', '#0d2144'],
+    rose:      ['#c2185b', '#880e4f'],
+    rouge:     ['#c62828', '#7f0000'],
+    vert:      ['#1b5e20', '#0a3d0a'],
+    or:        ['#b8860b', '#7a5800'],
+    noir:      ['#1a1a2e', '#0d0d1a'],
+    turquoise: ['#00695c', '#004d40'],
+    ardoise:   ['#37474f', '#263238'],
+  };
 
   // Lance la musique de fond si demandée
   var bgAudio = null;
@@ -576,6 +589,9 @@
       var theme = animKey && THEMES[animKey]
         ? THEMES[animKey]
         : getTheme(eff.effect_type || '', card.occasion || '');
+      if (cardBgKey && CARD_BG_COLORS[cardBgKey]) {
+        theme = Object.assign({}, theme, { bg: CARD_BG_COLORS[cardBgKey] });
+      }
       startParticles(canvas, theme);
 
       // ── Lottie (si disponible) ─────────────────────────

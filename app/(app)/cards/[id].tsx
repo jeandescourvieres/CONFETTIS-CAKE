@@ -39,6 +39,7 @@ export default function CardPreviewScreen() {
   const [morseMode,    setMorseMode]    = useState<boolean>(false);
   const [cardMsgBg,    setCardMsgBg]    = useState<string>('');
   const [cardTitle,    setCardTitle]    = useState<string>('');
+  const [cardBg,       setCardBg]       = useState<string>('');
 
   const CARD_ANIMS = [
     { key: 'confetti',  emoji: '🎊', label: 'Particules'       },
@@ -171,13 +172,14 @@ export default function CardPreviewScreen() {
     if (cardAnim) params.set('anim', cardAnim);
     if (morseMode) params.set('morse', '1');
     if (cardMsgBg) params.set('msg_bg', cardMsgBg);
+    if (cardBg) params.set('card_bg', cardBg);
     if (cardTitle.trim()) params.set('title', cardTitle.trim());
     const cardLink = `https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?${params.toString()}`;
     if (morseMode) {
       return `📡 ${recipientName ? recipientName + ', tu' : 'Tu'} as reçu un message secret en code Morse !\n\nSauras-tu le décoder ? 🔐\n\n🔗 ${cardLink}\n\n— Créé avec Confettis & Cake 🎂`;
     }
     return `🎉 Une carte animée pour toi${recipientName ? `, ${recipientName}` : ''} !\n\n🔗 ${cardLink}\n\n— Créé avec Confettis & Cake 🎂`;
-  }, [recipientName, recipientAge, id, generatedMessage, senderName, cardPhotoUri, cardPhotoSize, cardPhotoShape, cardMusic, cardAnim, morseMode, personalMessage, cardMsgBg, cardTitle]);
+  }, [recipientName, recipientAge, id, generatedMessage, senderName, cardPhotoUri, cardPhotoSize, cardPhotoShape, cardMusic, cardAnim, morseMode, personalMessage, cardMsgBg, cardTitle, cardBg]);
 
   const handleShare = useCallback(async () => {
     try {
@@ -422,6 +424,33 @@ export default function CardPreviewScreen() {
           />
         </View>
 
+        {/* Couleur du fond de la carte */}
+        <View style={[styles.nameRow, { gap: 8, flexWrap: 'wrap' }]}>
+          <Text style={styles.nameLabel}>🖼️ Fond de la carte</Text>
+          {[
+            { key: '',          label: 'Défaut', color: '#7b2ff7' },
+            { key: 'violet',    label: 'Violet',    color: '#7b2ff7' },
+            { key: 'bleu',      label: 'Bleu nuit', color: '#1a3a6b' },
+            { key: 'rose',      label: 'Rose',      color: '#c2185b' },
+            { key: 'rouge',     label: 'Rouge',     color: '#c62828' },
+            { key: 'vert',      label: 'Forêt',     color: '#1b5e20' },
+            { key: 'or',        label: 'Or',        color: '#b8860b' },
+            { key: 'turquoise', label: 'Turquoise', color: '#00695c' },
+            { key: 'ardoise',   label: 'Ardoise',   color: '#37474f' },
+            { key: 'noir',      label: 'Noir',      color: '#1a1a2e' },
+          ].map((c) => (
+            <TouchableOpacity
+              key={c.key}
+              onPress={() => setCardBg(c.key)}
+              style={{ alignItems: 'center', gap: 3 }}
+              activeOpacity={0.8}
+            >
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.color, borderWidth: cardBg === c.key ? 3 : 1.5, borderColor: cardBg === c.key ? C.primary : 'transparent', ...Shadows.sm }} />
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 9, color: cardBg === c.key ? C.primary : Colors.onSurface }}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* Couleur du fond du message */}
         {!!personalMessage.trim() && (
           <View style={[styles.nameRow, { gap: 8 }]}>
@@ -633,6 +662,7 @@ export default function CardPreviewScreen() {
                 if (cardMsgBg) urlParams.set('msg_bg', cardMsgBg);
                 if (cardTitle.trim()) urlParams.set('title', cardTitle.trim());
                 if (morseMode) urlParams.set('morse', '1');
+                if (cardBg) urlParams.set('card_bg', cardBg);
                 Linking.openURL(`https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?${urlParams.toString()}`);
               }}
               activeOpacity={0.85}
