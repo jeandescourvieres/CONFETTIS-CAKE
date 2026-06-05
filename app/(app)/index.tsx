@@ -852,7 +852,7 @@ export default function HomeScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.bottomBannerTitle}>Envie de tout découvrir ? 🪄</Text>
                 <View style={styles.bottomBannerBtn}><Text style={styles.bottomBannerBtnText}>Passer en mode complet 🍭</Text><Text style={styles.bottomBannerArrow}> ›</Text></View>
-                <Text style={styles.bottomBannerSub}>Accède à toutes les fonctionnalités</Text>
+                <Text style={styles.bottomBannerSub}>Passe en mode complet et accède à toutes les fonctionnalités. Enjoy !</Text>
               </View>
               <Text style={styles.bottomBannerEmoji}>🎉</Text>
             </TouchableOpacity>
