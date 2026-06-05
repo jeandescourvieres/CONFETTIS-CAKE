@@ -517,15 +517,17 @@ export default function HomeScreen() {
                 <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, overflow: 'hidden' }}>
                   <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                     <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ padding: 16 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 44, color: txt, lineHeight: 48 }}>{weather.temp}°</Text>
-                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txt }}>{weather.description}</Text>
-                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: sub, marginTop: 2 }}>Ressenti {weather.apparentTemp}°{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
-                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: txt, marginTop: 6 }}>{comment}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={{ flex: 1, gap: 4 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+                            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 28, color: txt }}>{weather.temp}°</Text>
+                            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txt }}>{weather.description}</Text>
+                          </View>
+                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: sub }}>Ressenti {weather.apparentTemp}°{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: txt }}>{comment}</Text>
                         </View>
                         <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                          <Text style={{ fontSize: 52, opacity: 0.9 }}>{weather.emoji}</Text>
+                          <Text style={{ fontSize: 32, opacity: 0.9 }}>{weather.emoji}</Text>
                           <Text style={{ color: txt, fontSize: 18, fontWeight: '700' }}>{weatherOpen ? '▲' : '▼'}</Text>
                         </View>
                       </View>
@@ -829,15 +831,17 @@ export default function HomeScreen() {
                 <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[3], borderRadius: Radii.xl, overflow: 'hidden' }}>
                   <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                     <TouchableOpacity onPress={() => setWeatherOpen(v => !v)} activeOpacity={0.85} style={{ padding: 16 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 44, color: txt, lineHeight: 48 }}>{weather.temp}°</Text>
-                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txt }}>{weather.description}</Text>
-                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: sub, marginTop: 2 }}>Ressenti {weather.apparentTemp}°{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
-                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: txt, marginTop: 6 }}>{comment}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={{ flex: 1, gap: 4 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+                            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 28, color: txt }}>{weather.temp}°</Text>
+                            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: txt }}>{weather.description}</Text>
+                          </View>
+                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: sub }}>Ressenti {weather.apparentTemp}°{weather.city ? ` · 📍 ${weather.city}` : ''}</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: txt }}>{comment}</Text>
                         </View>
                         <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                          <Text style={{ fontSize: 52, opacity: 0.9 }}>{weather.emoji}</Text>
+                          <Text style={{ fontSize: 32, opacity: 0.9 }}>{weather.emoji}</Text>
                           <Text style={{ color: txt, fontSize: 18, fontWeight: '700' }}>{weatherOpen ? '▲' : '▼'}</Text>
                         </View>
                       </View>
