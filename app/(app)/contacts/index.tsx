@@ -61,6 +61,7 @@ export default function ContactsScreen() {
   const [filter, setFilter] = useState<FilterKey>('all');
   const [sortMode, setSortMode] = useState<'alpha' | 'affinite'>('alpha');
   const [petHelpVisible, setPetHelpVisible] = useState(false);
+  const [affiniteHelpVisible, setAffiniteHelpVisible] = useState(false);
 
   const { data: affiniteContacts = [] } = useContactsSortedByAffinity();
   const scrollRef = useRef<SectionList>(null);
@@ -275,6 +276,18 @@ export default function ContactsScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Intro affinité */}
+            {sortMode === 'affinite' && (
+              <View style={styles.affiniteIntroRow}>
+                <Text style={styles.affiniteIntroText}>
+                  Tes contacts les plus proches et les plus actifs apparaissent en premier ⭐ Le classement évolue automatiquement selon la fréquence de vos échanges et les événements à venir 💛
+                </Text>
+                <TouchableOpacity style={styles.affiniteHelpBtn} onPress={() => setAffiniteHelpVisible(true)}>
+                  <Text style={styles.affiniteHelpBtnText}>ℹ️</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Intro filtres */}
             <Text style={styles.filtersIntro}>Grâce aux filtres, retrouve rapidement tes contacts et ceux à fêter prochainement 🎉</Text>
 
@@ -452,6 +465,34 @@ export default function ContactsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Modal aide — classement par affinité */}
+      <Modal visible={affiniteHelpVisible} transparent animationType="fade" onRequestClose={() => setAffiniteHelpVisible(false)}>
+        <TouchableOpacity style={styles.petHelpOverlay} activeOpacity={1} onPress={() => setAffiniteHelpVisible(false)}>
+          <View style={styles.petHelpCard}>
+            <View style={styles.petHelpHeader}>
+              <Text style={styles.petHelpTitle}>Comment fonctionne le classement par affinité ? ⭐</Text>
+              <TouchableOpacity onPress={() => setAffiniteHelpVisible(false)}>
+                <Text style={styles.petHelpClose}>Fermer ✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {[
+                { title: "Le classement automatique", body: "Chaque contact reçoit un score calculé automatiquement — plus le score est élevé, plus il apparaît en haut de ta liste. Aucune action de ta part n'est nécessaire : le classement évolue en temps réel." },
+                { title: "Le type de relation", body: "Tes meilleurs amis, ta famille et ton partenaire ont un score de base plus élevé que tes collègues ou connaissances. Le type de relation que tu renseignes dans la fiche contact compte !" },
+                { title: "Les événements à venir", body: "Un anniversaire ou une fête qui approche booste automatiquement le score. J-3 avant un anniversaire ? Ce contact monte en tête de liste pour que tu ne l'oublies pas 🎂" },
+                { title: "Vos interactions", body: "Chaque fois que tu ouvres la fiche d'un contact ou que tu lui génères un message, son score augmente. Plus vous êtes en contact, plus il remonte naturellement dans ta liste." },
+                { title: "Bon à savoir 💡", body: "Le classement se met à jour automatiquement. Repasse en mode A→Z à tout moment pour retrouver ta liste alphabétique classique !" },
+              ].map((s) => (
+                <View key={s.title} style={styles.petHelpSection}>
+                  <Text style={styles.petHelpSectionTitle}>{s.title}</Text>
+                  <Text style={styles.petHelpSectionBody}>{s.body}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -532,6 +573,35 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   shareCardTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#5B21B6', marginBottom: 4 },
   shareCardDesc: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#6D28D9', lineHeight: 18 },
   shareCardArrow: { fontFamily: 'BeVietnamPro_700Bold', fontSize: 22, color: '#7C3AED' },
+
+  affiniteIntroRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginHorizontal: Spacing[5],
+    marginTop: -Spacing[1],
+    marginBottom: Spacing[3],
+    backgroundColor: '#FFF9E6',
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    borderColor: '#FCD34D50',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  affiniteIntroText: {
+    flex: 1,
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: '#92400E',
+    lineHeight: 19,
+  },
+  affiniteHelpBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: '#FDE68A',
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0, marginTop: 1,
+  },
+  affiniteHelpBtnText: { fontSize: 14, lineHeight: 17 },
 
   sortToggleRow: {
     flexDirection: 'row',
