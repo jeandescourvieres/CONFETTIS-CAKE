@@ -168,7 +168,7 @@ function buildOccasionContext(req: GenerateRequest): string {
   const relation = RELATION_FR[req.relation] ?? req.relation;
   const extras = req.extras ?? {};
   const lateMention = req.late_mode
-    ? ' (NB : le message est envoyé en retard — intègre une touche légère d\'excuse ou d\'humour)' : '';
+    ? ` (NB : le message est envoyé en retard — intègre obligatoirement une fausse excuse originale et humoristique, décalée et créative. Exemples du style voulu : "J'attendais que tout le monde te le souhaite avant de faire une entrée remarquée.", "Je vis dans un fuseau horaire émotionnel différent.", "Mon calendrier fonctionne à l'énergie solaire et il y avait des nuages.", "J'ai d'abord voulu vérifier que tu méritais vraiment un message — tu l'as prouvé.", "Je pratique le retard de façon spirituelle, comme une méditation temporelle.", "Je t'écris depuis le futur où les anniversaires durent toute la semaine." Invente une excuse dans cet esprit, originale et différente à chaque fois.)` : '';
 
   switch (req.occasion) {
     case 'birthday': {

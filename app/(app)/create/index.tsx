@@ -987,9 +987,13 @@ export default function CreateScreen() {
                     💬 Exemple de ce que l'IA pourrait glisser :
                   </Text>
                   <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#78350F', lineHeight: 20, fontStyle: 'italic' }}>
-                    {occasion === 'birthday'
-                      ? '"Je sais, je sais... je suis un peu en retard — mais tu comptes tellement pour moi que je ne pouvais vraiment pas laisser passer ça sans te le dire ! 😅"'
-                      : '"Un tout petit peu en retard, mais le cœur y est — et ça, ça ne change pas ! 🙈"'}
+                    {[
+                      '"J\'attendais que tout le monde te le souhaite avant de faire une entrée remarquée."',
+                      '"Je vis dans un fuseau horaire émotionnel différent."',
+                      '"Mon calendrier fonctionne à l\'énergie solaire et il y avait des nuages."',
+                      '"Je t\'écris depuis le futur où les anniversaires durent toute la semaine."',
+                      '"J\'ai d\'abord voulu vérifier que tu méritais vraiment un message — tu l\'as prouvé."',
+                    ][Math.floor(Date.now() / 86400000) % 5]}
                   </Text>
                 </View>
               )}
