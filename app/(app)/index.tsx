@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
 import { Button3D } from '../../src/components/ui/Button3D';
+import { useRelationBarometer } from '../../src/hooks/useRelationBarometer';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -458,6 +459,7 @@ export default function HomeScreen() {
   }, [customEvents]);
 
   const { weather, loading: weatherLoading } = useWeather();
+  const barometerContacts = useRelationBarometer();
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'toi';
   const greeting = getGreeting(firstName, t);
@@ -1120,6 +1122,34 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* ── Baromètre de relation ── */}
+            {barometerContacts.length > 0 && (
+              <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[4], gap: 10 }}>
+                <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface }}>❤️ Contacts à ne pas oublier :</Text>
+                {barometerContacts.map((c) => {
+                  const firstName = c.name.trim().split(/\s+/).find((w: string) => w !== w.toUpperCase()) ?? c.name.split(' ')[0];
+                  const msg = c.daysSinceLastMessage === null
+                    ? `Tu n'as encore jamais écrit à ${firstName}.`
+                    : `Cela fait ${c.daysSinceLastMessage} jours que tu n'as pas écrit à ${firstName}.`;
+                  return (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFF1F7', borderRadius: Radii.lg, padding: 12, borderWidth: 1.5, borderColor: '#FBCFE8' }}
+                      onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: c.id } } as never)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={{ fontSize: 28 }}>💌</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{firstName}</Text>
+                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, lineHeight: 16 }}>{msg}</Text>
+                      </View>
+                      <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.primary }}>Écrire →</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
 
             {/* Grille navigation rapide */}
             <View style={{ alignSelf: 'center', marginTop: Spacing[5], marginBottom: Spacing[2] }}>
