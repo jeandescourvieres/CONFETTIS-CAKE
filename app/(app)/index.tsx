@@ -95,6 +95,28 @@ function getDictonDuJour(): string {
   return DICTONS[dayOfYear % DICTONS.length];
 }
 
+const HOROSCOPES_FESTIFS: Record<string, string[]> = {
+  Bélier:     ["Les planètes annoncent une énergie débordante... et un risque élevé de tout vouloir faire en même temps. Choisissez une chose. Juste une.", "Mars vous pousse vers l'action. Résistez à l'envie d'envoyer un SMS impulsif. Ou pas. C'est votre horoscope après tout.", "Votre chance du jour : 7/10. Votre patience du jour : 2/10. L'équilibre est votre défi cosmique."],
+  Taureau:    ["Vénus vous sourit mais votre canapé vous appelle encore plus fort. Écoutez Vénus... après la sieste.", "Les astres indiquent un appétit exceptionnel. Considérez ça comme une recommandation divine.", "Jour propice aux plaisirs terrestres. Gâteau, playlist, plaid. Les planètes approuvent."],
+  Gémeaux:    ["Mercure vous donne deux idées géniales simultanément. Commencez par celle qui nécessite le moins de déplacement.", "Votre dualité naturelle est en pleine forme : vous voulez tout et son contraire. C'est charmant et légèrement épuisant.", "Journée idéale pour envoyer un message à quelqu'un que vous n'avez pas contacté depuis trop longtemps."],
+  Cancer:     ["La Lune amplifie vos émotions. Une pub de chiot pourrait vous faire pleurer. Prévenez votre entourage.", "Votre intuition est au maximum. Si vous sentez que quelqu'un a besoin d'un message, c'est que c'est vrai.", "Journée cocooning recommandée par l'univers entier. Les astres ont rarement été aussi clairs."],
+  Lion:       ["Le Soleil est dans votre signe et vous êtes prêt à briller. Le monde attend votre grand retour. Il l'a toujours attendu.", "Confiance maximale aujourd'hui. Attention : confiance ≠ certitude que votre coiffure est parfaite. Vérifiez quand même.", "Vos proches ont besoin de votre éclat. Envoyez un message pétillant. Vous excellez dans cet art."],
+  Vierge:    ["Mercure vous pousse à tout analyser. Rappel : parfois, envoyer le message maintenant vaut mieux que le peaufiner 3 heures.", "Journée idéale pour faire une liste. Puis une autre liste. Puis classer les listes. L'univers vous soutient.", "Votre sens du détail est votre superpouvoir du jour. Mais votre perfectionnisme pourrait vous faire rater le couchant."],
+  Balance:    ["Vénus vous rend irrésistible. Le problème : choisir entre deux bonnes options. Comme d'habitude.", "Jour parfait pour écrire à quelqu'un que vous voulez impressionner. L'équilibre cosmique est en votre faveur.", "Les astres recommandent l'harmonie. Peut-être commencer par répondre aux messages en attente depuis 3 semaines."],
+  Scorpion:   ["Pluton renforce votre magnétisme. Les gens font exactement ce que vous voulez sans savoir pourquoi. Utilisez ce pouvoir avec sagesse.", "Journée propice aux révélations. Pas forcément des vôtres. Écoutez ce que les gens ne disent pas.", "Votre intensité est à son pic. Idéal pour un message qui marquera les esprits pour les dix prochaines années."],
+  Sagittaire: ["Jupiter vous pousse à voir grand. Très grand. Peut-être trop grand. Pensez aussi aux détails, parfois.", "Votre optimisme est contagieux aujourd'hui. Partagez-le : envoyez un message qui fait sourire.", "Les astres annoncent une envie soudaine d'aventure. Une sortie imprévue suffit. Votre lit peut attendre."],
+  Capricorne: ["Saturne récompense vos efforts. Si vous n'avez pas fait d'efforts, Saturne est déçu mais compréhensif.", "Journée productive selon les astres. 'Productive' peut inclure regarder des vidéos de chats. L'univers est flexible.", "Votre sérieux naturel est un atout. Mais aujourd'hui, permettez-vous un message complètement décalé à un proche."],
+  Verseau:   ["Uranus vous pousse vers l'originalité. Vous étiez déjà original. Maintenant vous l'êtes encore plus. Félicitations.", "Journée idéale pour une idée folle. Gardez-en une pour demain. Votre entourage a besoin de s'adapter.", "Les astres vous conseillent de contacter quelqu'un de façon inattendue. Un message surprise, version cosmique."],
+  Poissons:  ["Neptune amplifie votre créativité. Vous avez 47 idées. Notez-en au moins une avant de vous rendormir.", "Journée rêveuse garantie. L'avantage : les messages que vous écrivez aujourd'hui sont poétiques sans effort.", "Votre empathie est maximale. Vous sentez exactement ce dont vos proches ont besoin. Agissez sur cette intuition."],
+};
+
+function getHoroscopeFestif(signName: string): string {
+  const predictions = HOROSCOPES_FESTIFS[signName] ?? HOROSCOPES_FESTIFS['Balance'];
+  const start = new Date(new Date().getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((new Date().getTime() - start.getTime()) / 86400000);
+  return predictions[dayOfYear % predictions.length];
+}
+
 const INTRO_DISMISSED_KEY = 'cc_home_intro_dismissed';
 const HOME_MODE_KEY       = 'cc_home_mode';
 const WELCOME_SIMPLE_KEY  = 'cc_welcome_simple';
@@ -657,6 +679,13 @@ export default function HomeScreen() {
                       </View>
                       <Text style={{ color: Colors.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
                     </TouchableOpacity>
+                    {/* Horoscope festif */}
+                    <View style={{ backgroundColor: '#FDF4FF', borderRadius: Radii.md, padding: 10, borderLeftWidth: 3, borderLeftColor: '#A855F7' }}>
+                      <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#7C3AED', marginBottom: 3 }}>🔮 Horoscope festif du jour</Text>
+                      <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#4C1D95', lineHeight: 20, fontStyle: 'italic' }}>
+                        {getHoroscopeFestif(currentZodiacSign.name)}
+                      </Text>
+                    </View>
                     {zodiacSeasonContacts.length > 0 && (
                       <View style={{ gap: 4 }}>
                         <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.onSurfaceVariant }}>
