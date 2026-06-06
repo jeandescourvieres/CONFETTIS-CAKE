@@ -7,14 +7,47 @@ const corsHeaders = {
 };
 
 // ── Voix disponibles ──────────────────────────────────────────────────────────
-// Voix ElevenLabs stables (eleven_multilingual_v2)
-// Pour changer : modifier les voice_id ici ou dans les variables d'env ELEVENLABS_VOICE_*
 const VOICES: Record<string, string> = {
+  // Voix standard
   homme_neutre:     Deno.env.get('ELEVENLABS_VOICE_HOMME_NEUTRE')     ?? 'pNInz6obpgDQGcFmaJgB', // Adam
   homme_chaleureux: Deno.env.get('ELEVENLABS_VOICE_HOMME_CHALEUREUX') ?? 'TxGEqnHWrfWFTfGW9XjX', // Josh
   femme_douce:      Deno.env.get('ELEVENLABS_VOICE_FEMME_DOUCE')      ?? '21m00Tcm4TlvDq8ikWAM', // Rachel
   femme_joyeuse:    Deno.env.get('ELEVENLABS_VOICE_FEMME_JOYEUSE')    ?? 'EXAVITQu4vr4xnSDxMaL', // Aria
+  // Voix fun (réutilisent des voix existantes avec settings et texte adaptés)
+  pere_noel:        'TxGEqnHWrfWFTfGW9XjX', // Josh — chaleureux et jovial
+  pirate:           'pNInz6obpgDQGcFmaJgB', // Adam — grave et rauque
+  robot:            'pNInz6obpgDQGcFmaJgB', // Adam — très stable, robotique
+  presentateur:     'TxGEqnHWrfWFTfGW9XjX', // Josh — clair et professionnel
+  enfant:           'EXAVITQu4vr4xnSDxMaL', // Aria — léger et enjoué
+  roi_reine:        '21m00Tcm4TlvDq8ikWAM', // Rachel — posée et solennelle
 };
+
+// ── Settings et transformations par personnage ────────────────────────────────
+type VoiceSettings = { stability: number; similarity_boost: number; style: number; use_speaker_boost: boolean };
+
+function getVoiceSettings(voice_key: string): VoiceSettings {
+  const map: Record<string, VoiceSettings> = {
+    robot:        { stability: 0.95, similarity_boost: 0.80, style: 0.05, use_speaker_boost: false },
+    pirate:       { stability: 0.35, similarity_boost: 0.70, style: 0.80, use_speaker_boost: true  },
+    pere_noel:    { stability: 0.60, similarity_boost: 0.75, style: 0.75, use_speaker_boost: true  },
+    presentateur: { stability: 0.85, similarity_boost: 0.80, style: 0.30, use_speaker_boost: true  },
+    enfant:       { stability: 0.30, similarity_boost: 0.65, style: 0.90, use_speaker_boost: true  },
+    roi_reine:    { stability: 0.80, similarity_boost: 0.80, style: 0.55, use_speaker_boost: true  },
+  };
+  return map[voice_key] ?? { stability: 0.45, similarity_boost: 0.75, style: 0.40, use_speaker_boost: true };
+}
+
+function transformText(text: string, voice_key: string): string {
+  switch (voice_key) {
+    case 'pere_noel':    return `Ho ho ho ! ${text} Joyeux Noël à toi !`;
+    case 'pirate':       return `Arrr ! ${text} Que les vents te soient favorables, moussaillon !`;
+    case 'robot':        return `Message. En. Cours. De. Transmission. ${text} Fin. De. Message.`;
+    case 'presentateur': return `Chers auditeurs, voici un message exceptionnel. ${text} Restez à l'écoute !`;
+    case 'enfant':       return `${text} Youpi youpi !`;
+    case 'roi_reine':    return `Nous, en notre royale grandeur, vous adressons ce message. ${text} Qu'il en soit ainsi.`;
+    default: return text;
+  }
+}
 
 interface GenerateTTSRequest {
   message_id: string;
@@ -70,6 +103,7 @@ serve(async (req: Request) => {
 
   try {
     // ── Appel ElevenLabs TTS ─────────────────────────────────────────────────
+    const finalText = transformText(text, voice_key);
     const ttsResp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
@@ -77,14 +111,9 @@ serve(async (req: Request) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text,
+        text: finalText,
         model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: 0.45,
-          similarity_boost: 0.75,
-          style: 0.40,
-          use_speaker_boost: true,
-        },
+        voice_settings: getVoiceSettings(voice_key),
       }),
     });
 

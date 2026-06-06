@@ -87,7 +87,7 @@ export type MessageStatus = 'draft' | 'sent';
 export type SentVia = 'sms' | 'email' | 'whatsapp' | 'copy' | null;
 export type MusicStatus = 'none' | 'pending' | 'generating' | 'ready' | 'failed' | 'queued';
 export type TTSStatus   = 'none' | 'generating' | 'ready' | 'failed';
-export type TTSVoiceKey = 'homme_neutre' | 'homme_chaleureux' | 'femme_douce' | 'femme_joyeuse';
+export type TTSVoiceKey = 'homme_neutre' | 'homme_chaleureux' | 'femme_douce' | 'femme_joyeuse' | 'pere_noel' | 'pirate' | 'robot' | 'presentateur' | 'enfant' | 'roi_reine';
 
 export interface Message {
   id: string;

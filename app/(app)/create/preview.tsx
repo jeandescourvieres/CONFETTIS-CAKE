@@ -897,10 +897,16 @@ export default function PreviewScreen() {
 
   // ── Message vocal (TTS) ──────────────────────────────────────────────────────
   const TTS_VOICES: { key: TTSVoiceKey; emoji: string; label: string; sub: string }[] = [
-    { key: 'homme_neutre',     emoji: '🎙️', label: 'Homme',     sub: 'Neutre'      },
-    { key: 'homme_chaleureux', emoji: '🎙️', label: 'Homme',     sub: 'Chaleureux'  },
-    { key: 'femme_douce',      emoji: '🎤', label: 'Femme',     sub: 'Douce'       },
-    { key: 'femme_joyeuse',    emoji: '🎤', label: 'Femme',     sub: 'Joyeuse'     },
+    { key: 'homme_neutre',     emoji: '🎙️', label: 'Homme',        sub: 'Neutre'      },
+    { key: 'homme_chaleureux', emoji: '🎙️', label: 'Homme',        sub: 'Chaleureux'  },
+    { key: 'femme_douce',      emoji: '🎤', label: 'Femme',        sub: 'Douce'       },
+    { key: 'femme_joyeuse',    emoji: '🎤', label: 'Femme',        sub: 'Joyeuse'     },
+    { key: 'pere_noel',        emoji: '🎅', label: 'Père Noël',    sub: 'Ho ho ho !'  },
+    { key: 'pirate',           emoji: '🏴‍☠️', label: 'Pirate',      sub: 'Arr !'       },
+    { key: 'robot',            emoji: '🤖', label: 'Robot',        sub: 'Bip bop'     },
+    { key: 'presentateur',     emoji: '📻', label: 'Radio',        sub: 'Auditeurs'   },
+    { key: 'enfant',           emoji: '🧒', label: 'Enfant',       sub: 'Youpi !'     },
+    { key: 'roi_reine',        emoji: '👑', label: 'Roi/Reine',    sub: 'Majesté'     },
   ];
   const [ttsVoiceKey,    setTtsVoiceKey]    = useState<TTSVoiceKey>('femme_douce');
   const [ttsBgMusic,     setTtsBgMusic]     = useState<string>('piano');
