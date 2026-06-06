@@ -2989,7 +2989,7 @@ export default function PreviewScreen() {
                 </View>
                 <Text style={[styles.ttsPreIntroTitle, { marginBottom: 2 }]}>🎙️ Ton message… en version vocale</Text>
                 <Text style={styles.ttsPreIntroText}>
-                  {'L\'IA lit ton message à voix haute et génère un lien audio. Ton proche reçoit le lien et l\'écoute depuis son téléphone — comme si tu lui avais laissé un message vocal, en mieux 💛'}
+                  {'L\'IA lit ton message à voix haute. 4 voix classiques + 6 voix fun : 🎅 Père Noël, 🏴‍☠️ Pirate, 🤖 Robot, 📻 Radio, 🧒 Enfant, 👑 Roi/Reine. Ton proche reçoit un lien audio — comme si tu lui avais laissé un message vocal, en mieux 💛'}
                 </Text>
               </View>
             )}

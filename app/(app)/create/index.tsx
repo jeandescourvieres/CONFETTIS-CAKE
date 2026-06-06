@@ -1023,6 +1023,12 @@ export default function CreateScreen() {
               <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.md, color: Colors.onSurface, lineHeight: 24 }}>
                 {generatedContent}
               </Text>
+              <View style={{ backgroundColor: '#F5F3FF', borderRadius: Radii.lg, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 20 }}>🎙️</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.xs, color: '#7C3AED', flex: 1, lineHeight: 18 }}>
+                  {'Dans l\'aperçu, tu pourras le faire lire par un Robot, un Pirate, le Père Noël… !'}
+                </Text>
+              </View>
               <TouchableOpacity
                 style={{ borderRadius: Radii.full, paddingVertical: 13, alignItems: 'center' as const, backgroundColor: '#7C3AED' }}
                 onPress={() => { bumpSessionKey(); router.push('/(app)/create/preview' as never); }}
