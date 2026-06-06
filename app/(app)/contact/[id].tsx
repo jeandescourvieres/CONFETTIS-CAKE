@@ -918,20 +918,21 @@ export default function ContactDetailScreen() {
             </TouchableOpacity>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               <View style={{ alignItems: 'center', gap: 4 }}>
-                <TouchableOpacity style={styles.aiAvatarBtn} onPress={() => { setAiAvatarError(null); setAiAvatarGeneratedUrl(null); setAiAvatarVisible(true); }}>
-                  <Text style={{ fontSize: 16 }}>✨</Text>
-                </TouchableOpacity>
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 9, color: 'rgba(255,255,255,0.7)' }}>Avatar IA</Text>
+                {contact.avatar_url ? (
+                  <TouchableOpacity style={styles.aiAvatarBtn} onPress={() => Share.share({ url: contact.avatar_url! })} activeOpacity={0.8}>
+                    <Text style={{ fontSize: 16 }}>📤</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={[styles.aiAvatarBtn, { opacity: 0.3 }]}>
+                    <Text style={{ fontSize: 16 }}>📤</Text>
+                  </View>
+                )}
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 9, color: 'rgba(255,255,255,0.7)' }}>Partager</Text>
               </View>
               <View style={{ alignItems: 'center', gap: 4 }}>
                 <View style={styles.avatarWrap}>
                   <Avatar uri={contact.avatar_url} name={contact.name} size="xl" />
                 </View>
-                {contact.avatar_url && (
-                  <TouchableOpacity onPress={() => Share.share({ url: contact.avatar_url!, message: `Portrait de ${contactFirstName} ✨` })} activeOpacity={0.75} style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10 }}>
-                    <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 10, color: '#fff' }}>📤 Partager</Text>
-                  </TouchableOpacity>
-                )}
               </View>
               <View style={{ alignItems: 'center', gap: 4 }}>
                 <TouchableOpacity style={styles.editAvatarBtn} onPress={handleChangeAvatar} disabled={isUploadingAvatar}>
