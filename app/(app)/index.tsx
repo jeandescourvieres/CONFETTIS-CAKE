@@ -834,6 +834,34 @@ export default function HomeScreen() {
               )}
             </View>
 
+            {/* ── Baromètre de relation (mode simple) ── */}
+            {barometerContacts.length > 0 && (
+              <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[4], gap: 10 }}>
+                <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface }}>❤️ Contacts à ne pas oublier :</Text>
+                {barometerContacts.map((c) => {
+                  const firstName = c.name.trim().split(/\s+/).find((w: string) => w !== w.toUpperCase()) ?? c.name.split(' ')[0];
+                  const msg = c.daysSinceLastMessage === null
+                    ? `Tu n'as encore jamais écrit à ${firstName}.`
+                    : `Cela fait ${c.daysSinceLastMessage} jours que tu n'as pas écrit à ${firstName}.`;
+                  return (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFF1F7', borderRadius: Radii.lg, padding: 12, borderWidth: 1.5, borderColor: '#FBCFE8' }}
+                      onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: c.id } } as never)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={{ fontSize: 28 }}>💌</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{firstName}</Text>
+                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, lineHeight: 16 }}>{msg}</Text>
+                      </View>
+                      <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.primary }}>Écrire →</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
             {/* Grille accès rapide */}
             <Text style={styles.quickSectionLabel}>🗺️ Accès rapide. Toutes les fonctions :</Text>
             <Text style={styles.quickSectionSub}>{"Ces boutons te donnent accès en un clic à toutes les fonctions de l'appli : agenda, contacts, cartes, cagnotte, numérologie et bien plus."}</Text>
