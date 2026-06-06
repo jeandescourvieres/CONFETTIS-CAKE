@@ -16,6 +16,7 @@ import { useTabScrollToTop } from '../../../src/hooks/useTabScrollToTop';
 import {
   useContacts,
   useContactsGrouped,
+  useContactsSortedByAffinity,
   useUpcomingEvents,
 } from '../../../src/hooks/useContacts';
 import { ContactRow } from '../../../src/components/ContactRow';
@@ -58,7 +59,10 @@ export default function ContactsScreen() {
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [sortMode, setSortMode] = useState<'alpha' | 'affinite'>('alpha');
   const [petHelpVisible, setPetHelpVisible] = useState(false);
+
+  const { data: affiniteContacts = [] } = useContactsSortedByAffinity();
   const scrollRef = useRef<SectionList>(null);
 
   const petContacts = useMemo(
@@ -125,15 +129,26 @@ export default function ContactsScreen() {
     router.push('/(app)/contacts/import' as never);
   }, [router]);
 
+  const affiniteFiltered = useMemo(() => {
+    if (!search) return affiniteContacts;
+    const q = search.toLowerCase();
+    return affiniteContacts.filter((c) => c.name.toLowerCase().includes(q));
+  }, [affiniteContacts, search]);
+
   const allSections = useMemo(() => {
     if (filter === 'pets') return [];
+    if (sortMode === 'affinite') {
+      return affiniteFiltered.length > 0
+        ? [{ letter: '__affinite__', data: affiniteFiltered }]
+        : [];
+    }
     const showUrgent = urgentContacts.length > 0 && filter === 'all' && !search;
     return [
       ...(showUrgent && urgentBirthdays.length > 0 ? [{ letter: '__urgent_birthday__', data: urgentBirthdays }] : []),
       ...(showUrgent && urgentNameDays.length > 0 ? [{ letter: '__urgent_nameday__', data: urgentNameDays }] : []),
       ...(filteredSections.length > 0 ? [{ letter: '__all_contacts__', data: [] }, ...filteredSections] : filteredSections),
     ];
-  }, [urgentContacts, filteredSections, filter, search]);
+  }, [urgentContacts, filteredSections, filter, search, sortMode, affiniteFiltered]);
 
   const scrollToContactsList = useCallback(() => {
     const idx = allSections.findIndex((s: any) => s.letter === '__all_contacts__');
@@ -244,6 +259,22 @@ export default function ContactsScreen() {
               <Text style={styles.shareCardArrow}>›</Text>
             </TouchableOpacity>
 
+            {/* Toggle tri */}
+            <View style={styles.sortToggleRow}>
+              <TouchableOpacity
+                style={[styles.sortToggleBtn, sortMode === 'alpha' && styles.sortToggleBtnActive]}
+                onPress={() => setSortMode('alpha')}
+              >
+                <Text style={[styles.sortToggleText, sortMode === 'alpha' && styles.sortToggleTextActive]}>A → Z</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sortToggleBtn, sortMode === 'affinite' && styles.sortToggleBtnActive]}
+                onPress={() => setSortMode('affinite')}
+              >
+                <Text style={[styles.sortToggleText, sortMode === 'affinite' && styles.sortToggleTextActive]}>⭐ Par affinité</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* Intro filtres */}
             <Text style={styles.filtersIntro}>Grâce aux filtres, retrouve rapidement tes contacts et ceux à fêter prochainement 🎉</Text>
 
@@ -348,7 +379,11 @@ export default function ContactsScreen() {
           </>
         }
         renderSectionHeader={({ section: { letter } }) =>
-          letter === '__urgent_birthday__' ? (
+          letter === '__affinite__' ? (
+            <View style={styles.allContactsHeader}>
+              <Text style={styles.allContactsLabel}>⭐ Mes contacts — par affinité</Text>
+            </View>
+          ) : letter === '__urgent_birthday__' ? (
             <View style={styles.urgentHeader}>
               <Text style={styles.urgentLabel}>🎁 Les anniversaires à venir</Text>
             </View>
@@ -497,6 +532,33 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   shareCardTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#5B21B6', marginBottom: 4 },
   shareCardDesc: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#6D28D9', lineHeight: 18 },
   shareCardArrow: { fontFamily: 'BeVietnamPro_700Bold', fontSize: 22, color: '#7C3AED' },
+
+  sortToggleRow: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing[5],
+    marginBottom: Spacing[3],
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: Radii.full,
+    padding: 3,
+    gap: 3,
+  },
+  sortToggleBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: Radii.full,
+    alignItems: 'center',
+  },
+  sortToggleBtnActive: {
+    backgroundColor: C.primary,
+  },
+  sortToggleText: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.sm,
+    color: Colors.onSurfaceVariant,
+  },
+  sortToggleTextActive: {
+    color: Colors.white,
+  },
 
   filtersIntro: {
     fontFamily: 'BeVietnamPro_700Bold',

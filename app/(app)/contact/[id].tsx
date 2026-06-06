@@ -26,7 +26,7 @@ import type { GiftIdea } from '../../../src/hooks/useGiftSuggestions';
 import { getPetMessages, getPetMessagesTo } from '../../../src/constants/petMessages';
 import type { PetType } from '../../../src/constants/petMessages';
 import * as ImagePicker from 'expo-image-picker';
-import { uploadContactAvatar } from '../../../src/services/contacts.service';
+import { uploadContactAvatar, incrementContactInteraction } from '../../../src/services/contacts.service';
 import { Avatar } from '../../../src/components/ui/Avatar';
 import { Badge } from '../../../src/components/ui/Badge';
 import { Colors, Typography, Spacing, Radii, Gradients, Shadows } from '../../../src/constants/theme';
@@ -174,6 +174,10 @@ export default function ContactDetailScreen() {
     setIsLoadingLifePath(false);
     setPetFromAiResult(null);
     setPetFromAiError(null);
+  }, [id]);
+
+  useEffect(() => {
+    if (id) incrementContactInteraction(id).catch(() => {});
   }, [id]);
 
   // Phase 9 — Rappel partagé

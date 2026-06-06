@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
 import {
@@ -7,8 +8,8 @@ import {
   updateContact,
   deleteContact,
 } from '../services/contacts.service';
-import { getUpcomingEvents } from '../utils/dateHelpers';
-import type { Contact } from '../types/models';
+import { getUpcomingEvents, daysUntilBirthday, daysUntilNextOccurrence } from '../utils/dateHelpers';
+import type { Contact, Relation } from '../types/models';
 
 const CONTACTS_KEY = 'contacts';
 
@@ -123,6 +124,47 @@ export function useContactsGrouped() {
     .map(([letter, data]) => ({ letter, data }));
 
   return { sections, ...rest };
+}
+
+// ── Score d'affinité ───────────────────────────
+
+const RELATION_SCORE: Record<Relation, number> = {
+  best_friend: 50,
+  partner:     45,
+  family:      45,
+  child_of:    40,
+  friend:      30,
+  colleague:   15,
+  other:       10,
+  pet:          5,
+};
+
+function urgencyBonus(daysUntil: number): number {
+  if (daysUntil === 0) return 100;
+  if (daysUntil <= 3)  return 60;
+  if (daysUntil <= 7)  return 40;
+  if (daysUntil <= 15) return 20;
+  if (daysUntil <= 30) return 8;
+  return 0;
+}
+
+export function contactAffinityScore(contact: Contact): number {
+  let score = RELATION_SCORE[contact.relation] ?? 10;
+  if (contact.birthday) score += urgencyBonus(daysUntilBirthday(contact.birthday));
+  if (contact.name_day) score += urgencyBonus(daysUntilNextOccurrence(contact.name_day));
+  score += Math.min((contact.interaction_count ?? 0) * 3, 45);
+  return score;
+}
+
+export function useContactsSortedByAffinity() {
+  const { data: contacts = [], ...rest } = useContacts();
+  const sorted = useMemo(
+    () => [...contacts]
+      .filter((c) => c.relation !== 'pet')
+      .sort((a, b) => contactAffinityScore(b) - contactAffinityScore(a)),
+    [contacts],
+  );
+  return { data: sorted, ...rest };
 }
 
 // ── Animaux rattachés à un maître ──────────────

@@ -33,6 +33,7 @@ import { useAuthStore } from '../../../src/stores/authStore';
 import { useAIGenerate } from '../../../src/hooks/useAIGenerate';
 import { useWritingAssistant } from '../../../src/hooks/useWritingAssistant';
 import { markMessageSent, updateMessageContent, updateMessageStyle, updateMessagePhoto, deleteMessage } from '../../../src/services/messages.service';
+import { incrementContactInteraction } from '../../../src/services/contacts.service';
 import { buildSignatureText, getSignatureLabels } from '../../../src/utils/signature';
 import { extractFirstName } from '../../../src/utils/nameHelpers';
 import { useCreateGroupMessage, useGroupMessage, formatSigners, groupShareUrl } from '../../../src/hooks/useGroupMessages';
@@ -1089,7 +1090,10 @@ export default function PreviewScreen() {
 
   // Auto-génération si lancé depuis l'accueil (quick-send)
   useEffect(() => {
-    if (autoGen === '1') generate();
+    if (autoGen === '1') {
+      generate();
+      if (contactId) incrementContactInteraction(contactId).catch(() => {});
+    }
   }, []);
 
   // Focus clavier après la transition de navigation (évite le conflit animation/clavier)
@@ -1363,12 +1367,12 @@ export default function PreviewScreen() {
 
   const handleRegenerate = () => {
     if (isManualMode.current) {
-      // Mode manuel : vider le champ et rouvrir l'éditeur
       setLocalContent('');
       setIsEditing(true);
       return;
     }
     generate();
+    if (contactId) incrementContactInteraction(contactId).catch(() => {});
   };
 
   const styles = useMemo(() => makeStyles(C), [C]);

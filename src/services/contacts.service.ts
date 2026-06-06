@@ -139,6 +139,13 @@ export async function importPhoneContacts(
   return count ?? rows.length;
 }
 
+// ── Interaction ───────────────────────────────
+
+export async function incrementContactInteraction(contactId: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.rpc as any)('increment_contact_interaction', { p_contact_id: contactId });
+}
+
 // ── Upload avatar ─────────────────────────────
 
 export async function uploadContactAvatar(localUri: string): Promise<string> {

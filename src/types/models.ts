@@ -62,6 +62,8 @@ export interface Contact {
   preferred_language: AppLanguage | null; // langue du message IA pour ce contact
   favourite_color: string | null;          // couleur préférée (saisie libre)
   civilite?: 'M.' | 'Mme' | null;         // civilité du contact (optionnel)
+  interaction_count?: number;              // nb de visites + générations
+  last_interaction_at?: string | null;     // dernière interaction ISO
   created_at: string;
 }
 
