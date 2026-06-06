@@ -77,6 +77,7 @@ export default function ContactDetailScreen() {
   const { mutateAsync: deleteContact, isPending: isDeleting } = useDeleteContact();
   const { mutateAsync: updateContact } = useUpdateContact();
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [showContactAvatarPicker, setShowContactAvatarPicker] = useState(false);
   const [giftModalVisible, setGiftModalVisible] = useState(false);
   const [giftBudget, setGiftBudget] = useState<string | null>(null);
   const { suggest, suggestions, isLoading: isLoadingGifts, error: giftError, reset: resetGifts } = useGiftSuggestions();
@@ -734,37 +735,22 @@ export default function ContactDetailScreen() {
     }
   };
 
-  const handleChangeAvatar = () => {
-    Alert.alert('Photo de profil', 'Choisissez une source', [
-      {
-        text: 'Prendre une photo',
-        onPress: async () => {
-          const { status } = await ImagePicker.requestCameraPermissionsAsync();
-          if (status !== 'granted') {
-            Alert.alert('Permission refusée', "Autorisez l'accès à la caméra dans les réglages.");
-            return;
-          }
-          const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-          if (!result.canceled) await doAvatarUpload(result.assets[0].uri);
-        },
-      },
-      {
-        text: 'Choisir dans la galerie',
-        onPress: async () => {
-          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (status !== 'granted') {
-            Alert.alert('Permission refusée', "Autorisez l'accès aux photos dans les réglages.");
-            return;
-          }
-          const result = await ImagePicker.launchImageLibraryAsync({
-            quality: 0.8,
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          });
-          if (!result.canceled) await doAvatarUpload(result.assets[0].uri);
-        },
-      },
-      { text: 'Annuler', style: 'cancel' },
-    ]);
+  const handleChangeAvatar = () => setShowContactAvatarPicker(true);
+
+  const handleAvatarCamera = async () => {
+    setShowContactAvatarPicker(false);
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') { Alert.alert('Permission refusée', "Autorisez l'accès à la caméra dans les réglages."); return; }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    if (!result.canceled) await doAvatarUpload(result.assets[0].uri);
+  };
+
+  const handleAvatarGallery = async () => {
+    setShowContactAvatarPicker(false);
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') { Alert.alert('Permission refusée', "Autorisez l'accès aux photos dans les réglages."); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8, mediaTypes: ImagePicker.MediaTypeOptions.Images });
+    if (!result.canceled) await doAvatarUpload(result.assets[0].uri);
   };
 
   const myProfile = useAuthStore((s) => s.profile);
@@ -3795,6 +3781,34 @@ export default function ContactDetailScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* ── Bottom sheet photo contact ── */}
+      <Modal visible={showContactAvatarPicker} transparent animationType="slide" onRequestClose={() => setShowContactAvatarPicker(false)}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} activeOpacity={1} onPress={() => setShowContactAvatarPicker(false)}>
+          <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 12, paddingBottom: 36 }}>
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.outlineVariant, alignSelf: 'center', marginBottom: 4 }} />
+            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 18, color: Colors.onSurface, textAlign: 'center' }}>🖼️ Photo de profil</Text>
+            <TouchableOpacity onPress={handleAvatarCamera} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: Colors.surfaceContainerHighest, borderRadius: 16, padding: 16 }}>
+              <Text style={{ fontSize: 28 }}>📸</Text>
+              <View>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 15, color: Colors.onSurface }}>Prendre une photo</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant }}>Utilise l'appareil photo</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleAvatarGallery} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: Colors.surfaceContainerHighest, borderRadius: 16, padding: 16 }}>
+              <Text style={{ fontSize: 28 }}>🖼️</Text>
+              <View>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 15, color: Colors.onSurface }}>Choisir dans la galerie</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant }}>Depuis tes photos existantes</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowContactAvatarPicker(false)} activeOpacity={0.8} style={{ alignItems: 'center', paddingVertical: 12, borderRadius: 16, borderWidth: 1.5, borderColor: Colors.outlineVariant }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 15, color: Colors.onSurfaceVariant }}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
     </SafeAreaView>
   );
 }
