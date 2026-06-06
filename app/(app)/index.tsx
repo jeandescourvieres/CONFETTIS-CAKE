@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   Image,
+  Modal,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -415,6 +416,7 @@ export default function HomeScreen() {
   }, [homeMode]);
 
   const [briefsOpen, setBriefsOpen] = useState(false);
+  const [horoscopeHelpVisible, setHoroscopeHelpVisible] = useState(false);
   const [weatherOpen, setWeatherOpen] = useState(false);
   const [dictonOpen, setDictonOpen] = useState(false);
   const [animalCardOpen, setAnimalCardOpen] = useState(false);
@@ -681,7 +683,19 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                     {/* Horoscope festif */}
                     <View style={{ backgroundColor: '#FDF4FF', borderRadius: Radii.md, padding: 10, borderLeftWidth: 3, borderLeftColor: '#A855F7' }}>
-                      <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#7C3AED', marginBottom: 3 }}>🔮 Horoscope festif du jour</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#7C3AED' }}>🔮 Horoscope festif du jour</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: '#A78BFA', marginTop: 1 }}>Humoristique · change chaque jour ✨</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => setHoroscopeHelpVisible(true)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center', marginLeft: 8 }}
+                        >
+                          <Text style={{ fontSize: 12, lineHeight: 15 }}>ℹ️</Text>
+                        </TouchableOpacity>
+                      </View>
                       <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#4C1D95', lineHeight: 20, fontStyle: 'italic' }}>
                         {getHoroscopeFestif(currentZodiacSign.name)}
                       </Text>
@@ -1589,6 +1603,40 @@ export default function HomeScreen() {
 
         <View style={{ height: 60 }} />
       </ScrollView>
+
+      {/* Modal aide — Horoscope festif */}
+      <Modal visible={horoscopeHelpVisible} transparent animationType="fade" onRequestClose={() => setHoroscopeHelpVisible(false)}>
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 20 }}
+          activeOpacity={1}
+          onPress={() => setHoroscopeHelpVisible(false)}
+        >
+          <View style={{ backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', maxHeight: '85%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#7C3AED', paddingHorizontal: 16, paddingVertical: 12 }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans_700Bold', fontSize: 14, color: '#fff', flex: 1, marginRight: 8 }}>
+                Comment fonctionne l'horoscope festif ? 🔮
+              </Text>
+              <TouchableOpacity onPress={() => setHoroscopeHelpVisible(false)}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 13, color: '#fff' }}>Fermer ✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {[
+                { title: "C'est quoi ?", body: "Un horoscope humoristique et décalé basé sur le signe astrologique du moment — celui qui correspond à la période actuelle du calendrier zodiacal. Pas de grande révélation cosmique, juste une dose de bonne humeur garantie 😄" },
+                { title: "Comment ça fonctionne ?", body: "Chaque signe dispose de 3 prédictions différentes. La prédiction du jour change automatiquement chaque jour en fonction du numéro du jour dans l'année — tu en découvres donc une nouvelle chaque jour !" },
+                { title: "Ce n'est pas un vrai horoscope 🌟", body: "L'horoscope festif est entièrement fictif et humoristique. Il ne prédit rien, ne révèle rien de secret et ne doit surtout pas dicter tes décisions du jour. En revanche, il peut te faire sourire ☀️" },
+                { title: "Chaque jour une nouvelle prédiction", body: "Reviens demain — et le surlendemain — pour découvrir les autres prédictions de ton signe. Le cycle se renouvelle automatiquement tout au long de la saison zodiacale." },
+                { title: "Bon à savoir 💡", body: "Appuie sur le signe du moment pour en savoir plus sur le signe actuel et voir quels contacts du mois sont concernés 🌸" },
+              ].map((s) => (
+                <View key={s.title} style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6' }}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 13, color: '#1F2937', marginBottom: 4 }}>{s.title}</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 13, color: '#6B7280', lineHeight: 20, marginBottom: 8 }}>{s.body}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
