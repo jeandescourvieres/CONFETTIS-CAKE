@@ -37,8 +37,16 @@ function getVoiceSettings(voice_key: string): VoiceSettings {
   return map[voice_key] ?? { stability: 0.45, similarity_boost: 0.75, style: 0.40, use_speaker_boost: true };
 }
 
-function transformText(text: string, _voice_key: string): string {
-  return text;
+function transformText(text: string, voice_key: string): string {
+  switch (voice_key) {
+    case 'pere_noel':    return `Ho ho ho ! ${text} Joyeux Noël à toi !`;
+    case 'pirate':       return `Arrr ! ${text} Que les vents te soient favorables, moussaillon !`;
+    case 'robot':        return `Message. En. Cours. De. Transmission. ${text} Fin. De. Message.`;
+    case 'presentateur': return `Chers auditeurs, voici un message exceptionnel. ${text} Restez à l'écoute !`;
+    case 'enfant':       return `${text} Youpi youpi !`;
+    case 'roi_reine':    return `Nous, en notre royale grandeur, vous adressons ce message. ${text} Qu'il en soit ainsi.`;
+    default: return text;
+  }
 }
 
 interface GenerateTTSRequest {
