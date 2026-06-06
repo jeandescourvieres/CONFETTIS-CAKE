@@ -949,7 +949,7 @@ export default function ContactDetailScreen() {
             <Text style={styles.heroName}>
               {contact.relation === 'pet'
                 ? contact.name
-                : `${contact.civilite ? contact.civilite + ' ' : ''}${contactFirstName && contactLastName !== contactFirstName ? `${contactFirstName} ${contactLastName}` : contactFirstName || contactLastName}`}
+                : `${contactFirstName && contactLastName !== contactFirstName ? `${contactFirstName} ${contactLastName}` : contactFirstName || contactLastName}`}
               {age !== null ? <Text style={styles.heroNameAge}> · {age} ans</Text> : null}
             </Text>
             <Text style={[styles.heroBirthday, !contact.birthday && styles.heroBirthdayEmpty]}>
