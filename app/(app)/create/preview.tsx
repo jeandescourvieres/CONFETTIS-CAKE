@@ -3561,17 +3561,18 @@ export default function PreviewScreen() {
         >
           <View style={styles.helpModalCard}>
             <View style={styles.helpModalHeader}>
-              <Text style={styles.helpModalTitle}>Comment fonctionne le message vocal ? 🎙️</Text>
+              <Text style={styles.helpModalTitle}>Comment fonctionne le message vocal ? 🎙️🎭</Text>
               <TouchableOpacity onPress={() => setTtsHelpVisible(false)}>
                 <Text style={styles.helpModalClose}>Fermer ✕</Text>
               </TouchableOpacity>
             </View>
             {[
               { title: 'Transformer ton message en voix', body: "Appuie sur Transformer en vocal. Ton message est converti en audio en quelques secondes grâce à ElevenLabs — l'une des meilleures IA voix au monde !" },
-              { title: 'Choisir ta voix', body: "4 voix disponibles : Homme neutre, Homme chaleureux, Femme douce, Femme joyeuse. Choisis celle qui correspond le mieux à ton message et à ton proche." },
+              { title: 'Les voix classiques 🎙️', body: "4 voix naturelles et chaleureuses pour un rendu élégant et émouvant :\n👨 Homme neutre · 👨 Homme chaleureux · 👩 Femme douce · 👩 Femme joyeuse" },
+              { title: 'Les voix fun 🎭', body: "6 voix décalées pour une attention mémorable et surprenante :\n🎅 Père Noël — chaleureux et ho-ho-ho !\n🏴‍☠️ Pirate — arr, c'est pour toi !\n🤖 Robot — bip bop, message transmis\n📻 Présentateur radio — jingle et micro tendu\n🧒 Enfant — spontané et adorable\n👑 Roi/Reine — majestueux et solennel" },
               { title: 'Écouter avant d\'envoyer', body: "Écoute le résultat directement dans l'appli avant d'envoyer — et change de voix si le résultat ne te convient pas !" },
-              { title: 'Partager', body: "Via WhatsApp, SMS, email ou toute autre appli en un tap. Ton proche reçoit un fichier audio qu'il peut écouter immédiatement." },
-              { title: 'Bon à savoir 💡', body: "Plus ton message est bien rédigé, plus le résultat vocal sera naturel et émouvant ! La voix parle la langue du message — le français est parfaitement supporté." },
+              { title: 'Partager', body: "Via WhatsApp, SMS, email ou toute autre appli en un tap. Ton proche reçoit un lien audio qu'il peut écouter immédiatement depuis n'importe où 🎧" },
+              { title: 'Bon à savoir 💡', body: "Plus ton message est bien rédigé, plus le résultat vocal sera naturel ! Les voix fun sont particulièrement efficaces pour des occasions légères — anniversaires, blagues, surprises... Le français est parfaitement supporté 🇫🇷" },
             ].map((s) => (
               <View key={s.title} style={styles.helpModalSection}>
                 <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
