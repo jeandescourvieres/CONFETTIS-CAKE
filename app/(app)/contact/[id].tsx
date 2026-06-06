@@ -195,6 +195,7 @@ export default function ContactDetailScreen() {
   const [aiAvatarStyle, setAiAvatarStyle] = useState<string>('aquarelle');
   const [aiAvatarLoading, setAiAvatarLoading] = useState(false);
   const [aiAvatarError, setAiAvatarError] = useState<string | null>(null);
+  const [aiAvatarGeneratedUrl, setAiAvatarGeneratedUrl] = useState<string | null>(null);
 
   const handleDelete = () => {
     Alert.alert(
@@ -286,7 +287,7 @@ export default function ContactDetailScreen() {
       if (data?.error) throw new Error(data.error);
       // Le contact est mis à jour en DB par l'edge function → invalider le cache
       await updateContact({ id, updates: { avatar_url: data.url } });
-      setAiAvatarVisible(false);
+      setAiAvatarGeneratedUrl(data.url);
     } catch (err) {
       setAiAvatarError(err instanceof Error ? err.message : 'Erreur de génération');
     } finally {
@@ -931,13 +932,20 @@ export default function ContactDetailScreen() {
             </TouchableOpacity>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               <View style={{ alignItems: 'center', gap: 4 }}>
-                <TouchableOpacity style={styles.aiAvatarBtn} onPress={() => { setAiAvatarError(null); setAiAvatarVisible(true); }}>
+                <TouchableOpacity style={styles.aiAvatarBtn} onPress={() => { setAiAvatarError(null); setAiAvatarGeneratedUrl(null); setAiAvatarVisible(true); }}>
                   <Text style={{ fontSize: 16 }}>✨</Text>
                 </TouchableOpacity>
                 <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 9, color: 'rgba(255,255,255,0.7)' }}>Avatar IA</Text>
               </View>
-              <View style={styles.avatarWrap}>
-                <Avatar uri={contact.avatar_url} name={contact.name} size="xl" />
+              <View style={{ alignItems: 'center', gap: 4 }}>
+                <View style={styles.avatarWrap}>
+                  <Avatar uri={contact.avatar_url} name={contact.name} size="xl" />
+                </View>
+                {contact.avatar_url && (
+                  <TouchableOpacity onPress={() => Share.share({ url: contact.avatar_url!, message: `Portrait de ${contactFirstName} ✨` })} activeOpacity={0.75} style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10 }}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 10, color: '#fff' }}>📤 Partager</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               <View style={{ alignItems: 'center', gap: 4 }}>
                 <TouchableOpacity style={styles.editAvatarBtn} onPress={handleChangeAvatar} disabled={isUploadingAvatar}>
@@ -3642,24 +3650,51 @@ export default function ContactDetailScreen() {
                   <Text style={styles.aiAvatarErrorText}>😕 {aiAvatarError}</Text>
                 </View>
               )}
-              <TouchableOpacity
-                style={[styles.addPetSaveBtn, aiAvatarLoading && { opacity: 0.6 }]}
-                onPress={handleGenerateAiAvatar}
-                disabled={aiAvatarLoading}
-                activeOpacity={0.85}
-              >
-                {aiAvatarLoading
-                  ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <ActivityIndicator color={Colors.white} size="small" />
-                      <Text style={styles.addPetSaveBtnText}>Génération en cours… (~20s)</Text>
-                    </View>
-                  )
-                  : <Text style={styles.addPetSaveBtnText}>✨ Générer l'avatar IA</Text>
-                }
-              </TouchableOpacity>
+              {aiAvatarGeneratedUrl && !aiAvatarLoading && (
+                <View style={{ backgroundColor: '#F0FDF4', borderRadius: Radii.xl, padding: 16, gap: 12, alignItems: 'center', borderWidth: 1.5, borderColor: '#86EFAC' }}>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 16, color: '#166534' }}>🎨 Portrait généré !</Text>
+                  <Avatar uri={aiAvatarGeneratedUrl} name={contact.name} size="xl" />
+                  <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                    <TouchableOpacity
+                      style={{ flex: 1, backgroundColor: '#059669', borderRadius: Radii.full, paddingVertical: 12, alignItems: 'center' }}
+                      onPress={() => Share.share({ url: aiAvatarGeneratedUrl, message: `Portrait IA de ${contactFirstName} ✨` })}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 14, color: '#fff' }}>📤 Partager</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ flex: 1, backgroundColor: Colors.surfaceContainerHighest, borderRadius: Radii.full, paddingVertical: 12, alignItems: 'center' }}
+                      onPress={() => { setAiAvatarGeneratedUrl(null); setAiAvatarVisible(false); }}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 14, color: Colors.onSurface }}>Fermer</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity onPress={() => setAiAvatarGeneratedUrl(null)} activeOpacity={0.75}>
+                    <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: 12, color: Colors.onSurfaceVariant }}>↺ Régénérer avec un autre style</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {!aiAvatarGeneratedUrl && (
+                <TouchableOpacity
+                  style={[styles.addPetSaveBtn, aiAvatarLoading && { opacity: 0.6 }]}
+                  onPress={handleGenerateAiAvatar}
+                  disabled={aiAvatarLoading}
+                  activeOpacity={0.85}
+                >
+                  {aiAvatarLoading
+                    ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <ActivityIndicator color={Colors.white} size="small" />
+                        <Text style={styles.addPetSaveBtnText}>Génération en cours… (~20s)</Text>
+                      </View>
+                    )
+                    : <Text style={styles.addPetSaveBtnText}>✨ Générer l'avatar IA</Text>
+                  }
+                </TouchableOpacity>
+              )}
               <Text style={[styles.aiDisclaimer, { textAlign: 'center', marginTop: 8 }]}>
-                Avatar généré par DALL-E 3 · Remplace la photo actuelle du contact 🎨
+                Avatar généré par IA · Remplace la photo actuelle du contact 🎨
               </Text>
             </ScrollView>
           </View>
