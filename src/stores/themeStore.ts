@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../utils/storage';
 import { DEFAULT_THEME_ID, getThemeById, type AppTheme } from '../constants/appThemes';
 
 const STORAGE_KEY = 'app_theme_id';

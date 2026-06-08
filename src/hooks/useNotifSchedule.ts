@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../utils/storage';
 
 export type NotifPreset = 'max' | 'moderate' | 'minimal' | 'custom';
 

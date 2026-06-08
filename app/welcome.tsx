@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../src/utils/storage';
 import { Radii, Typography } from '../src/constants/theme';
 
 const { width: W, height: H } = Dimensions.get('window');

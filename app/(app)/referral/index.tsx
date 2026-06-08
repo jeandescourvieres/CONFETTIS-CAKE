@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
-import { useReferralHistory, useMyReferral } from '../../../src/hooks/useReferrals';
+import { useReferralHistory, useMyReferral, useLatestMonthlyChallenge } from '../../../src/hooks/useReferrals';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../src/i18n';
@@ -28,13 +28,18 @@ export default function ReferralScreen() {
   const code = profile?.referral_code || '—';
   const credits = profile?.credits ?? 0;
   const isPremium = profile?.plan === 'premium';
+  const CHALLENGE_GOAL = 5;
+  const challengeWon = !!profile?.challenge_won_at;
   const firstName = profile?.full_name?.split(' ')[0] ?? '';
   const { data: referralHistory = [] } = useReferralHistory();
   const { data: myReferral } = useMyReferral();
+  const { data: monthlyChallenge } = useLatestMonthlyChallenge();
   const sigLabels = getSignatureLabels(i18n.language);
 
   // ── État du flow d'invitation ──────────────────────────────────────────────
   const [shareStep, setShareStep] = useState<null | 'form' | 'options'>(null);
+  const [challengeHelpVisible, setChallengeHelpVisible] = useState(false);
+  const [rankingHelpVisible, setRankingHelpVisible] = useState(false);
   const [inviteName,  setInviteName]  = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
 
@@ -141,6 +146,74 @@ export default function ReferralScreen() {
           <View style={[styles.creditsRow, styles.creditsRowPremium]}>
             <Text style={styles.creditsEmoji}>⭐</Text>
             <Text style={styles.creditsText}>Tu es Premium — créations illimitées !</Text>
+          </View>
+        )}
+
+        {/* ── Challenge prescripteurs ────────────────── */}
+        {(() => {
+          const progress = Math.min(referralHistory.length, CHALLENGE_GOAL);
+          const pct = progress / CHALLENGE_GOAL;
+          if (challengeWon) {
+            return (
+              <View style={styles.challengeWonCard}>
+                <Text style={styles.challengeWonEmoji}>🏆</Text>
+                <Text style={styles.challengeWonTitle}>Challenge réussi !</Text>
+                <Text style={styles.challengeWonSub}>Notre équipe te contacte sous 48h pour ton cadeau 🎁</Text>
+              </View>
+            );
+          }
+          return (
+            <View style={styles.challengeCard}>
+              <View style={styles.challengeHeader}>
+                <Text style={styles.challengeEmoji}>🏆</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.challengeTitle}>Challenge prescripteurs</Text>
+                  <Text style={styles.challengeSub}>Parraine 5 amis → 1 mois Premium offert !</Text>
+                </View>
+                <TouchableOpacity onPress={() => setChallengeHelpVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={styles.challengeInfoBtn}>ℹ️</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.challengeBarBg}>
+                <View style={[styles.challengeBarFill, { width: `${Math.round(pct * 100)}%` as any }]} />
+              </View>
+              <Text style={styles.challengeCount}>{progress} / {CHALLENGE_GOAL} amis parrainés</Text>
+            </View>
+          );
+        })()}
+
+        {/* ── Classement du mois ───────────────────────── */}
+        {monthlyChallenge && (monthlyChallenge.volume_winner_name || monthlyChallenge.quality_winner_name) && (
+          <View style={styles.rankingCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={[styles.rankingTitle, { flex: 1 }]}>
+                🏆 Classement du mois — {new Date(monthlyChallenge.period_start).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+              </Text>
+              <TouchableOpacity onPress={() => setRankingHelpVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.challengeInfoBtn}>ℹ️</Text>
+              </TouchableOpacity>
+            </View>
+            {monthlyChallenge.volume_winner_name && (
+              <View style={styles.rankingRow}>
+                <Text style={styles.rankingEmoji}>🥇</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rankingName}>{monthlyChallenge.volume_winner_name}</Text>
+                  <Text style={styles.rankingDesc}>Le plus de filleuls parrainés</Text>
+                </View>
+                <Text style={styles.rankingScore}>{monthlyChallenge.volume_winner_count}</Text>
+              </View>
+            )}
+            {monthlyChallenge.quality_winner_name && (
+              <View style={styles.rankingRow}>
+                <Text style={styles.rankingEmoji}>💎</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rankingName}>{monthlyChallenge.quality_winner_name}</Text>
+                  <Text style={styles.rankingDesc}>Le plus de filleuls passés en Premium</Text>
+                </View>
+                <Text style={styles.rankingScore}>{monthlyChallenge.quality_winner_count}</Text>
+              </View>
+            )}
+            <Text style={styles.rankingFooter}>Un nouveau classement est tiré chaque mois — à toi de grimper ! ✨</Text>
           </View>
         )}
 
@@ -380,6 +453,112 @@ export default function ReferralScreen() {
             )}
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Modale aide Challenge ──────────────────────────────────────────── */}
+      <Modal
+        visible={challengeHelpVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setChallengeHelpVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.helpOverlay}
+          activeOpacity={1}
+          onPress={() => setChallengeHelpVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={[styles.helpPanel, { borderTopColor: '#F59E0B' }]}>
+            <Text style={styles.helpPanelTitle}>🏆 Challenge prescripteurs</Text>
+
+            <View style={styles.helpSection}>
+              <Text style={styles.helpSectionTitle}>C'est quoi ?</Text>
+              <Text style={styles.helpSectionBody}>
+                Un défi réservé aux utilisateurs qui adorent partager l'appli avec leurs proches. Parraine 5 amis et gagne 1 mois Premium offert !
+              </Text>
+            </View>
+
+            <View style={styles.helpSection}>
+              <Text style={styles.helpSectionTitle}>Comment ça marche ?</Text>
+              <Text style={styles.helpSectionBody}>
+                {'1️⃣  Partage ton code unique avec des amis.\n2️⃣  Ils s\'inscrivent en saisissant ton code.\n3️⃣  Chaque inscription compte comme 1 filleul.\n4️⃣  Dès 5 filleuls atteints, tu gagnes !'}
+              </Text>
+            </View>
+
+            <View style={styles.helpSection}>
+              <Text style={styles.helpSectionTitle}>La récompense 🎁</Text>
+              <Text style={styles.helpSectionBody}>
+                1 mois Premium offert, soit l'accès illimité à toutes les fonctions de l'appli sans dépenser un centime. Notre équipe te contacte sous 48h dès que tu atteins l'objectif.
+              </Text>
+            </View>
+
+            <View style={styles.helpSection}>
+              <Text style={styles.helpSectionTitle}>Suivre ma progression</Text>
+              <Text style={styles.helpSectionBody}>
+                La barre de progression en bas de la carte se met à jour en temps réel à chaque inscription d'un filleul. Tes filleuls sont aussi listés dans la section "Tes filleuls" ci-dessous.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.helpCloseBtn, { backgroundColor: '#F59E0B' }]}
+              onPress={() => setChallengeHelpVisible(false)}
+            >
+              <Text style={styles.helpCloseBtnText}>Compris !</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Modal aide — Classement du mois ──────────────────────────────── */}
+      <Modal
+        visible={rankingHelpVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRankingHelpVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.helpOverlay}
+          activeOpacity={1}
+          onPress={() => setRankingHelpVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={[styles.helpPanel, { borderTopColor: '#9b6bb5' }]}>
+            <Text style={styles.helpPanelTitle}>🏆 Classement du mois</Text>
+
+            <View style={styles.helpSection}>
+              <Text style={styles.helpSectionTitle}>C'est quoi ?</Text>
+              <Text style={styles.helpSectionBody}>
+                Chaque mois, on met à l'honneur les deux meilleurs prescripteurs de ConfettiCake — ceux qui font le plus rayonner l'appli autour d'eux.
+              </Text>
+            </View>
+
+            <View style={styles.helpSection}>
+              <Text style={styles.helpSectionTitle}>Deux façons de gagner</Text>
+              <Text style={styles.helpSectionBody}>
+                {'🥇  Volume — la personne qui a parrainé le plus de filleuls dans le mois.\n💎  Qualité — la personne dont le plus de filleuls ont choisi de passer en Premium.'}
+              </Text>
+            </View>
+
+            <View style={styles.helpSection}>
+              <Text style={styles.helpSectionTitle}>La récompense 🎁</Text>
+              <Text style={styles.helpSectionBody}>
+                Notre équipe contacte les gagnants pour leur offrir une récompense (Premium offert, et même un cadeau surprise pour les plus exceptionnels sur la durée !).
+              </Text>
+            </View>
+
+            <View style={styles.helpSection}>
+              <Text style={styles.helpSectionTitle}>Le classement repart à zéro</Text>
+              <Text style={styles.helpSectionBody}>
+                Un nouveau podium est calculé le 1er de chaque mois sur la base du mois écoulé — une nouvelle chance de briller à chaque fois !
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.helpCloseBtn, { backgroundColor: '#9b6bb5' }]}
+              onPress={() => setRankingHelpVisible(false)}
+            >
+              <Text style={styles.helpCloseBtnText}>Compris !</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
     </SafeAreaView>
@@ -764,6 +943,168 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   backLinkText: {
     fontFamily: 'BeVietnamPro_600SemiBold',
     fontSize: Typography.base,
+  },
+  // ── Challenge prescripteurs ──────────────────────────────────────────────
+  challengeCard: {
+    width: '100%',
+    backgroundColor: '#FFF9E6',
+    borderRadius: Radii.xl,
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    padding: Spacing[4],
+    gap: 10,
+    ...Shadows.sm,
+  },
+  challengeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  challengeEmoji: { fontSize: 28 },
+  challengeTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.lg,
+    color: '#92400E',
+  },
+  challengeSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: '#B45309',
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  challengeBarBg: {
+    width: '100%',
+    height: 10,
+    backgroundColor: '#FDE68A',
+    borderRadius: Radii.full,
+    overflow: 'hidden',
+  },
+  challengeBarFill: {
+    height: '100%',
+    backgroundColor: '#F59E0B',
+    borderRadius: Radii.full,
+    minWidth: 10,
+  },
+  challengeCount: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: '#92400E',
+    textAlign: 'center',
+  },
+  challengeWonCard: {
+    width: '100%',
+    backgroundColor: '#FFFBEB',
+    borderRadius: Radii.xl,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    paddingVertical: Spacing[5],
+    paddingHorizontal: Spacing[5],
+    alignItems: 'center',
+    gap: 6,
+    ...Shadows.md,
+  },
+  challengeWonEmoji: { fontSize: 40 },
+  challengeWonTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography['2xl'],
+    color: '#92400E',
+  },
+  challengeWonSub: {
+    fontFamily: 'BeVietnamPro_500Medium',
+    fontSize: Typography.md,
+    color: '#B45309',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  challengeInfoBtn: { fontSize: 20 },
+  rankingCard: {
+    width: '100%',
+    backgroundColor: '#F5F0FF',
+    borderRadius: Radii.xl,
+    borderWidth: 1.5,
+    borderColor: '#9b6bb5',
+    padding: Spacing[4],
+    gap: 10,
+    ...Shadows.sm,
+  },
+  rankingTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.md,
+    color: '#5B3E78',
+  },
+  rankingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rankingEmoji: { fontSize: 24 },
+  rankingName: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.base,
+    color: '#5B3E78',
+  },
+  rankingDesc: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xs,
+    color: '#7C5C99',
+    marginTop: 1,
+  },
+  rankingScore: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography.lg,
+    color: '#9b6bb5',
+  },
+  rankingFooter: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.xs,
+    color: '#7C5C99',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  helpOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  helpPanel: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: Radii['2xl'],
+    borderTopRightRadius: Radii['2xl'],
+    borderTopWidth: 4,
+    paddingHorizontal: Spacing[5],
+    paddingTop: Spacing[5],
+    paddingBottom: Platform.OS === 'ios' ? 36 : Spacing[6],
+    gap: 12,
+  },
+  helpPanelTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography['2xl'],
+    color: Colors.onSurface,
+    marginBottom: 4,
+  },
+  helpSection: { gap: 4 },
+  helpSectionTitle: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.md,
+    color: Colors.onSurface,
+  },
+  helpSectionBody: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.md,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 22,
+  },
+  helpCloseBtn: {
+    borderRadius: Radii.full,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  helpCloseBtnText: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.lg,
+    color: Colors.white,
   },
   // ── Badges existants ─────────────────────────────────────────────────────
   historyRowNew: {

@@ -11,7 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTabScrollToTop } from '../../../src/hooks/useTabScrollToTop';
 import {
   useContacts,
@@ -24,6 +24,7 @@ import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme
 import { useColors } from '../../../src/hooks/useColors';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { usePartnerContacts } from '../../../src/hooks/useCouple';
+import { useRelationBarometer } from '../../../src/hooks/useRelationBarometer';
 import { daysUntilBirthday, humanDaysUntil } from '../../../src/utils/dateHelpers';
 
 type FilterKey = 'all' | 'urgent' | 'best_friend' | 'friend' | 'family' | 'partner' | 'colleague' | 'other' | 'pets';
@@ -32,7 +33,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all',         label: 'Tous' },
   { key: 'urgent',      label: '🎉 À fêter bientôt' },
   { key: 'best_friend', label: '💛 Meilleur·e ami·e' },
-  { key: 'friend',      label: '👫 Amis' },
+  { key: 'friend',      label: '👫 Ami.e' },
   { key: 'family',      label: '👨‍👩‍👧 Famille' },
   { key: 'partner',     label: '❤️ Partenaire' },
   { key: 'colleague',   label: '💼 Collègues' },
@@ -48,6 +49,14 @@ const PET_EMOJI: Record<string, string> = {
 
 export default function ContactsScreen() {
   const router = useRouter();
+  const { redirectTo } = useLocalSearchParams<{ redirectTo?: string }>();
+  const goToContact = (contactId: string) => {
+    if (redirectTo === 'numerologie') {
+      router.push(`/(app)/contact/numerologie/${contactId}` as never);
+    } else {
+      router.push(`/(app)/contact/${contactId}` as never);
+    }
+  };
   const C = useColors();
   const userId = useAuthStore((s) => s.user?.id);
   const { data: contacts = [], isLoading } = useContacts();
@@ -55,13 +64,38 @@ export default function ContactsScreen() {
   const { sections } = useContactsGrouped();
 
   const { data: partnerContacts = [] } = usePartnerContacts();
+  const barometerContacts = useRelationBarometer();
   const partnerContactIds = useMemo(() => new Set(partnerContacts.map((c) => c.id)), [partnerContacts]);
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [sortMode, setSortMode] = useState<'alpha' | 'affinite'>('alpha');
+
+  const switchSortMode = (mode: 'alpha' | 'affinite') => {
+    setSortMode(mode);
+    setTimeout(() => {
+      try {
+        scrollRef.current?.scrollToLocation({ sectionIndex: 0, itemIndex: 0, viewPosition: 0, animated: false });
+      } catch { /* silent si liste vide */ }
+    }, 50);
+  };
+
+  const toggleAccordion = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+    setter(v => !v);
+    setTimeout(() => {
+      try {
+        (scrollRef.current as any)?.scrollToOffset({ offset: 0, animated: false });
+      } catch { /* silent */ }
+    }, 30);
+  };
   const [petHelpVisible, setPetHelpVisible] = useState(false);
   const [affiniteHelpVisible, setAffiniteHelpVisible] = useState(false);
+  const [urgentBirthdaysOpen, setUrgentBirthdaysOpen] = useState(true);
+  const [urgentNameDaysOpen, setUrgentNameDaysOpen] = useState(true);
+  const [addContactsOpen, setAddContactsOpen] = useState(false);
+  const [shareContactsOpen, setShareContactsOpen] = useState(false);
+  const [findContactsOpen, setFindContactsOpen] = useState(false);
+  const [barometerOpen, setBarometerOpen] = useState(false);
 
   const { data: affiniteContacts = [] } = useContactsSortedByAffinity();
   const scrollRef = useRef<SectionList>(null);
@@ -139,17 +173,20 @@ export default function ContactsScreen() {
   const allSections = useMemo(() => {
     if (filter === 'pets') return [];
     if (sortMode === 'affinite') {
-      return affiniteFiltered.length > 0
-        ? [{ letter: '__affinite__', data: affiniteFiltered }]
-        : [];
+      const showUrgent = urgentContacts.length > 0 && filter === 'all' && !search;
+      return [
+        ...(showUrgent && urgentBirthdays.length > 0 ? [{ letter: '__urgent_birthday__', data: urgentBirthdaysOpen ? urgentBirthdays : [] }] : []),
+        ...(showUrgent && urgentNameDays.length > 0 ? [{ letter: '__urgent_nameday__', data: urgentNameDaysOpen ? urgentNameDays : [] }] : []),
+        ...(affiniteFiltered.length > 0 ? [{ letter: '__affinite__', data: affiniteFiltered }] : []),
+      ];
     }
     const showUrgent = urgentContacts.length > 0 && filter === 'all' && !search;
     return [
-      ...(showUrgent && urgentBirthdays.length > 0 ? [{ letter: '__urgent_birthday__', data: urgentBirthdays }] : []),
-      ...(showUrgent && urgentNameDays.length > 0 ? [{ letter: '__urgent_nameday__', data: urgentNameDays }] : []),
+      ...(showUrgent && urgentBirthdays.length > 0 ? [{ letter: '__urgent_birthday__', data: urgentBirthdaysOpen ? urgentBirthdays : [] }] : []),
+      ...(showUrgent && urgentNameDays.length > 0 ? [{ letter: '__urgent_nameday__', data: urgentNameDaysOpen ? urgentNameDays : [] }] : []),
       ...(filteredSections.length > 0 ? [{ letter: '__all_contacts__', data: [] }, ...filteredSections] : filteredSections),
     ];
-  }, [urgentContacts, filteredSections, filter, search, sortMode, affiniteFiltered]);
+  }, [urgentContacts, filteredSections, filter, search, sortMode, affiniteFiltered, urgentBirthdaysOpen, urgentNameDaysOpen, urgentBirthdays, urgentNameDays]);
 
   const scrollToContactsList = useCallback(() => {
     const idx = allSections.findIndex((s: any) => s.letter === '__all_contacts__');
@@ -227,84 +264,153 @@ export default function ContactsScreen() {
         style={styles.list}
         ListHeaderComponent={
           <>
-            {/* Intro boutons */}
-            <Text style={styles.actionIntro}>
-              Pour profiter pleinement de l'application, commence par ajouter tes contacts. Tu peux les importer automatiquement depuis ton téléphone ou les créer manuellement.
-            </Text>
-
-            {/* Boutons d'action */}
-            <View style={styles.actionCol}>
-              <TouchableOpacity style={styles.importBtn} onPress={handleImportPhone}>
-                <Text style={styles.importBtnText}>📱 J'importe mes contacts</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.addBtn} onPress={() => router.push({ pathname: '/(app)/contacts/new', params: { resetKey: Date.now().toString() } } as never)}>
-                <Text style={styles.addBtnText}>Je crée un contact</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Partage de contacts */}
+            {/* Accordéon : Comment ajouter des contacts */}
             <TouchableOpacity
-              style={styles.shareCard}
-              onPress={() => router.push('/(app)/contacts/share' as never)}
-              activeOpacity={0.85}
+              style={styles.accordionHeader}
+              onPress={() => toggleAccordion(setAddContactsOpen)}
+              activeOpacity={0.8}
             >
-              <View style={styles.shareCardLeft}>
-                <Text style={styles.shareCardIcon}>🔗</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.shareCardTitle}>Partager mes contacts</Text>
-                  <Text style={styles.shareCardDesc}>
-                    Envoie une liste de tes contacts à un proche via un lien valable 24h. Pratique pour organiser un événement en groupe ou aider quelqu'un à démarrer sur ConfettiCake.
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.shareCardArrow}>›</Text>
+              <Text style={styles.accordionTitle}>📱 Comment ajouter des contacts :</Text>
+              <Text style={styles.accordionChevron}>{addContactsOpen ? '▾' : '▸'}</Text>
             </TouchableOpacity>
-
-            {/* Toggle tri */}
-            <View style={styles.sortToggleRow}>
-              <TouchableOpacity
-                style={[styles.sortToggleBtn, sortMode === 'alpha' && styles.sortToggleBtnActive]}
-                onPress={() => setSortMode('alpha')}
-              >
-                <Text style={[styles.sortToggleText, sortMode === 'alpha' && styles.sortToggleTextActive]}>A → Z</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.sortToggleBtn, sortMode === 'affinite' && styles.sortToggleBtnActive]}
-                onPress={() => setSortMode('affinite')}
-              >
-                <Text style={[styles.sortToggleText, sortMode === 'affinite' && styles.sortToggleTextActive]}>⭐ Par affinité</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Intro affinité */}
-            {sortMode === 'affinite' && (
-              <View style={styles.affiniteIntroRow}>
-                <Text style={styles.affiniteIntroText}>
-                  Tes contacts les plus proches et les plus actifs apparaissent en premier ⭐ Le classement évolue automatiquement selon la fréquence de vos échanges et les événements à venir 💛
+            {addContactsOpen && (
+              <View style={styles.accordionContent}>
+                <Text style={styles.accordionDesc}>
+                  Pour profiter pleinement de l'application, commence par ajouter tes contacts. Tu peux les importer automatiquement depuis ton téléphone ou les créer manuellement.
                 </Text>
-                <TouchableOpacity style={styles.affiniteHelpBtn} onPress={() => setAffiniteHelpVisible(true)}>
-                  <Text style={styles.affiniteHelpBtnText}>ℹ️</Text>
-                </TouchableOpacity>
+                <View style={[styles.actionCol, { paddingHorizontal: 0, marginTop: Spacing[3] }]}>
+                  <TouchableOpacity style={styles.importBtn} onPress={handleImportPhone}>
+                    <Text style={styles.importBtnText}>📱 J'importe mes contacts</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.addBtn} onPress={() => router.push({ pathname: '/(app)/contacts/new', params: { resetKey: Date.now().toString() } } as never)}>
+                    <Text style={styles.addBtnText}>Je crée un contact</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
-            {/* Intro filtres */}
-            <Text style={styles.filtersIntro}>Grâce aux filtres, retrouve rapidement tes contacts et ceux à fêter prochainement 🎉</Text>
+            {/* Accordéon : Comment partager mes contacts */}
+            <TouchableOpacity
+              style={styles.accordionHeader}
+              onPress={() => toggleAccordion(setShareContactsOpen)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.accordionTitle}>🔗 Comment partager des contacts :</Text>
+              <Text style={styles.accordionChevron}>{shareContactsOpen ? '▾' : '▸'}</Text>
+            </TouchableOpacity>
+            {shareContactsOpen && (
+              <TouchableOpacity
+                style={styles.shareCard}
+                onPress={() => router.push('/(app)/contacts/share' as never)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.shareCardLeft}>
+                  <Text style={styles.shareCardIcon}>🔗</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.shareCardTitle}>Partager mes contacts</Text>
+                    <Text style={styles.accordionDesc}>
+                      Envoie une liste de tes contacts à un proche via un lien valable 24h. Pratique pour organiser un événement en groupe ou aider quelqu'un à démarrer sur ConfettiCake.
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.shareCardArrow}>›</Text>
+              </TouchableOpacity>
+            )}
 
-            {/* Filtres */}
-            <View style={styles.filtersList}>
-              {FILTERS.map((item) => (
-                <TouchableOpacity
-                  key={item.key}
-                  style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
-                  onPress={() => setFilter(item.key)}
-                >
-                  <Text style={[styles.filterText, filter === item.key && styles.filterTextActive]}>
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {/* Accordéon : Comment retrouver rapidement des contacts */}
+            <TouchableOpacity
+              style={styles.accordionHeader}
+              onPress={() => toggleAccordion(setFindContactsOpen)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.accordionTitle}>🔍 Comment retrouver des contacts :</Text>
+              <Text style={styles.accordionChevron}>{findContactsOpen ? '▾' : '▸'}</Text>
+            </TouchableOpacity>
+            {findContactsOpen && (
+              <View style={styles.accordionContent}>
+                <Text style={styles.accordionDesc}>Grâce aux filtres, retrouve tes contacts et ceux à fêter prochainement 🎉</Text>
+                <View style={[styles.filtersList, { paddingHorizontal: 0, marginTop: Spacing[3] }]}>
+                  {FILTERS.map((item) => (
+                    <TouchableOpacity
+                      key={item.key}
+                      style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
+                      onPress={() => setFilter(item.key)}
+                    >
+                      <Text style={[styles.filterText, filter === item.key && styles.filterTextActive]}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <TouchableOpacity style={[styles.accordionHeader, { borderWidth: 2, borderColor: '#F43F5E' }]} onPress={() => toggleAccordion(setBarometerOpen)} activeOpacity={0.8}>
+              <Text style={styles.accordionTitle}>❤️ Les contacts à ne pas oublier :</Text>
+              <Text style={styles.accordionChevron}>{barometerOpen ? '▾' : '▸'}</Text>
+            </TouchableOpacity>
+            {barometerOpen && (
+              <View style={styles.accordionContent}>
+                {barometerContacts.length > 0 ? (
+                  <View style={{ gap: 10 }}>
+                    {barometerContacts.map((c) => {
+                      const firstName = c.name.trim().split(/\s+/).find((w: string) => w !== w.toUpperCase()) ?? c.name.split(' ')[0];
+                      const msg = c.daysSinceLastMessage === null
+                        ? `Tu n'as encore jamais écrit à ${firstName}.`
+                        : `Cela fait ${c.daysSinceLastMessage} jours que tu n'as pas écrit à ${firstName}.`;
+                      return (
+                        <TouchableOpacity
+                          key={c.id}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFF1F7', borderRadius: Radii.lg, padding: 12, borderWidth: 1.5, borderColor: '#FBCFE8' }}
+                          onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: c.id } } as never)}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={{ fontSize: 28 }}>💌</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: C.onSurface }}>{firstName}</Text>
+                            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: C.onSurfaceVariant, lineHeight: 16 }}>{msg}</Text>
+                          </View>
+                          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: C.primary }}>Écrire →</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <Text style={styles.accordionDesc}>Pour l'instant, tu n'as aucun contact oublié 🎉</Text>
+                )}
+              </View>
+            )}
+
+            {/* Titre section liste + toggle tri */}
+            {filter !== 'pets' && (
+              <>
+                <Text style={styles.listSectionTitle}>Mes contacts</Text>
+                <View style={styles.sortToggleRow}>
+                  <TouchableOpacity
+                    style={[styles.sortToggleBtn, sortMode === 'alpha' && styles.sortToggleBtnActive]}
+                    onPress={() => switchSortMode('alpha')}
+                  >
+                    <Text style={[styles.sortToggleText, sortMode === 'alpha' && styles.sortToggleTextActive]}>A → Z</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.sortToggleBtn, sortMode === 'affinite' && styles.sortToggleBtnActive]}
+                    onPress={() => switchSortMode('affinite')}
+                  >
+                    <Text style={[styles.sortToggleText, sortMode === 'affinite' && styles.sortToggleTextActive]}>⭐ Par affinité</Text>
+                  </TouchableOpacity>
+                </View>
+                {sortMode === 'affinite' && (
+                  <View style={styles.affiniteIntroRow}>
+                    <Text style={styles.affiniteIntroText}>
+                      Tes contacts les plus proches et les plus actifs apparaissent en premier ⭐ Le classement évolue automatiquement selon la fréquence de vos échanges et les événements à venir 💛
+                    </Text>
+                    <TouchableOpacity style={styles.affiniteHelpBtn} onPress={() => setAffiniteHelpVisible(true)}>
+                      <Text style={styles.affiniteHelpBtnText}>ℹ️</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
+            )}
 
             {/* Vue animaux de compagnie */}
             {filter === 'pets' && (
@@ -397,16 +503,26 @@ export default function ContactsScreen() {
               <Text style={styles.allContactsLabel}>⭐ Mes contacts — par affinité</Text>
             </View>
           ) : letter === '__urgent_birthday__' ? (
-            <View style={styles.urgentHeader}>
-              <Text style={styles.urgentLabel}>🎁 Les anniversaires à venir</Text>
-            </View>
+            <TouchableOpacity
+              style={[styles.urgentHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+              onPress={() => setUrgentBirthdaysOpen((o) => !o)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.urgentLabel}>🎁 Leurs anniversaires à venir :{!urgentBirthdaysOpen ? ` (${urgentBirthdays.length})` : ''}</Text>
+              <Text style={styles.urgentLabel}>{urgentBirthdaysOpen ? '−' : '+'}</Text>
+            </TouchableOpacity>
           ) : letter === '__urgent_nameday__' ? (
-            <View style={styles.urgentHeader}>
-              <Text style={styles.urgentLabel}>🌸 Les fêtes à venir</Text>
-            </View>
+            <TouchableOpacity
+              style={[styles.urgentHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+              onPress={() => setUrgentNameDaysOpen((o) => !o)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.urgentLabel}>🌸 Leurs fêtes à venir :{!urgentNameDaysOpen ? ` (${urgentNameDays.length})` : ''}</Text>
+              <Text style={styles.urgentLabel}>{urgentNameDaysOpen ? '−' : '+'}</Text>
+            </TouchableOpacity>
           ) : letter === '__all_contacts__' ? (
             <View style={styles.allContactsHeader}>
-              <Text style={styles.allContactsLabel}>👥 Ma liste de contacts</Text>
+              <Text style={styles.allContactsLabel}>{'👥  Ma liste de contacts  '}<Text style={{ fontSize: Typography.xl, fontFamily: 'PlusJakartaSans_800ExtraBold', color: Colors.onSurface }}>(A → Z)</Text></Text>
             </View>
           ) : (
             <View style={styles.sectionHeader}>
@@ -418,7 +534,7 @@ export default function ContactsScreen() {
           <ContactRow
             contact={item}
             upcomingEvent={urgentMap.get(item.id)}
-            onPress={() => router.push(`/(app)/contact/${item.id}` as never)}
+            onPress={() => goToContact(item.id)}
             onCreateMessage={() =>
               router.push({ pathname: '/(app)/create', params: { contactId: item.id } } as never)
             }
@@ -556,6 +672,17 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   clearBtn: { fontSize: 20, color: Colors.outlineVariant, paddingHorizontal: 4 },
 
+  accordionContent: {
+    marginHorizontal: Spacing[4],
+    marginBottom: Spacing[4],
+    backgroundColor: '#F3EEFE',
+    borderRadius: Radii.lg,
+    borderWidth: 1.5,
+    borderColor: '#7C3AED30',
+    padding: Spacing[4],
+    flexDirection: 'column',
+  },
+
   shareCard: {
     marginHorizontal: Spacing[4],
     marginBottom: Spacing[4],
@@ -572,6 +699,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   shareCardIcon: { fontSize: 26, marginTop: 2 },
   shareCardTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#5B21B6', marginBottom: 4 },
   shareCardDesc: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#6D28D9', lineHeight: 18 },
+  accordionDesc: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: '#6D28D9', lineHeight: 22 },
   shareCardArrow: { fontFamily: 'BeVietnamPro_700Bold', fontSize: 22, color: '#7C3AED' },
 
   affiniteIntroRow: {
@@ -603,31 +731,42 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   affiniteHelpBtnText: { fontSize: 14, lineHeight: 17 },
 
+  listSectionTitle: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    fontSize: Typography['2xl'],
+    color: Colors.onSurface,
+    textAlign: 'center',
+    marginHorizontal: Spacing[5],
+    marginTop: Spacing[4],
+    marginBottom: Spacing[2],
+  },
   sortToggleRow: {
     flexDirection: 'row',
     marginHorizontal: Spacing[5],
+    marginTop: Spacing[2],
     marginBottom: Spacing[3],
-    backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: Radii.full,
-    padding: 3,
-    gap: 3,
+    gap: 8,
   },
   sortToggleBtn: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: Radii.full,
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.outlineVariant,
+    backgroundColor: 'transparent',
   },
   sortToggleBtnActive: {
-    backgroundColor: C.primary,
+    borderColor: C.primary,
+    backgroundColor: C.primaryContainer,
   },
   sortToggleText: {
     fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.sm,
+    fontSize: Typography.lg,
     color: Colors.onSurfaceVariant,
   },
   sortToggleTextActive: {
-    color: Colors.white,
+    color: C.primary,
   },
 
   filtersIntro: {
@@ -730,6 +869,31 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: Colors.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 22,
+  },
+
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: C.primaryContainer,
+    borderRadius: Radii.lg,
+    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[3],
+    marginHorizontal: Spacing[4],
+    marginBottom: Spacing[2],
+    marginTop: Spacing[2],
+  },
+  accordionTitle: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: Typography.md,
+    color: C.primary,
+    flex: 1,
+  },
+  accordionChevron: {
+    fontFamily: 'BeVietnamPro_700Bold',
+    fontSize: 18,
+    color: C.primary,
+    marginLeft: Spacing[2],
   },
 
   actionIntro: {

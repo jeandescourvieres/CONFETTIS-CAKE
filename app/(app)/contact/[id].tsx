@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -121,6 +121,10 @@ export default function ContactDetailScreen() {
   const [chineseZodiacHelpVisible, setChineseZodiacHelpVisible] = useState(false);
   const [numerologyHelpVisible, setNumerologyHelpVisible] = useState(false);
   const [ageFunHelpVisible, setAgeFunHelpVisible] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const toggleSection = useCallback((key: string) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
 
   // Phase 7 — Ce qui s'est passé l'année de naissance
   const [yearFacts, setYearFacts] = useState<string | null>(null);
@@ -242,7 +246,7 @@ export default function ContactDetailScreen() {
 
     let prefill = '';
     if (eventLabel && eventDate) {
-      prefill = `🎂 Hey ! L'${eventLabel} de ${firstName} c'est le ${eventDate}${daysLeft > 0 ? ` (dans ${humanDaysUntil(daysLeft)})` : " — c'est aujourd'hui !"}.\nPense à lui souhaiter 💛`;
+      prefill = `🎂 Hey ! L'${eventLabel} de ${firstName} c'est le ${eventDate}${daysLeft > 0 ? ` (${humanDaysUntil(daysLeft)})` : " — c'est aujourd'hui !"}.\nPense à lui souhaiter 💛`;
     } else {
       prefill = `💛 Hey ! Pense à ${firstName} prochainement — c'est quelqu'un qui compte 🎉`;
     }
@@ -1495,7 +1499,11 @@ export default function ContactDetailScreen() {
         {contact.relation !== 'pet' && contact.relation !== 'child_of' && (
           <>
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Nom, Prénom & Astrologie</Text>
+            <TouchableOpacity onPress={() => toggleSection('astro')} activeOpacity={0.7} style={[styles.sectionHeaderRow, { marginBottom: 0 }]}>
+              <Text style={[styles.sectionLabel, { flex: 1 }]}>Nom, Prénom & Astrologie</Text>
+              <Text style={styles.accordionArrow}>{openSections.astro ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {openSections.astro && (
             <View style={styles.coordsCard}>
 
               {/* Signification du nom de famille */}
@@ -1661,6 +1669,7 @@ export default function ContactDetailScreen() {
               )}
 
             </View>
+            )}
           </View>
 
           {/* Bouton compatibilité complète */}
@@ -1708,11 +1717,16 @@ export default function ContactDetailScreen() {
           {chineseZodiac && (
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionLabel}>Signe du zodiaque chinois</Text>
+                <TouchableOpacity onPress={() => toggleSection('chineseZodiac')} activeOpacity={0.7} style={styles.accordionHeaderRow}>
+                  <Text style={styles.sectionLabel}>Signe du zodiaque chinois</Text>
+                  <Text style={styles.accordionArrow}>{openSections.chineseZodiac ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => setChineseZodiacHelpVisible(true)} style={styles.helpInfoBtn}>
                   <Text style={styles.helpInfoBtnText}>ℹ️</Text>
                 </TouchableOpacity>
               </View>
+              {openSections.chineseZodiac && (
+              <>
               <FeatureIntroCard
                 introText={"Dans la tradition chinoise, on dit que l'animal de ton année de naissance te suit toute ta vie 🐉 Rat, Bœuf, Tigre, Lapin, Dragon... depuis plus de 2000 ans le zodiaque chinois associe chaque être humain à un animal porteur de sens et de vertus uniques — découvre l'animal qui accompagne ton proche depuis sa naissance et ce qu'il révèle de sa personnalité profonde selon des millénaires de sagesse ancestrale 🌟💛✨"}
                 modeEmploiLines={[
@@ -1748,6 +1762,8 @@ export default function ContactDetailScreen() {
                 </View>
                 <Text style={styles.chineseZodiacDesc}>{chineseZodiac.description}</Text>
               </View>
+              </>
+              )}
             </View>
           )}
           </>
@@ -1757,11 +1773,16 @@ export default function ContactDetailScreen() {
         {contact.relation !== 'pet' && numéroPrenom && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>Numérologie</Text>
+              <TouchableOpacity onPress={() => toggleSection('numerology')} activeOpacity={0.7} style={styles.accordionHeaderRow}>
+                <Text style={styles.sectionLabel}>Numérologie</Text>
+                <Text style={styles.accordionArrow}>{openSections.numerology ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setNumerologyHelpVisible(true)} style={styles.helpInfoBtn}>
                 <Text style={styles.helpInfoBtnText}>ℹ️</Text>
               </TouchableOpacity>
             </View>
+            {openSections.numerology && (
+            <>
             <FeatureIntroCard
               introText={`Et si le prénom de ${contactFirstName} en disait plus long que tu ne le crois ? 🤔 La numérologie révèle à travers un chiffre unique la personnalité profonde et l'énergie vibratoire de celui qui le porte 🔢✨`}
               modeEmploiLines={[
@@ -1851,6 +1872,8 @@ export default function ContactDetailScreen() {
               </View>
               </>
             )}
+            </>
+            )}
           </View>
         )}
 
@@ -1858,11 +1881,16 @@ export default function ContactDetailScreen() {
         {contact.relation !== 'pet' && ageFun && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>Âge en chiffres fun 🤯</Text>
+              <TouchableOpacity onPress={() => toggleSection('ageFun')} activeOpacity={0.7} style={styles.accordionHeaderRow}>
+                <Text style={styles.sectionLabel}>Âge en chiffres fun 🤯</Text>
+                <Text style={styles.accordionArrow}>{openSections.ageFun ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setAgeFunHelpVisible(true)} style={styles.helpInfoBtn}>
                 <Text style={styles.helpInfoBtnText}>ℹ️</Text>
               </TouchableOpacity>
             </View>
+            {openSections.ageFun && (
+            <>
             <FeatureIntroCard
               introText={"On dit souvent qu'on a l'âge qu'on se donne... mais en chiffres c'est une autre histoire ! 😄 14 600 jours, 350 400 heures, 500 millions de battements de cœur... 🤯 Découvre la vie de tes proches à travers des chiffres fous, fascinants et insolites qui donnent une toute autre dimension à chaque anniversaire et transforment chaque année vécue en une véritable célébration de la vie 🎂💛✨"}
               modeEmploiLines={[
@@ -1917,6 +1945,8 @@ export default function ContactDetailScreen() {
             >
               <Text style={[styles.shareAgeFunBtnText, { color: C.primary }]}>📲 Partager ces chiffres</Text>
             </TouchableOpacity>
+            </>
+            )}
           </View>
         )}
 
@@ -1924,11 +1954,16 @@ export default function ContactDetailScreen() {
         {contact.relation !== 'pet' && contact.birthday && !contact.birthday.startsWith('0000-') && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>📖 L'année de sa naissance</Text>
+              <TouchableOpacity onPress={() => toggleSection('yearFacts')} activeOpacity={0.7} style={styles.accordionHeaderRow}>
+                <Text style={styles.sectionLabel}>📖 L'année de sa naissance</Text>
+                <Text style={styles.accordionArrow}>{openSections.yearFacts ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setYearFactsHelpVisible(true)} style={styles.helpInfoBtn}>
                 <Text style={styles.helpInfoBtnText}>ℹ️</Text>
               </TouchableOpacity>
             </View>
+            {openSections.yearFacts && (
+            <>
             <FeatureIntroCard
               introText={"Cette année-là, le monde écrivait une page unique de son histoire 📖 Chaque année laisse une empreinte fascinante — événements majeurs, chansons cultes, films mythiques, prix d'une baguette ou d'une voiture... 😄 Plonge dans l'année de naissance de ton proche et découvre le monde tel qu'il était quand tout a commencé pour lui — un voyage dans le temps qui donne une toute autre dimension à chaque anniversaire 🌍🎂💛✨"}
               modeEmploiLines={[
@@ -1972,6 +2007,8 @@ export default function ContactDetailScreen() {
                 })}
               </View>
             )}
+            </>
+            )}
           </View>
         )}
 
@@ -1982,11 +2019,16 @@ export default function ContactDetailScreen() {
         })() && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>🌟 Personnalités nées ce jour-là</Text>
+              <TouchableOpacity onPress={() => toggleSection('celebs')} activeOpacity={0.7} style={styles.accordionHeaderRow}>
+                <Text style={styles.sectionLabel}>🌟 Personnalités nées ce jour-là</Text>
+                <Text style={styles.accordionArrow}>{openSections.celebs ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setCelebsHelpVisible(true)} style={styles.helpInfoBtn}>
                 <Text style={styles.helpInfoBtnText}>ℹ️</Text>
               </TouchableOpacity>
             </View>
+            {openSections.celebs && (
+            <>
             <FeatureIntroCard
               introText={"Ce jour-là, d'autres destins extraordinaires ont aussi commencé 🌟 Et si ton proche partageait son jour de naissance avec une star, un champion ou un génie ? 😄 Découvre quelles personnalités célèbres du monde entier sont nées exactement le même jour que lui et offre-lui une anecdote unique qui transforme son anniversaire en une rencontre inattendue avec l'histoire 🎂💛✨"}
               modeEmploiLines={[
@@ -2031,6 +2073,8 @@ export default function ContactDetailScreen() {
                 })}
               </View>
             )}
+            </>
+            )}
           </View>
         )}
 
@@ -2041,11 +2085,16 @@ export default function ContactDetailScreen() {
         })() && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>🌍 Le jour de sa naissance</Text>
+              <TouchableOpacity onPress={() => toggleSection('dayFacts')} activeOpacity={0.7} style={styles.accordionHeaderRow}>
+                <Text style={styles.sectionLabel}>🌍 Le jour de sa naissance</Text>
+                <Text style={styles.accordionArrow}>{openSections.dayFacts ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setDayFactsHelpVisible(true)} style={styles.helpInfoBtn}>
                 <Text style={styles.helpInfoBtnText}>ℹ️</Text>
               </TouchableOpacity>
             </View>
+            {openSections.dayFacts && (
+            <>
             <FeatureIntroCard
               introText={"Le jour où ton proche est né, le monde entier écrivait sa propre page d'histoire 🌍 Événements marquants, chanson n°1, film au cinéma, actualité du jour... Plonge dans le temps et découvre tout ce qui s'est passé exactement le jour de sa naissance — un voyage unique qui transforme chaque anniversaire en une fenêtre ouverte sur l'histoire 🎂🌟💛✨"}
               modeEmploiLines={[
@@ -2091,6 +2140,8 @@ export default function ContactDetailScreen() {
                 })}
               </View>
             )}
+            </>
+            )}
           </View>
         )}
 
@@ -2098,11 +2149,16 @@ export default function ContactDetailScreen() {
         {contact.relation !== 'pet' && cheminProfile && contact.birthday && !contact.birthday.startsWith('0000-') && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>🌟 Chemin de vie</Text>
+              <TouchableOpacity onPress={() => toggleSection('lifePath')} activeOpacity={0.7} style={styles.accordionHeaderRow}>
+                <Text style={styles.sectionLabel}>🌟 Chemin de vie</Text>
+                <Text style={styles.accordionArrow}>{openSections.lifePath ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setLifePathHelpVisible(true)} style={styles.helpInfoBtn}>
                 <Text style={styles.helpInfoBtnText}>ℹ️</Text>
               </TouchableOpacity>
             </View>
+            {openSections.lifePath && (
+            <>
             <FeatureIntroCard
               introText={"Ta date de naissance n'est peut-être pas un hasard 🌟 En numérologie, le chemin de vie est le chiffre le plus puissant de tous — considéré comme la boussole de ton existence, il révèle ta mission profonde, ce que tu es venu accomplir, tes talents naturels et les défis que tu es venu surmonter dans cette vie 🔢 Et si ta date de naissance cachait le secret de qui tu es vraiment ? 💛✨"}
               modeEmploiLines={[
@@ -2148,41 +2204,10 @@ export default function ContactDetailScreen() {
                 })}
               </View>
             )}
+            </>
+            )}
           </View>
         )}
-
-        {/* Actions rapides — masquées pour les animaux */}
-        {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Actions rapides</Text>
-          <View style={styles.actionsGrid}>
-            <ActionButton emoji="✦" line1="Créer un" line2="message" color={Colors.primary} onPress={handleCreateMessage} />
-            <ActionButton emoji="🎁" line1="Lancer une" line2="cagnotte" color="#c97d10" onPress={handleOpenPot} />
-            {/* Carte postale — désactivée pour l'instant */}
-            <ActionButton emoji="⬛" line1="Générer un" line2="QR code" color="#4dd4c4" onPress={handleOpenQR} />
-            <ActionButton
-              emoji="📞"
-              line1="Pour"
-              line2="appeler"
-              color={Colors.onSurfaceVariant}
-              onPress={handleCall}
-              disabled={!contact.phone}
-            />
-            <ActionButton
-              emoji="🔔"
-              line1="Partager"
-              line2="un rappel"
-              color="#FF6B35"
-              onPress={handleOpenSharedReminder}
-            />
-            <ActionButton
-              emoji="📒"
-              line1="Livre d'or"
-              line2="numérique"
-              color="#7B1FA2"
-              onPress={() => router.push({ pathname: '/(app)/guestbook', params: { contactId: id } } as never)}
-            />
-          </View>
-        </View>}
 
         {/* Liste de souhaits — masquée pour les animaux */}
         {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
@@ -2319,11 +2344,16 @@ export default function ContactDetailScreen() {
         {/* Centres d'intérêt — masqués pour les animaux */}
         {contact.relation !== 'pet' && contact.relation !== 'child_of' && <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionLabel}>Centres d'intérêt</Text>
+            <TouchableOpacity onPress={() => toggleSection('interests')} activeOpacity={0.7} style={styles.accordionHeaderRow}>
+              <Text style={styles.sectionLabel}>Centres d'intérêt</Text>
+              <Text style={styles.accordionArrow}>{openSections.interests ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => setInterestsHelpVisible(true)} style={styles.helpInfoBtn}>
               <Text style={styles.helpInfoBtnText}>ℹ️</Text>
             </TouchableOpacity>
           </View>
+          {openSections.interests && (
+          <>
           <FeatureIntroCard
             introText={"Mieux tu connais tes proches, mieux tu peux les surprendre 💛 Chaque personne est unique et ses cadeaux devraient l'être aussi 🎁 Renseigne les centres d'intérêt de tes contacts et laisse l'appli s'en inspirer pour générer des messages touchants, des idées cadeaux sur mesure et des suggestions d'activités qui leur ressemblent vraiment — parce qu'un message qui parle vraiment de lui c'est magique 🌟✨"}
             modeEmploiLines={[
@@ -2351,17 +2381,24 @@ export default function ContactDetailScreen() {
               <Text style={styles.emptyFieldText}>— Aucune caractéristique renseignée</Text>
             </View>
           )}
+          </>
+          )}
         </View>}
 
         {/* Couleur préférée */}
         {contact.relation !== 'pet' && contact.relation !== 'child_of' && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>🎨 Couleur préférée</Text>
+              <TouchableOpacity onPress={() => toggleSection('color')} activeOpacity={0.7} style={styles.accordionHeaderRow}>
+                <Text style={styles.sectionLabel}>🎨 Couleur préférée</Text>
+                <Text style={styles.accordionArrow}>{openSections.color ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setColorHelpVisible(true)} style={styles.helpInfoBtn}>
                 <Text style={styles.helpInfoBtnText}>ℹ️</Text>
               </TouchableOpacity>
             </View>
+            {openSections.color && (
+            <>
             <FeatureIntroCard
               introText={"Chaque couleur raconte une histoire et révèle une personnalité 🎨 Le bleu de la sérénité, le rouge de la passion, le vert de l'espoir... les couleurs parlent de nous bien plus qu'on ne le croit ! Renseigne la couleur favorite de ton proche et laisse l'appli s'en inspirer pour personnaliser ses messages 💛✨"}
               modeEmploiLines={[
@@ -2419,6 +2456,8 @@ export default function ContactDetailScreen() {
                   Couleur numérologique : <Text style={{ color: numéroPrenom.color, fontFamily: 'BeVietnamPro_700Bold' }}>{numéroPrenom.colorName}</Text>
                 </Text>
               </View>
+            )}
+            </>
             )}
           </View>
         )}
@@ -2494,6 +2533,22 @@ export default function ContactDetailScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* QR code à partager — masqué pour les animaux */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && (
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.giftBtn} onPress={handleOpenQR} activeOpacity={0.85}>
+              <View style={[styles.giftBtnIcon, { backgroundColor: '#4dd4c420' }]}>
+                <Text style={{ fontSize: 22 }}>⬛</Text>
+              </View>
+              <View style={styles.giftBtnText}>
+                <Text style={styles.giftBtnTitle}>Générer un QR code</Text>
+                <Text style={styles.giftBtnSub}>Partage un message d'un coup de scan</Text>
+              </View>
+              <Text style={styles.giftBtnArrow}>›</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Idées cadeaux IA */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.giftBtn} onPress={handleGiftSuggestions} activeOpacity={0.85}>
@@ -2507,6 +2562,58 @@ export default function ContactDetailScreen() {
             <Text style={styles.giftBtnArrow}>✦</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Cagnotte — masquée pour les animaux */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && (
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.giftBtn} onPress={handleOpenPot} activeOpacity={0.85}>
+              <View style={[styles.giftBtnIcon, { backgroundColor: '#c97d1020' }]}>
+                <Text style={{ fontSize: 22 }}>🎁</Text>
+              </View>
+              <View style={styles.giftBtnText}>
+                <Text style={styles.giftBtnTitle}>Lancer une cagnotte</Text>
+                <Text style={styles.giftBtnSub}>Organise un cadeau collectif pour {contact.name.split(' ')[0]}</Text>
+              </View>
+              <Text style={styles.giftBtnArrow}>›</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Livre d'or — masqué pour les animaux */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && (
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.giftBtn}
+              onPress={() => router.push({ pathname: '/(app)/guestbook', params: { contactId: id } } as never)}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.giftBtnIcon, { backgroundColor: '#7B1FA220' }]}>
+                <Text style={{ fontSize: 22 }}>📒</Text>
+              </View>
+              <View style={styles.giftBtnText}>
+                <Text style={styles.giftBtnTitle}>Livre d'or numérique</Text>
+                <Text style={styles.giftBtnSub}>Récolte des petits mots de tous ses proches</Text>
+              </View>
+              <Text style={styles.giftBtnArrow}>›</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Partager un rappel — masqué pour les animaux */}
+        {contact.relation !== 'pet' && contact.relation !== 'child_of' && (
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.giftBtn} onPress={handleOpenSharedReminder} activeOpacity={0.85}>
+              <View style={[styles.giftBtnIcon, { backgroundColor: '#FF6B3520' }]}>
+                <Text style={{ fontSize: 22 }}>🔔</Text>
+              </View>
+              <View style={styles.giftBtnText}>
+                <Text style={styles.giftBtnTitle}>Partager un rappel</Text>
+                <Text style={styles.giftBtnSub}>Préviens vos proches communs avant l'occasion</Text>
+              </View>
+              <Text style={styles.giftBtnArrow}>›</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Bouton supprimer */}
         <View style={styles.section}>
@@ -3818,38 +3925,6 @@ export default function ContactDetailScreen() {
   );
 }
 
-function ActionButton({
-  emoji,
-  line1,
-  line2,
-  color,
-  onPress,
-  disabled = false,
-}: {
-  emoji: string;
-  line1: string;
-  line2: string;
-  color: string;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  const C = useColors();
-  const styles = useMemo(() => makeStyles(C), [C]);
-  return (
-    <TouchableOpacity
-      style={[styles.actionBtn, disabled && { opacity: 0.4 }]}
-      onPress={onPress}
-      disabled={disabled}
-    >
-      <View style={[styles.actionIcon, { backgroundColor: color }]}>
-        <Text style={{ fontSize: 18, color: Colors.white }}>{emoji}</Text>
-      </View>
-      <Text style={styles.actionLabel}>{line1}</Text>
-      <Text style={styles.actionLabel}>{line2}</Text>
-    </TouchableOpacity>
-  );
-}
-
 // ── Composant carte numérologique ─────────────────────────────────────────────
 function NumerologyCard({
   label,
@@ -4205,27 +4280,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
 
   // Actions
-  actionsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  actionBtn: { flex: 1, alignItems: 'center', gap: 4 },
-  actionIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  actionLabel: {
-    fontFamily: 'BeVietnamPro_600SemiBold',
-    fontSize: Typography.xs,
-    color: Colors.onSurfaceVariant,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
 
   // Notes
   notesCard: {
@@ -4979,6 +5033,16 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     justifyContent: 'space-between',
     marginBottom: 8,
     marginTop: Spacing[1],
+  },
+  accordionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  accordionArrow: {
+    fontSize: 13,
+    color: C.primary,
+    paddingRight: 4,
   },
   cheminVieHeaderRow: {
     flexDirection: 'row',

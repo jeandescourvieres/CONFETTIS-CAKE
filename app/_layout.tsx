@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { StripeProvider } from '@stripe/stripe-react-native';
-import { Config } from '../src/constants/config';
+import { StripeProviderGate } from '../src/components/StripeProviderGate';
 import { StatusBar } from 'expo-status-bar';
 import '../src/i18n'; // initialise i18next (doit être importé tôt)
 import i18n from '../src/i18n';
@@ -120,7 +119,9 @@ function AuthGate({ onReady }: { onReady: () => void }) {
     const inGroupPage     = (segments[0] as string) === 'group';
     const inReactionPage  = (segments[0] as string) === 'reaction';
     const inGuestbookPage = (segments[0] as string) === 'guestbook';
-    if (!session && !inAuthGroup && !inCardGroup && !inGroupPage && !inReactionPage && !inGuestbookPage) {
+    // Landing page publique sur le web — pas de redirection vers le login
+    const inLandingPage   = Platform.OS === 'web' && (segments as readonly string[]).length === 0;
+    if (!session && !inAuthGroup && !inCardGroup && !inGroupPage && !inReactionPage && !inGuestbookPage && !inLandingPage) {
       router.replace('/(auth)/login');
       onReady();
     } else if (session && inAuthGroup) {
@@ -198,7 +199,7 @@ export default function RootLayout() {
   if (!fontsLoaded || !isInitialized) return null;
 
   return (
-    <StripeProvider publishableKey={Config.stripePublishableKey}>
+    <StripeProviderGate>
       <QueryClientProvider client={queryClient}>
         <AuthGate onReady={() => setNavigationReady(true)} />
         <NavigationLogger />
@@ -214,6 +215,6 @@ export default function RootLayout() {
         </Stack>
         <ToastRenderer />
       </QueryClientProvider>
-    </StripeProvider>
+    </StripeProviderGate>
   );
 }

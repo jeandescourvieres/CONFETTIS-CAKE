@@ -149,7 +149,7 @@ export const FRENCH_NAMEDAYS: Record<string, string[]> = {
   "06-06": ["Claude","Norbert"],
   "06-07": ["Gilbert"],
   "06-08": ["Médard"],
-  "06-09": ["Ephrem"],
+  "06-09": ["Ephrem", "Diane"],
   "06-10": ["Landry"],
   "06-11": ["Barnabé"],
   "06-12": ["Guy"],

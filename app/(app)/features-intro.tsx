@@ -2,13 +2,15 @@
 //  Confettis & Cake — Sélection du mode à la première connexion
 // ═══════════════════════════════════════════════════════════════════
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../../src/utils/storage';
+import { useAuthStore } from '../../src/stores/authStore';
+import { PremiumGateModal } from '../../src/components/ui/PremiumGateModal';
 
 const HOME_MODE_KEY       = 'cc_home_mode';
 const FEATURES_INTRO_KEY  = 'cc_features_intro_v1_seen';
@@ -29,6 +31,8 @@ function CheckItem({ text, color }: { text: string; color: string }) {
 
 export default function FeaturesIntroScreen() {
   const router = useRouter();
+  const profile = useAuthStore((s) => s.profile);
+  const [premiumGateVisible, setPremiumGateVisible] = useState(false);
 
   useEffect(() => {
     // Si le mode est déjà choisi, passe directement à l'app
@@ -41,6 +45,10 @@ export default function FeaturesIntroScreen() {
   }, []);
 
   const choose = async (mode: 'simple' | 'advanced') => {
+    if (mode === 'advanced' && profile?.plan !== 'premium') {
+      setPremiumGateVisible(true);
+      return;
+    }
     await Promise.all([
       SecureStore.setItemAsync(HOME_MODE_KEY, mode),
       SecureStore.setItemAsync(FEATURES_INTRO_KEY, 'seen'),
@@ -112,6 +120,14 @@ export default function FeaturesIntroScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      <PremiumGateModal
+        visible={premiumGateVisible}
+        onClose={() => setPremiumGateVisible(false)}
+        emoji="🍭"
+        title="Le mode complet est réservé au Premium"
+        description="Débloque toutes les fonctionnalités avancées de Confettis & Cake — horoscope, numérologie, animaux, cartes animées et bien plus — en passant en mode complet avec un abonnement Premium ⭐"
+      />
     </SafeAreaView>
   );
 }

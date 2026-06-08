@@ -13,6 +13,8 @@ create index if not exists contact_share_tokens_user_id_idx on public.contact_sh
 
 alter table public.contact_share_tokens enable row level security;
 
+drop policy if exists "owner can manage own tokens" on public.contact_share_tokens;
+
 create policy "owner can manage own tokens"
   on public.contact_share_tokens
   for all

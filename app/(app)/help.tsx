@@ -61,7 +61,7 @@ const STEPS: Step[] = [
 // ── Démarrage rapide ────────────────────────────────────────────────────────
 const QUICK_STEPS = [
   { n: '1', emoji: '👥', title: 'Ajouter un contact', desc: "Va dans l'onglet Contacts → bouton '+ Ajouter un contact 👤'. Renseigne le prénom et la date de naissance — c'est tout ce qu'il faut pour démarrer !", route: '/(app)/contacts' },
-  { n: '2', emoji: '✨', title: 'Générer un message IA', desc: "Dans la fiche de ton contact, appuie sur 'Envoyer un message ✨'. Choisis l'occasion, le format et la tonalité — l'IA crée un texte unique en quelques secondes.", route: '/(app)/contacts' },
+  { n: '2', emoji: '✨', title: 'Générer un message IA', desc: "Dans la fiche de ton contact, appuie sur 'Envoyer un message ✨'. Choisis l'occasion, le format et la tonalité — l'IA crée un texte unique en quelques secondes.", route: '/(app)/create' },
   { n: '3', emoji: '📤', title: 'Envoyer le message', desc: "Sur la page d'aperçu, choisis ton canal : WhatsApp 💬, SMS 📱, Email 📧 ou Copier 📋. Ton message est prêt à partir !", route: '/(app)/create' },
   { n: '4', emoji: '🔔', title: 'Activer les alertes', desc: "Dans Paramètres → Notifications, active les rappels pour ne plus jamais rater un anniversaire ou une fête !", route: '/(app)/settings' },
 ];

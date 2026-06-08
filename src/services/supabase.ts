@@ -1,7 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { Config } from '@constants/config';
 import type { Database } from '../types/database.types';
+
+// expo-secure-store n'a pas d'implémentation web — on utilise localStorage à la place,
+// qui n'a pas la limite de 2048 bytes (pas besoin de chunking côté web).
+const WebStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    try { return globalThis.localStorage?.getItem(key) ?? null; } catch { return null; }
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    try { globalThis.localStorage?.setItem(key, value); } catch { /* silent */ }
+  },
+  removeItem: async (key: string): Promise<void> => {
+    try { globalThis.localStorage?.removeItem(key); } catch { /* silent */ }
+  },
+};
 
 // SecureStore est limité à 2048 bytes par entrée.
 // Les tokens Supabase dépassent cette limite → on découpe en chunks.
@@ -61,7 +76,7 @@ export const supabase = createClient<Database>(
   Config.supabaseAnonKey,
   {
     auth: {
-      storage: ChunkedSecureStore,
+      storage: Platform.OS === 'web' ? WebStorage : ChunkedSecureStore,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,

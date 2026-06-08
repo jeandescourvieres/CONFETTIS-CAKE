@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import QRCode from 'react-native-qrcode-svg';
 import { useMessage } from '../../../src/hooks/useAIGenerate';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
+import { useQrQuota, QR_FREE_QUOTA } from '../../../src/hooks/useQrQuota';
+import { PremiumWall } from '../../../src/components/ui/PremiumWall';
 
 const FORMAT_EMOJI: Record<string, string> = { song: '🎵', poem: '✍️', message: '💬', joke: '✨' };
 
@@ -23,6 +25,17 @@ export default function QRScreen() {
   const svgRef = useRef<{ toDataURL: (cb: (data: string) => void) => void } | null>(null);
 
   const { data: message, isLoading } = useMessage(id ?? null);
+  const { isLoading: isQuotaLoading, isLocked, alreadyGenerated, remaining, registerGeneration } = useQrQuota(id);
+
+  useEffect(() => {
+    if (message && !isLocked && !alreadyGenerated) registerGeneration();
+  }, [message, isLocked, alreadyGenerated]);
+
+  useEffect(() => {
+    if (!isQuotaLoading) {
+      console.log('[QR-QUOTA-DEBUG]', { messageId: id, isLocked, alreadyGenerated, remaining });
+    }
+  }, [isQuotaLoading, id, isLocked, alreadyGenerated, remaining]);
 
   // The QR code encodes a short text version of the message
   const qrValue = message
@@ -39,12 +52,31 @@ export default function QRScreen() {
 
   const styles = useMemo(() => makeStyles(C), [C]);
 
-  if (isLoading || !message) {
+  if (isLoading || !message || isQuotaLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.center}>
           <Text style={styles.loadingText}>Chargement...</Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.topbar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+            <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
+          </TouchableOpacity>
+          <Text style={styles.topbarTitle}>QR Code</Text>
+          <View style={{ minWidth: 70 }} />
+        </View>
+        <PremiumWall
+          emoji="⬛"
+          title="Tu as utilisé tes 3 QR codes gratuits ✨"
+          description="Avec Premium, génère des QR codes à l'infini pour partager tous tes messages d'un coup de scan — sans aucune limite."
+        />
       </SafeAreaView>
     );
   }
@@ -61,6 +93,14 @@ export default function QRScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {!alreadyGenerated && (() => {
+          const after = remaining - 1;
+          if (after > 1) return <Text style={styles.quotaHint}>{`✨ Il te restera ${after} QR codes gratuits après celui-ci`}</Text>;
+          if (after === 1) return <Text style={styles.quotaHint}>{'✨ Il te restera 1 QR code gratuit après celui-ci'}</Text>;
+          if (after === 0) return <Text style={styles.quotaHint}>{'✨ Dernier QR code gratuit — les suivants sont réservés à Premium'}</Text>;
+          return null;
+        })()}
+
 
         {/* ── Info card ─────────────────────────────── */}
         <View style={styles.infoCard}>
@@ -133,6 +173,13 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_400Regular',
     fontSize: Typography.md,
     color: Colors.onSurfaceVariant,
+  },
+  quotaHint: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.lg,
+    color: '#c97d10',
+    textAlign: 'center',
+    marginBottom: Spacing[2],
   },
 
   topbar: {

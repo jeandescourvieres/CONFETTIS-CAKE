@@ -65,8 +65,8 @@ export default function AutoSendsScreen() {
           {/* Explication */}
           <View style={styles.infoBanner}>
             <Text style={styles.infoText}>
-              🤖 Configure une fois, l'app envoie automatiquement le jour J.{'\n'}
-              Tu seras notifié à chaque envoi !
+              🤖 Configure une fois, l'application envoie automatiquement le jour J.{'\n'}
+              Tu recevras une notification à chaque envoi !
             </Text>
           </View>
 

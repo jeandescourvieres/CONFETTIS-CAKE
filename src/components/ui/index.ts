@@ -5,3 +5,5 @@ export { Avatar } from './Avatar';
 export { Badge } from './Badge';
 export { Toggle } from './Toggle';
 export { ProgressBar } from './ProgressBar';
+export { PremiumWall } from './PremiumWall';
+export { PremiumGateModal } from './PremiumGateModal';

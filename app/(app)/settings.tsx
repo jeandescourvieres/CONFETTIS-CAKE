@@ -8,7 +8,7 @@ import { COUNTRY_LABELS, type Country } from '../../src/constants/publicHolidays
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Linking } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../../src/utils/storage';
 import { useAuthStore } from '../../src/stores/authStore';
 import {
   useNotifSchedule, NOTIF_PRESETS, CUSTOM_DAY_OPTIONS,

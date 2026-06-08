@@ -153,7 +153,9 @@
           <div style="font-size:11px;color:#00ff88;font-family:monospace;letter-spacing:1px;">TRANSMISSION EN COURS</div>
           <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
             <button id="morse-play-btn" onclick="playMorse()" style="background:#00ff88;border:none;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:#000;cursor:pointer;">▶ ÉCOUTER</button>
+            <button id="morse-stop-btn" onclick="stopMorse()" style="display:none;background:#ff4444;border:none;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;">⏹ STOP</button>
             <button id="morse-dl-btn" onclick="downloadMorseAudio()" title="Télécharger l'audio" style="background:transparent;border:1px solid #00ff88;border-radius:20px;padding:6px 10px;font-size:12px;font-weight:700;color:#00ff88;cursor:pointer;">⬇</button>
+            <button onclick="closeMorse()" title="Fermer" style="background:transparent;border:1px solid rgba(0,255,136,0.4);border-radius:20px;padding:6px 10px;font-size:13px;font-weight:700;color:rgba(0,255,136,0.7);cursor:pointer;line-height:1;">✕</button>
           </div>
         </div>
         <div id="morse-code" style="font-family:monospace;font-size:16px;color:#00ff88;line-height:2;letter-spacing:3px;word-break:break-all;"></div>
@@ -199,15 +201,15 @@
   var cardBgKey   = p.get('card_bg') || '';
 
   var CARD_BG_COLORS = {
-    violet:    ['#7b2ff7', '#4a0e8f'],
-    bleu:      ['#1a3a6b', '#0d2144'],
-    rose:      ['#c2185b', '#880e4f'],
-    rouge:     ['#c62828', '#7f0000'],
-    vert:      ['#1b5e20', '#0a3d0a'],
-    or:        ['#b8860b', '#7a5800'],
-    noir:      ['#1a1a2e', '#0d0d1a'],
-    turquoise: ['#00695c', '#004d40'],
-    ardoise:   ['#37474f', '#263238'],
+    violet:    ['#9b59ff', '#5a0eb5'],
+    bleu:      ['#1976d2', '#0d47a1'],
+    rose:      ['#e91e8c', '#9c0060'],
+    rouge:     ['#e53935', '#b71c1c'],
+    vert:      ['#388e3c', '#1b5e20'],
+    or:        ['#f9a825', '#c67c00'],
+    turquoise: ['#00897b', '#004d40'],
+    ardoise:   ['#546e7a', '#263238'],
+    noir:      ['#2d2d2d', '#0d0d1a'],
   };
 
   // Lance la musique de fond si demandée
@@ -462,12 +464,46 @@
     return t;
   }
 
+  var morseCtx = null;
+
   function playMorse() {
-    var btn = document.getElementById('morse-play-btn');
-    btn.disabled = true; btn.textContent = '⏳';
+    var playBtn = document.getElementById('morse-play-btn');
+    var stopBtn = document.getElementById('morse-stop-btn');
+    if (morseCtx) { try { morseCtx.close(); } catch(e){} morseCtx = null; }
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    morseCtx = ctx;
+    playBtn.style.display = 'none';
+    stopBtn.style.display = '';
     var end = _scheduleMorse(ctx, ctx.currentTime + 0.1);
-    setTimeout(function(){ btn.disabled = false; btn.textContent = '▶ ÉCOUTER'; }, (end - ctx.currentTime) * 1000 + 300);
+    setTimeout(function(){
+      if (morseCtx === ctx) {
+        morseCtx = null;
+        playBtn.style.display = '';
+        stopBtn.style.display = 'none';
+      }
+    }, (end - ctx.currentTime) * 1000 + 300);
+  }
+
+  function stopMorse() {
+    if (morseCtx) { try { morseCtx.close(); } catch(e){} morseCtx = null; }
+    var playBtn = document.getElementById('morse-play-btn');
+    var stopBtn = document.getElementById('morse-stop-btn');
+    playBtn.style.display = '';
+    stopBtn.style.display = 'none';
+  }
+
+  function closeMorse() {
+    stopMorse();
+    document.getElementById('morse-box').style.display = 'none';
+    var msgBox  = document.getElementById('message-box');
+    var msgText = document.getElementById('message-text');
+    var msgFrom = document.getElementById('message-from');
+    msgText.textContent = document.getElementById('morse-text').textContent || message;
+    if (sender) msgFrom.textContent = sender;
+    var resolvedBg = (msgBgKey && MSG_BG[msgBgKey]) ? MSG_BG[msgBgKey] : MSG_BG.violet;
+    msgBox.style.background = resolvedBg;
+    msgBox.style.display = 'block';
+    document.getElementById('text-overlay').style.bottom = '200px';
   }
 
   function downloadMorseAudio() {

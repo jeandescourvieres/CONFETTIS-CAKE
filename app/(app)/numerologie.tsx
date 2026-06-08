@@ -2,7 +2,7 @@
 //  Confettis & Cake — Numérologie (Phase 5)
 // ═══════════════════════════════════════════════════════════════
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,10 +15,12 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { calcNumerology, calcLifePath, getNumerologyProfile } from '../../src/utils/numerology';
+import { useAuthStore } from '../../src/stores/authStore';
+import { extractFirstName, extractLastName } from '../../src/utils/nameHelpers';
 import { FeatureIntroCard } from '../../src/components/ui/FeatureIntroCard';
 
 // ── Suggestions ──────────────────────────────────────────────────────────────
@@ -36,6 +38,21 @@ export default function NumerologieScreen() {
   const [prenom, setPrenom] = useState('');
   const [nom, setNom]       = useState('');
   const [birthday, setBirthday] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
+  const { profile } = useAuthStore();
+  const showOwnNumerology = () => {
+    if (profile?.full_name) {
+      const first = extractFirstName(profile.full_name);
+      const last = extractLastName(profile.full_name);
+      setPrenom(first);
+      if (last && last !== first) setNom(last);
+    }
+    if (profile?.birthday && /^\d{4}-\d{2}-\d{2}$/.test(profile.birthday) && !profile.birthday.startsWith('0000')) {
+      const [y, m, d] = profile.birthday.split('-');
+      setBirthday(`${d}/${m}/${y}`);
+    }
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
 
   const handleBirthdayChange = (text: string) => {
     // Garde uniquement les chiffres, max 8
@@ -51,6 +68,14 @@ export default function NumerologieScreen() {
   };
   const [helpVisible, setHelpVisible] = useState(false);
   const [showCalcDetail, setShowCalcDetail] = useState(false);
+
+  // Repart d'une page vierge à chaque nouvelle arrivée sur l'écran
+  useFocusEffect(useCallback(() => {
+    setPrenom('');
+    setNom('');
+    setBirthday('');
+    setShowCalcDetail(false);
+  }, []));
 
   // ── Calculs ────────────────────────────────────────────────────────────────
 
@@ -157,6 +182,7 @@ export default function NumerologieScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -417,7 +443,14 @@ export default function NumerologieScreen() {
             <View style={styles.ctaGroup}>
               <TouchableOpacity
                 style={[styles.contactsBtn, { backgroundColor: C.primary }]}
-                onPress={() => router.push('/(app)/contacts/' as never)}
+                onPress={showOwnNumerology}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.contactsBtnText}>🔮 Voir ma numérologie</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.contactsBtn, { backgroundColor: C.primary }]}
+                onPress={() => router.push({ pathname: '/(app)/contacts/', params: { redirectTo: 'numerologie' } } as never)}
                 activeOpacity={0.85}
               >
                 <Text style={styles.contactsBtnText}>👤 Voir la numérologie d'un de mes contacts et notre compatibilité</Text>

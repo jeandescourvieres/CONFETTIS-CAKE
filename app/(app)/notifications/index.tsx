@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 import { BackHeader } from '../../../src/components/ui/BackHeader';
+import { FeatureIntroCard } from '../../../src/components/ui/FeatureIntroCard';
 import { useUpcomingEvents } from '../../../src/hooks/useContacts';
 import { useUpcomingCustomEvents } from '../../../src/hooks/useCustomEvents';
 import { getUpcomingHolidays } from '../../../src/utils/generalHolidays';
@@ -138,6 +139,18 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <BackHeader title="🔔 Notifications" />
+
+      {/* Intro explicative */}
+      <FeatureIntroCard
+        introText={"Toutes tes alertes au même endroit 🔔 L'onglet « À venir » te montre les anniversaires, fêtes et rappels qui approchent, pour t'organiser à l'avance. L'onglet « Historique » garde une trace de toutes les notifications déjà reçues, pour ne jamais perdre le fil."}
+        modeEmploiLines={[
+          "📅 « À venir » liste les 30 prochains jours : anniversaires, fêtes du prénom, jours fériés et rappels personnalisés",
+          "🔔 « Historique » regroupe toutes les notifications déjà envoyées, classées de la plus récente à la plus ancienne",
+          "✓ Touche « Tout marquer comme lu » pour faire le ménage d'un coup dans ton historique",
+          "⚙️ Pour choisir quand et comment être prévenu·e, rends-toi dans Paramètres → 🔔 Notifications",
+        ]}
+        containerStyle={{ marginHorizontal: Spacing[4], marginTop: Spacing[3] }}
+      />
 
       {/* Onglets */}
       <View style={styles.tabs}>

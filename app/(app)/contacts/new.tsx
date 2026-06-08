@@ -466,7 +466,7 @@ export default function NewContactScreen() {
             <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#0284C7', lineHeight: 18 }}>
               {'📷 Appuie sur le rond ci-dessous pour charger une vraie photo.\n✨ Une fois la fiche créée, tu pourras aussi générer un '}
               <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>portrait IA unique</Text>
-              {' depuis la fiche du contact.'}
+              {' (un avatar) depuis la fiche du contact.'}
             </Text>
           </View>
         </View>

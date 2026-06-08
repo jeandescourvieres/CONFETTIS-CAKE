@@ -207,9 +207,9 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     },
     introText: {
       fontFamily: 'BeVietnamPro_400Regular',
-      fontSize: Typography.sm,
+      fontSize: Typography.md,
       color: Colors.onSurfaceVariant,
-      lineHeight: 20,
+      lineHeight: 22,
     },
     introExamples: { gap: 6 },
     introRow: {

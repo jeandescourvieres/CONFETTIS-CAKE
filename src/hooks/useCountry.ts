@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../utils/storage';
 import type { Country } from '../constants/publicHolidays';
 
 const COUNTRY_KEY = 'cc_user_country';

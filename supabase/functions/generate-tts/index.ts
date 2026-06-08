@@ -18,7 +18,6 @@ const VOICES: Record<string, string> = {
   pirate:           'pNInz6obpgDQGcFmaJgB', // Adam — grave et rauque
   robot:            'pNInz6obpgDQGcFmaJgB', // Adam — très stable, robotique
   presentateur:     'TxGEqnHWrfWFTfGW9XjX', // Josh — clair et professionnel
-  enfant:           'EXAVITQu4vr4xnSDxMaL', // Aria — léger et enjoué
   roi_reine:        '21m00Tcm4TlvDq8ikWAM', // Rachel — posée et solennelle
 };
 
@@ -28,10 +27,9 @@ type VoiceSettings = { stability: number; similarity_boost: number; style: numbe
 function getVoiceSettings(voice_key: string): VoiceSettings {
   const map: Record<string, VoiceSettings> = {
     robot:        { stability: 0.95, similarity_boost: 0.80, style: 0.05, use_speaker_boost: false },
-    pirate:       { stability: 0.35, similarity_boost: 0.70, style: 0.80, use_speaker_boost: true  },
+    pirate:       { stability: 0.55, similarity_boost: 0.70, style: 0.75, use_speaker_boost: true  },
     pere_noel:    { stability: 0.60, similarity_boost: 0.75, style: 0.75, use_speaker_boost: true  },
     presentateur: { stability: 0.85, similarity_boost: 0.80, style: 0.30, use_speaker_boost: true  },
-    enfant:       { stability: 0.30, similarity_boost: 0.65, style: 0.90, use_speaker_boost: true  },
     roi_reine:    { stability: 0.80, similarity_boost: 0.80, style: 0.55, use_speaker_boost: true  },
   };
   return map[voice_key] ?? { stability: 0.45, similarity_boost: 0.75, style: 0.40, use_speaker_boost: true };
@@ -40,10 +38,9 @@ function getVoiceSettings(voice_key: string): VoiceSettings {
 function transformText(text: string, voice_key: string): string {
   switch (voice_key) {
     case 'pere_noel':    return `Ho ho ho ! ${text} Joyeux Noël à toi !`;
-    case 'pirate':       return `Arrr ! ${text} Que les vents te soient favorables, moussaillon !`;
+    case 'pirate':       return `Arrr ! ${text} Arrr, bonne route, matelot !`;
     case 'robot':        return `Message. En. Cours. De. Transmission. ${text} Fin. De. Message.`;
     case 'presentateur': return `Chers auditeurs, voici un message exceptionnel. ${text} Restez à l'écoute !`;
-    case 'enfant':       return `${text} Youpi youpi !`;
     case 'roi_reine':    return `Nous, en notre royale grandeur, vous adressons ce message. ${text} Qu'il en soit ainsi.`;
     default: return text;
   }
@@ -106,10 +103,7 @@ serve(async (req: Request) => {
     const finalText = transformText(text, voice_key);
     const ttsResp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text: finalText,
         model_id: 'eleven_multilingual_v2',
@@ -124,7 +118,7 @@ serve(async (req: Request) => {
 
     // ── Upload vers Supabase Storage (bucket : generated-audio) ─────────────
     const audioBuffer = await ttsResp.arrayBuffer();
-    const fileName = `tts/${message_id}_${voice_key}_${Date.now()}.mp3`;
+    const fileName    = `tts/${message_id}_${voice_key}_${Date.now()}.mp3`;
 
     const { error: uploadErr } = await supabase.storage
       .from('generated-audio')

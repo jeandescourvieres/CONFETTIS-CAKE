@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
 const CREDITS_PER_REFERRAL = 5;
+const CHALLENGE_GOAL       = 5;
 
 /**
  * Appelé à l'inscription si l'utilisateur a saisi un code parrainage.
@@ -57,6 +58,30 @@ export async function applyReferralCode(
     .from('profiles')
     .update({ credits: ((referee?.credits) ?? 0) + CREDITS_PER_REFERRAL })
     .eq('id', refereeId);
+
+  // 5. Challenge prescripteurs — vérifier si l'objectif est atteint
+  const { count } = await (supabase as any)
+    .from('referrals')
+    .select('id', { count: 'exact', head: true })
+    .eq('referrer_id', referrer.id);
+
+  if ((count ?? 0) >= CHALLENGE_GOAL) {
+    const { data: referrerProfile } = await (supabase as any)
+      .from('profiles')
+      .select('challenge_won_at')
+      .eq('id', referrer.id)
+      .single();
+
+    if (!referrerProfile?.challenge_won_at) {
+      (supabase as any).functions.invoke('notify-challenge-winner', {
+        body: {
+          winner_id:      referrer.id,
+          winner_name:    referrer.full_name ?? null,
+          referral_count: count,
+        },
+      }).catch(() => {});
+    }
+  }
 }
 
 /**
@@ -68,6 +93,20 @@ export async function fetchMyReferral(refereeId: string) {
     .select('id, referrer_name, credits_awarded, created_at')
     .eq('referee_id', refereeId)
     .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
+/**
+ * Récupère le dernier classement mensuel des prescripteurs (volume + qualité).
+ */
+export async function fetchLatestMonthlyChallenge() {
+  const { data } = await (supabase as any)
+    .from('referral_monthly_challenges')
+    .select('period_start, period_end, volume_winner_name, volume_winner_count, quality_winner_name, quality_winner_count')
+    .order('period_start', { ascending: false })
     .limit(1)
     .maybeSingle();
 

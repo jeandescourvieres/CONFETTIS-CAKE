@@ -298,7 +298,6 @@ export default function CoupleModeScreen() {
           </>
         )}
 
-        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -309,7 +308,7 @@ export default function CoupleModeScreen() {
 function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
-    content:   { paddingHorizontal: Spacing[4], paddingBottom: 24 },
+    content:   { paddingHorizontal: Spacing[4], paddingBottom: 100 },
     center:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
     hero: { alignItems: 'center', paddingVertical: 20, gap: 6 },

@@ -9,11 +9,12 @@ import {
   Image,
   Modal,
 } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../../src/utils/storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
 import { Button3D } from '../../src/components/ui/Button3D';
+import { PremiumGateModal } from '../../src/components/ui/PremiumGateModal';
 import { useRelationBarometer } from '../../src/hooks/useRelationBarometer';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -130,7 +131,7 @@ const INTRO_ACCORDION: { emoji: string; title: string; body: string }[] = [
   { emoji: '🎁', title: 'Cagnottes & messages festifs', body: 'Organise une cagnotte collective pour un cadeau commun. Et pour aller plus loin, envoie un message festif animé — ton proche reçoit un lien qui s\'ouvre sur une animation avec son prénom, ton message et une musique de fond 🎉' },
   { emoji: '🎙️', title: 'Voix fun pour tes messages', body: 'Père Noël, Pirate, Robot, Roi/Reine, Enfant, Présentateur radio… Transforme ton message en audio avec des voix décalées et hilarantes ! Disponible dans l\'aperçu du message après rédaction.' },
   { emoji: '🎨', title: 'Portraits IA pour tes contacts', body: 'Génère un portrait illustré unique pour chacun de tes contacts ! L\'IA s\'inspire de leur sexe, leur âge, leur signe astrologique, leur animal chinois, leur couleur préférée et leur personnalité pour créer une illustration artistique — jamais la même deux fois. Accès depuis la fiche de chaque contact.' },
-  { emoji: '⚙️', title: 'Et encore bien d\'autres fonctions…', body: 'Lecture vocale du message avec musique de fond, mode couple pour partager l\'agenda, messages "de la part de l\'enfant", livre d\'or partageable, envois automatiques… Tu découvriras tout ça au fil du temps.' },
+  { emoji: '⚙️', title: 'Et encore bien d\'autres fonctions…', body: 'Lecture vocale du message avec musique de fond, mode couple pour partager l\'agenda, messages "de la part de l\'enfant", livre d\'or partageable, envois automatiques, QR code pour transmettre un message d\'un coup de scan, petits rappels à glisser à tes proches pour qu\'ils n\'oublient jamais une date importante… Tu découvriras tout ça au fil du temps.' },
 ];
 
 const INTRO_FEATURES: { emoji: string; text?: string; rich?: 'no-fautes' }[] = [
@@ -377,6 +378,7 @@ export default function HomeScreen() {
   const upcomingHolidaysCount = useMemo(() => getUpcomingHolidays(365).length, []);
   const { reset, setContact, setOccasion } = useCreateStore();
   const scrollRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
   useTabScrollToTop('index', () => scrollRef.current?.scrollTo({ y: 0, animated: false }));
   useFocusEffect(useCallback(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -385,6 +387,8 @@ export default function HomeScreen() {
     setWeatherOpen(false);
     setAnimalCardOpen(false);
     setMorseCardOpen(false);
+    setBarometerCardOpenFull(false);
+    setRecentMessagesOpen(false);
     setFeatAccordionOpen(null);
     setDictonOpen(false);
     setAdvancedWelcomeDismissed(false);
@@ -407,20 +411,45 @@ export default function HomeScreen() {
     });
   }, []);
 
+  const [premiumGateVisible, setPremiumGateVisible] = useState(false);
+
   const toggleHomeMode = useCallback(async () => {
     const next = homeMode === 'simple' ? 'advanced' : 'simple';
+    if (next === 'advanced' && profile?.plan !== 'premium') {
+      setPremiumGateVisible(true);
+      return;
+    }
     setHomeMode(next);
     await SecureStore.setItemAsync(HOME_MODE_KEY, next);
     // Toujours remonter en haut pour voir la carte de bienvenue
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
-  }, [homeMode]);
+  }, [homeMode, profile?.plan]);
 
   const [briefsOpen, setBriefsOpen] = useState(false);
   const [horoscopeHelpVisible, setHoroscopeHelpVisible] = useState(false);
+  const [animalInfoVisible, setAnimalInfoVisible] = useState(false);
+  const [morseInfoVisible, setMorseInfoVisible] = useState(false);
+  const [reminderInfoVisible, setReminderInfoVisible] = useState(false);
   const [weatherOpen, setWeatherOpen] = useState(false);
   const [dictonOpen, setDictonOpen] = useState(false);
   const [animalCardOpen, setAnimalCardOpen] = useState(false);
   const [morseCardOpen, setMorseCardOpen] = useState(false);
+  const [barometerCardOpenFull, setBarometerCardOpenFull] = useState(false);
+  const toggleBarometerCardFull = () => {
+    const y = scrollYRef.current;
+    setBarometerCardOpenFull(v => !v);
+    setTimeout(() => {
+      try { scrollRef.current?.scrollTo({ y, animated: false }); } catch { /* silent */ }
+    }, 30);
+  };
+  const [recentMessagesOpen, setRecentMessagesOpen] = useState(false);
+  const toggleRecentMessagesCard = () => {
+    const y = scrollYRef.current;
+    setRecentMessagesOpen(v => !v);
+    setTimeout(() => {
+      try { scrollRef.current?.scrollTo({ y, animated: false }); } catch { /* silent */ }
+    }, 30);
+  };
   const [advancedWelcomeDismissed, setAdvancedWelcomeDismissed] = useState(false);
   useEffect(() => {
     // Brèves toujours fermées au démarrage (pas de restauration SecureStore)
@@ -526,7 +555,13 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={16}
+      >
 
         {/* ══════════════════════ MODE SIMPLE ═════════════════════════ */}
         {homeMode === 'simple' && (
@@ -633,11 +668,11 @@ export default function HomeScreen() {
                 activeOpacity={0.8}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>🌸 Les brèves du jour</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>🌸 Les brèves du jour :</Text>
                   <Text style={{ color: '#7C3AED', fontSize: 18, fontWeight: '700' }}>{briefsOpen ? '▲' : '▼'}</Text>
                 </View>
                 {!briefsOpen && (
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Fête du jour · dicton · zodiaque…</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Fête du jour · dicton · zodiaque · horoscope festif…</Text>
                 )}
               </TouchableOpacity>
               {briefsOpen && (
@@ -846,7 +881,7 @@ export default function HomeScreen() {
               </View>
               <TouchableOpacity onPress={() => setAnimalCardOpen(v => !v)} activeOpacity={0.85}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Vos animaux peuvent écrire !</Text>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Tes animaux peuvent écrire !</Text>
                   <Text style={{ color: '#6EE7B7', fontSize: 18, fontWeight: '700' }}>{animalCardOpen ? '▲' : '▼'}</Text>
                 </View>
               </TouchableOpacity>
@@ -866,44 +901,16 @@ export default function HomeScreen() {
               </View>
               <TouchableOpacity onPress={() => setMorseCardOpen(v => !v)} activeOpacity={0.85}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Cache un secret dans ton message !</Text>
+                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Un secret dans ton message ?</Text>
                   <Text style={{ color: '#A5B4FC', fontSize: 18, fontWeight: '700' }}>{morseCardOpen ? '▲' : '▼'}</Text>
                 </View>
               </TouchableOpacity>
               <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
               <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
               {morseCardOpen && (
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20, marginTop: 4 }}>{'Chaque message festif animé contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nPour y accéder : ouvre le lien du message festif animé et cherche l\'icône 📡 en bas de l\'écran.'}</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20, marginTop: 4 }}>{'Tu peux envoyer un message codé en morse dans ton message festif animé ! Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nPour y accéder : ouvre le lien du message festif animé et cherche l\'icône 📡 en bas de l\'écran.'}</Text>
               )}
             </View>
-
-            {/* ── Baromètre de relation (mode simple) ── */}
-            {barometerContacts.length > 0 && (
-              <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[4], gap: 10 }}>
-                <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface }}>❤️ Contacts à ne pas oublier :</Text>
-                {barometerContacts.map((c) => {
-                  const firstName = c.name.trim().split(/\s+/).find((w: string) => w !== w.toUpperCase()) ?? c.name.split(' ')[0];
-                  const msg = c.daysSinceLastMessage === null
-                    ? `Tu n'as encore jamais écrit à ${firstName}.`
-                    : `Cela fait ${c.daysSinceLastMessage} jours que tu n'as pas écrit à ${firstName}.`;
-                  return (
-                    <TouchableOpacity
-                      key={c.id}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFF1F7', borderRadius: Radii.lg, padding: 12, borderWidth: 1.5, borderColor: '#FBCFE8' }}
-                      onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: c.id } } as never)}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={{ fontSize: 28 }}>💌</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{firstName}</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, lineHeight: 16 }}>{msg}</Text>
-                      </View>
-                      <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.primary }}>Écrire →</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
 
             {/* Grille accès rapide */}
             <Text style={styles.quickSectionLabel}>🗺️ Accès rapide. Toutes les fonctions :</Text>
@@ -912,7 +919,7 @@ export default function HomeScreen() {
               <QuickAction emoji="😎"  label="Mode Jeune"          onPress={() => router.push('/(app)/mode-jeune' as never)} />
               <QuickAction emoji="📅"  label="Ton agenda"          onPress={() => router.push('/(app)/calendar' as never)} />
               <QuickAction emoji="🗓️" label="Créer un événement"  onPress={() => router.push('/(app)/calendar/new-event' as never)} />
-              <QuickAction emoji="🎊"  label="Festif animé"        onPress={() => router.push('/(app)/cards/' as never)} />
+              <QuickAction emoji="🎊"  label="Message festif animé"        onPress={() => router.push('/(app)/cards/' as never)} />
               <QuickAction emoji="👥"  label="Mes contacts"        onPress={() => router.push('/(app)/contacts' as never)} />
               <QuickAction emoji="🐷"  label="Cagnotte"            onPress={() => router.push('/(app)/cagnotte-guide' as never)} />
               <QuickAction emoji="📊"  label="Tableau de bord"     onPress={() => router.push('/(app)/dashboard' as never)} />
@@ -1045,11 +1052,11 @@ export default function HomeScreen() {
                 activeOpacity={0.8}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>🌸 Les brèves du jour</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: '#7C3AED' }}>🌸 Les brèves du jour :</Text>
                   <Text style={{ color: '#7C3AED', fontSize: 18, fontWeight: '700' }}>{briefsOpen ? '▲' : '▼'}</Text>
                 </View>
                 {!briefsOpen && (
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Fête du jour · dicton · zodiaque…</Text>
+                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#9333EA', marginTop: 4 }}>Fête du jour · dicton · zodiaque · horoscope festif…</Text>
                 )}
               </TouchableOpacity>
               {briefsOpen && (
@@ -1065,6 +1072,25 @@ export default function HomeScreen() {
                       </View>
                       <Text style={{ color: Colors.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
                     </TouchableOpacity>
+                    {/* Horoscope festif */}
+                    <View style={{ backgroundColor: '#FDF4FF', borderRadius: Radii.md, padding: 10, borderLeftWidth: 3, borderLeftColor: '#A855F7' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: '#7C3AED' }}>🔮 Horoscope festif du jour</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: '#A78BFA', marginTop: 1 }}>Humoristique · change chaque jour ✨</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => setHoroscopeHelpVisible(true)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center', marginLeft: 8 }}
+                        >
+                          <Text style={{ fontSize: 12, lineHeight: 15 }}>ℹ️</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#4C1D95', lineHeight: 20, fontStyle: 'italic' }}>
+                        {getHoroscopeFestif(currentZodiacSign.name)}
+                      </Text>
+                    </View>
                     {zodiacSeasonContacts.length > 0 && (
                       <View style={{ gap: 4 }}>
                         <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.onSurfaceVariant }}>
@@ -1194,31 +1220,40 @@ export default function HomeScreen() {
               )}
             </View>
 
-            {/* ── Baromètre de relation ── */}
+            {/* ── Baromètre de relation — carte accordéon spéciale ── */}
             {barometerContacts.length > 0 && (
-              <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[4], gap: 10 }}>
-                <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface }}>❤️ Contacts à ne pas oublier :</Text>
-                {barometerContacts.map((c) => {
-                  const firstName = c.name.trim().split(/\s+/).find((w: string) => w !== w.toUpperCase()) ?? c.name.split(' ')[0];
-                  const msg = c.daysSinceLastMessage === null
-                    ? `Tu n'as encore jamais écrit à ${firstName}.`
-                    : `Cela fait ${c.daysSinceLastMessage} jours que tu n'as pas écrit à ${firstName}.`;
-                  return (
-                    <TouchableOpacity
-                      key={c.id}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFF1F7', borderRadius: Radii.lg, padding: 12, borderWidth: 1.5, borderColor: '#FBCFE8' }}
-                      onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: c.id } } as never)}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={{ fontSize: 28 }}>💌</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{firstName}</Text>
-                        <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, lineHeight: 16 }}>{msg}</Text>
-                      </View>
-                      <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.primary }}>Écrire →</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+              <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[4], borderRadius: Radii.xl, backgroundColor: '#FFF1F7', borderWidth: 3, borderColor: '#F43F5E', padding: Spacing[4], gap: 4 }}>
+                <TouchableOpacity onPress={toggleBarometerCardFull} activeOpacity={0.85}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface, flex: 1 }}>❤️ Les contacts à ne pas oublier ({barometerContacts.length}) :</Text>
+                    <Text style={{ color: '#F43F5E', fontSize: 18, fontWeight: '700' }}>{barometerCardOpenFull ? '▲' : '▼'}</Text>
+                  </View>
+                </TouchableOpacity>
+                {barometerCardOpenFull && (
+                  <View style={{ gap: 10, marginTop: 8 }}>
+                    {barometerContacts.map((c) => {
+                      const firstName = c.name.trim().split(/\s+/).find((w: string) => w !== w.toUpperCase()) ?? c.name.split(' ')[0];
+                      const msg = c.daysSinceLastMessage === null
+                        ? `Tu n'as encore jamais écrit à ${firstName}.`
+                        : `Cela fait ${c.daysSinceLastMessage} jours que tu n'as pas écrit à ${firstName}.`;
+                      return (
+                        <TouchableOpacity
+                          key={c.id}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: Radii.lg, padding: 12, borderWidth: 1.5, borderColor: '#FBCFE8' }}
+                          onPress={() => router.push({ pathname: '/(app)/create', params: { contactId: c.id } } as never)}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={{ fontSize: 28 }}>💌</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.onSurface }}>{firstName}</Text>
+                            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, lineHeight: 16 }}>{msg}</Text>
+                          </View>
+                          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.primary }}>Écrire →</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             )}
 
@@ -1231,7 +1266,7 @@ export default function HomeScreen() {
               <QuickAction emoji="💬✨" label="Créer un message"    onPress={() => router.push('/(app)/create' as never)} accent />
               <QuickAction emoji="😎"   label="Mode Jeune"           onPress={() => router.push('/(app)/mode-jeune' as never)} />
               <QuickAction emoji="👥"   label="Mes contacts"         onPress={() => router.push('/(app)/contacts' as never)} />
-              <QuickAction emoji="🎊"   label="Festif animé"         onPress={() => router.push('/(app)/cards/' as never)} />
+              <QuickAction emoji="🎊"   label="Message festif animé"         onPress={() => router.push('/(app)/cards/' as never)} />
               <QuickAction emoji="🎁"   label="Créer une cagnotte"   onPress={() => router.push('/(app)/pot/new' as never)} />
               <QuickAction emoji="📋"   label="Mes cagnottes"        onPress={() => router.push('/(app)/pot' as never)} />
               <QuickAction emoji="🌟"   label="Parrainage"           onPress={() => router.push('/(app)/referral/' as never)} />
@@ -1241,60 +1276,35 @@ export default function HomeScreen() {
               <QuickAction emoji="⭐"   label="Zodiaque"              onPress={() => router.push('/(app)/zodiac-season' as never)} />
               <QuickAction emoji="💞"   label="Compatibilité"        onPress={() => router.push('/(app)/compat' as never)} />
               <QuickAction emoji="🗓️"  label="Créer un événement"   onPress={() => router.push('/(app)/calendar/new-event' as never)} />
+              <QuickAction emoji="🐾"   label="Tes animaux écrivent" onPress={() => setAnimalInfoVisible(true)} />
+              <QuickAction emoji="📡"   label="Message secret"       onPress={() => setMorseInfoVisible(true)} />
+              <QuickAction emoji="⬛"   label="QR code à partager"   onPress={() => router.push('/(app)/qr/' as never)} />
+              <QuickAction emoji="📞"   label="Pour appeler"         onPress={() => router.push('/(app)/contacts' as never)} />
+              <QuickAction emoji="🔔"   label="Partager un rappel"   onPress={() => setReminderInfoVisible(true)} />
+              <QuickAction emoji="📒"   label="Livre d'or numérique" onPress={() => router.push('/(app)/guestbook/' as never)} />
             </View>
 
-            {/* Derniers messages */}
+            {/* Derniers messages — carte accordéon */}
             {recentSent.length > 0 && (
-              <>
-                <Text style={[styles.quickSectionLabel, { marginTop: Spacing[4] }]}>Derniers messages envoyés :</Text>
-                <View style={styles.recentList}>
-                  {recentSent.map((msg) => (
-                    <RecentMessageCard key={msg.id} contactName={msg.contact_name} format={msg.format} status={msg.status} date={msg.created_at} onPress={() => router.push(`/(app)/message/${msg.id}` as never)} />
-                  ))}
-                  <TouchableOpacity onPress={() => router.push({ pathname: '/(app)/creations', params: { filter: 'sent' } } as never)} style={{ alignSelf: 'center', marginTop: 4 }}>
-                    <Text style={styles.collapseSeeAll}>Voir tout →</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
+              <View style={{ marginHorizontal: Spacing[4], marginTop: Spacing[4], borderRadius: Radii.xl, backgroundColor: '#F3EEFE', borderWidth: 1.5, borderColor: '#7C3AED30', padding: Spacing[4], gap: 4 }}>
+                <TouchableOpacity onPress={toggleRecentMessagesCard} activeOpacity={0.85}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: Colors.onSurface, flex: 1 }}>📨 Derniers messages envoyés ({recentSent.length}) :</Text>
+                    <Text style={{ color: '#7C3AED', fontSize: 18, fontWeight: '700' }}>{recentMessagesOpen ? '▲' : '▼'}</Text>
+                  </View>
+                </TouchableOpacity>
+                {recentMessagesOpen && (
+                  <View style={[styles.recentList, { marginHorizontal: 0, marginTop: 8 }]}>
+                    {recentSent.map((msg) => (
+                      <RecentMessageCard key={msg.id} contactName={msg.contact_name} format={msg.format} status={msg.status} date={msg.created_at} onPress={() => router.push(`/(app)/message/${msg.id}` as never)} />
+                    ))}
+                    <TouchableOpacity onPress={() => router.push({ pathname: '/(app)/creations', params: { filter: 'sent' } } as never)} style={{ alignSelf: 'center', marginTop: 4 }}>
+                      <Text style={styles.collapseSeeAll}>Voir tout →</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             )}
-
-            {/* Carte animaux */}
-            <View style={{ borderRadius: Radii.xl, backgroundColor: '#064E3B', padding: Spacing[4], gap: 8, marginTop: Spacing[4], marginHorizontal: 16, borderWidth: 3, borderColor: '#FDE047' }}>
-              <View style={{ alignSelf: 'flex-start', backgroundColor: '#6EE7B7', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10, marginBottom: 2 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#064E3B' }}>✨ Nouveauté 🐾</Text>
-              </View>
-              <TouchableOpacity onPress={() => setAnimalCardOpen(v => !v)} activeOpacity={0.85}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Vos animaux peuvent écrire !</Text>
-                  <Text style={{ color: '#6EE7B7', fontSize: 18, fontWeight: '700' }}>{animalCardOpen ? '▲' : '▼'}</Text>
-                </View>
-              </TouchableOpacity>
-              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 20 }}>{"C'est l'IA qui tient la plume — mais le résultat est bluffant 😄"}</Text>
-              {animalCardOpen && (
-                <View style={{ gap: 8, marginTop: 4 }}>
-                  <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22 }}>{'Ton chien qui prend le clavier pour écrire à ta mère pour lui souhaiter sa fête. Le chat de ta sœur qui lui souhaite son anniversaire — avec toute l\'indifférence dont il est capable.\nEt ça marche dans les deux sens : tu peux aussi écrire directement à l\'animal d\'un contact.'}</Text>
-                  <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#6EE7B7' }}>{'👉 Depuis la fiche d\'un contact ou le générateur de messages.'}</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Carte morse */}
-            <View style={{ borderRadius: Radii.xl, backgroundColor: '#1E1B4B', padding: Spacing[4], gap: 4, marginTop: 12, marginHorizontal: 16, borderWidth: 3, borderColor: '#F472B6' }}>
-              <View style={{ alignSelf: 'flex-start', backgroundColor: '#A5B4FC', borderRadius: Radii.full, paddingVertical: 3, paddingHorizontal: 10, marginBottom: 2 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.xs, color: '#1E1B4B' }}>🤫 Psst… secret !</Text>
-              </View>
-              <TouchableOpacity onPress={() => setMorseCardOpen(v => !v)} activeOpacity={0.85}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: '#fff', flex: 1 }}>Cache un secret dans ton message !</Text>
-                  <Text style={{ color: '#A5B4FC', fontSize: 18, fontWeight: '700' }}>{morseCardOpen ? '▲' : '▼'}</Text>
-                </View>
-              </TouchableOpacity>
-              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
-              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
-              {morseCardOpen && (
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20, marginTop: 4 }}>{'Chaque message festif animé contient ton texte codé en morse. Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nPour y accéder : ouvre le lien du message festif animé et cherche l\'icône 📡 en bas de l\'écran.'}</Text>
-              )}
-            </View>
 
             {/* Info strip */}
             <View style={styles.infoStrip}>
@@ -1604,6 +1614,81 @@ export default function HomeScreen() {
         <View style={{ height: 60 }} />
       </ScrollView>
 
+      {/* Modal info — Tes animaux peuvent écrire */}
+      <Modal visible={animalInfoVisible} transparent animationType="fade" onRequestClose={() => setAnimalInfoVisible(false)}>
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 20 }}
+          activeOpacity={1}
+          onPress={() => setAnimalInfoVisible(false)}
+        >
+          <View style={{ backgroundColor: '#064E3B', borderRadius: 20, overflow: 'hidden', borderWidth: 3, borderColor: '#FDE047' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: '#fff', flex: 1, marginRight: 8 }}>🐾 Tes animaux peuvent écrire !</Text>
+              <TouchableOpacity onPress={() => setAnimalInfoVisible(false)}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 13, color: '#fff' }}>Fermer ✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 20, gap: 8 }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 20 }}>{"C'est l'IA qui tient la plume — mais le résultat est bluffant 😄"}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 22 }}>{'Ton chien qui prend le clavier pour écrire à ta mère pour lui souhaiter sa fête. Le chat de ta sœur qui lui souhaite son anniversaire — avec toute l\'indifférence dont il est capable.\nEt ça marche dans les deux sens : tu peux aussi écrire directement à l\'animal d\'un contact.'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#6EE7B7' }}>{'👉 Depuis la fiche d\'un contact ou le générateur de messages.'}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal info — Un secret dans ton message */}
+      <Modal visible={morseInfoVisible} transparent animationType="fade" onRequestClose={() => setMorseInfoVisible(false)}>
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 20 }}
+          activeOpacity={1}
+          onPress={() => setMorseInfoVisible(false)}
+        >
+          <View style={{ backgroundColor: '#1E1B4B', borderRadius: 20, overflow: 'hidden', borderWidth: 3, borderColor: '#F472B6' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: '#fff', flex: 1, marginRight: 8 }}>📡 Un secret dans ton message ?</Text>
+              <TouchableOpacity onPress={() => setMorseInfoVisible(false)}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 13, color: '#fff' }}>Fermer ✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 20, gap: 8 }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 18, color: '#E0E7FF', letterSpacing: 4, textAlign: 'center' }}>{'... . -.-. .-. . -'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: 'rgba(165,180,252,0.7)', textAlign: 'center', fontStyle: 'italic' }}>(ça veut dire "SECRET" en morse)</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20, marginTop: 4 }}>{'Tu peux envoyer un message codé en morse dans ton message festif animé ! Ton proche peut l\'écouter en bips, le décoder… ou juste trouver ça complètement barré. 😄\nPour y accéder : ouvre le lien du message festif animé et cherche l\'icône 📡 en bas de l\'écran.'}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal info — Partager un rappel */}
+      <Modal visible={reminderInfoVisible} transparent animationType="fade" onRequestClose={() => setReminderInfoVisible(false)}>
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 20 }}
+          activeOpacity={1}
+          onPress={() => setReminderInfoVisible(false)}
+        >
+          <View style={{ backgroundColor: '#7C2D12', borderRadius: 20, overflow: 'hidden', borderWidth: 3, borderColor: '#FDBA74' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 }}>
+              <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.lg, color: '#fff', flex: 1, marginRight: 8 }}>🔔 Partager un rappel</Text>
+              <TouchableOpacity onPress={() => setReminderInfoVisible(false)}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 13, color: '#fff' }}>Fermer ✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 20, gap: 8 }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 20 }}>{'Envoie un rappel à tes amis pour qu\'ils pensent, comme toi, à un contact particulier. 💛 Parfait pour prévenir la famille ou les proches avant un anniversaire important !'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.75)', lineHeight: 20 }}>{'Un petit texte est généré automatiquement (modifiable à ta guise), prêt à partager par SMS, WhatsApp ou simple copier-coller — pour que personne autour de toi ne rate l\'occasion.'}</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>{'Exemple pour Jacques DUPONT 👇'}</Text>
+              <View style={{ backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(253,186,116,0.4)', padding: 12 }}>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#fff', lineHeight: 20, fontStyle: 'italic' }}>
+                  {"🎂 Hey ! L'anniversaire de Jacques DUPONT c'est le 14 juillet (Dans 12 jours).\nPense à lui souhaiter 💛"}
+                </Text>
+              </View>
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: '#FDBA74' }}>{'👉 Pour l\'utiliser : ouvre la fiche d\'un contact, tu y trouveras le bouton 🔔 Partager un rappel.'}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Modal aide — Horoscope festif */}
       <Modal visible={horoscopeHelpVisible} transparent animationType="fade" onRequestClose={() => setHoroscopeHelpVisible(false)}>
         <TouchableOpacity
@@ -1620,7 +1705,7 @@ export default function HomeScreen() {
                 <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 13, color: '#fff' }}>Fermer ✕</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
               {[
                 { title: "C'est quoi ?", body: "Un horoscope humoristique et décalé basé sur le signe astrologique du moment — celui qui correspond à la période actuelle du calendrier zodiacal. Pas de grande révélation cosmique, juste une dose de bonne humeur garantie 😄" },
                 { title: "Comment ça fonctionne ?", body: "Chaque signe dispose de 3 prédictions différentes. La prédiction du jour change automatiquement chaque jour en fonction du numéro du jour dans l'année — tu en découvres donc une nouvelle chaque jour !" },
@@ -1637,6 +1722,14 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <PremiumGateModal
+        visible={premiumGateVisible}
+        onClose={() => setPremiumGateVisible(false)}
+        emoji="🍭"
+        title="Le mode complet est réservé au Premium"
+        description="Débloque toutes les fonctionnalités avancées de Confettis & Cake — horoscope, numérologie, animaux, cartes animées et bien plus — en passant en mode complet avec un abonnement Premium ⭐"
+      />
     </SafeAreaView>
   );
 }
@@ -1739,10 +1832,10 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   heroTagline: {
     fontFamily: 'BeVietnamPro_600SemiBold',
-    fontSize: Typography['2xl'],
+    fontSize: Typography.lg,
     color: 'rgba(255,255,255,0.95)',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
     textDecorationLine: 'none',
   },
 
@@ -2265,13 +2358,13 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   introAccTitle: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#fff' },
   introAccBodyText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.9)', lineHeight: 22, marginTop: 6 },
   onboardingNote: { marginHorizontal: Spacing[4], marginTop: Spacing[4], backgroundColor: '#F3EFFF', borderRadius: Radii.lg, padding: Spacing[3], gap: 4 },
-  onboardingNoteText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: '#4C1D95', lineHeight: 20 },
+  onboardingNoteText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: '#4C1D95', lineHeight: 22 },
   onboardingNoteBold: { fontFamily: 'BeVietnamPro_700Bold' },
   onboardingNoteFooter: { fontFamily: 'BeVietnamPro_500Medium', fontSize: Typography.xs, color: '#7C3AED' },
   modeSmallBtn: { alignSelf: 'center', marginTop: Spacing[3], backgroundColor: '#7C3AED', borderRadius: Radii.full, paddingVertical: 10, paddingHorizontal: 24 },
   modeSmallBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#fff' },
   pageTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface, marginHorizontal: Spacing[4], marginTop: Spacing[5] },
-  pageSubtitle: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, marginHorizontal: Spacing[4], marginTop: 4, lineHeight: 20 },
+  pageSubtitle: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: Colors.onSurfaceVariant, marginHorizontal: Spacing[4], marginTop: 4, lineHeight: 22 },
 
   profileIntroCard: { marginHorizontal: Spacing[4], marginTop: Spacing[4], backgroundColor: '#EDE9FE', borderRadius: Radii.xl, padding: Spacing[4], borderWidth: 3, borderColor: '#7C3AED' },
   profileIntroBadge: { alignSelf: 'flex-start', backgroundColor: '#7C3AED', borderRadius: Radii.full, paddingVertical: 4, paddingHorizontal: 12, marginBottom: 10 },
@@ -2306,7 +2399,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   featuredRightEmoji: { fontSize: 36 },
 
   quickSectionLabel: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.xl, color: Colors.onSurface, marginHorizontal: Spacing[4], marginTop: Spacing[5], marginBottom: Spacing[2], textAlign: 'center' },
-  quickSectionSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, marginHorizontal: Spacing[4], marginBottom: Spacing[2], lineHeight: 18 },
+  quickSectionSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: Colors.onSurfaceVariant, marginHorizontal: Spacing[4], marginBottom: Spacing[2], lineHeight: 22 },
   infoStrip: { flexDirection: 'row', marginHorizontal: Spacing[4], marginTop: Spacing[4], gap: 8 },
   infoChip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.surfaceContainerHighest, borderRadius: Radii.lg, paddingVertical: 12, paddingHorizontal: 14 },
   infoChipEmoji: { fontSize: 18 },

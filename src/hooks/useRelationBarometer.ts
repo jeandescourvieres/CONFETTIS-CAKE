@@ -10,7 +10,7 @@ export interface BarometerContact {
   avatar_url?: string | null;
 }
 
-const THRESHOLD_DAYS = 60; // signaler après 60 jours sans message
+const THRESHOLD_DAYS = 1; // signaler après 1 jour sans message
 
 export function useRelationBarometer(): BarometerContact[] {
   const { data: messages = [] } = useMessages();

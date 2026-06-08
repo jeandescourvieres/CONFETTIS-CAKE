@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useStripe } from '@stripe/stripe-react-native';
+import { useStripeGate } from '../../../../src/hooks/useStripeGate';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePot } from '../../../../src/hooks/usePot';
 import { createPaymentIntent } from '../../../../src/services/pot.service';
@@ -83,7 +83,7 @@ export default function ContributeScreen() {
   const C = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const { initPaymentSheet, presentPaymentSheet } = useStripeGate();
 
   const { data: pot } = usePot(id ?? null);
   const { profile } = useAuthStore();

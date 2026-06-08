@@ -20,6 +20,7 @@ export interface Profile {
   birthday: string | null;  // "YYYY-MM-DD" ou "0000-MM-DD" (jour/mois sans année)
   civilite: 'M.' | 'Mme' | null;
   email?: string | null;
+  challenge_won_at?: string | null;
   created_at: string;
 }
 
@@ -89,7 +90,7 @@ export type MessageStatus = 'draft' | 'sent';
 export type SentVia = 'sms' | 'email' | 'whatsapp' | 'copy' | null;
 export type MusicStatus = 'none' | 'pending' | 'generating' | 'ready' | 'failed' | 'queued';
 export type TTSStatus   = 'none' | 'generating' | 'ready' | 'failed';
-export type TTSVoiceKey = 'homme_neutre' | 'homme_chaleureux' | 'femme_douce' | 'femme_joyeuse' | 'pere_noel' | 'pirate' | 'robot' | 'presentateur' | 'enfant' | 'roi_reine';
+export type TTSVoiceKey = 'homme_neutre' | 'homme_chaleureux' | 'femme_douce' | 'femme_joyeuse' | 'pere_noel' | 'pirate' | 'robot' | 'presentateur' | 'roi_reine';
 
 export interface Message {
   id: string;

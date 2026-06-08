@@ -425,30 +425,32 @@ export default function CardPreviewScreen() {
         </View>
 
         {/* Couleur du fond de la carte */}
-        <View style={[styles.nameRow, { gap: 8, flexWrap: 'wrap' }]}>
+        <View style={[styles.nameRow, { gap: 8 }]}>
           <Text style={styles.nameLabel}>🖼️ Fond de la carte</Text>
-          {[
-            { key: '',          label: 'Défaut', color: '#7b2ff7' },
-            { key: 'violet',    label: 'Violet',    color: '#7b2ff7' },
-            { key: 'bleu',      label: 'Bleu nuit', color: '#1a3a6b' },
-            { key: 'rose',      label: 'Rose',      color: '#c2185b' },
-            { key: 'rouge',     label: 'Rouge',     color: '#c62828' },
-            { key: 'vert',      label: 'Forêt',     color: '#1b5e20' },
-            { key: 'or',        label: 'Or',        color: '#b8860b' },
-            { key: 'turquoise', label: 'Turquoise', color: '#00695c' },
-            { key: 'ardoise',   label: 'Ardoise',   color: '#37474f' },
-            { key: 'noir',      label: 'Noir',      color: '#1a1a2e' },
-          ].map((c) => (
-            <TouchableOpacity
-              key={c.key}
-              onPress={() => setCardBg(c.key)}
-              style={{ alignItems: 'center', gap: 3 }}
-              activeOpacity={0.8}
-            >
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.color, borderWidth: cardBg === c.key ? 3 : 1.5, borderColor: cardBg === c.key ? C.primary : 'transparent', ...Shadows.sm }} />
-              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 9, color: cardBg === c.key ? C.primary : Colors.onSurface }}>{c.label}</Text>
-            </TouchableOpacity>
-          ))}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {[
+              { key: '',          label: 'Défaut',    color: '#9b59ff' },
+              { key: 'violet',    label: 'Violet',    color: '#9b59ff' },
+              { key: 'bleu',      label: 'Bleu',      color: '#1976d2' },
+              { key: 'rose',      label: 'Rose',      color: '#e91e8c' },
+              { key: 'rouge',     label: 'Rouge',     color: '#e53935' },
+              { key: 'vert',      label: 'Forêt',     color: '#388e3c' },
+              { key: 'or',        label: 'Or',        color: '#f9a825' },
+              { key: 'turquoise', label: 'Turquoise', color: '#00897b' },
+              { key: 'ardoise',   label: 'Ardoise',   color: '#546e7a' },
+              { key: 'noir',      label: 'Noir',      color: '#2d2d2d' },
+            ].map((c) => (
+              <TouchableOpacity
+                key={c.key}
+                onPress={() => setCardBg(c.key)}
+                style={{ alignItems: 'center', gap: 3 }}
+                activeOpacity={0.8}
+              >
+                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.color, borderWidth: cardBg === c.key ? 3 : 1.5, borderColor: cardBg === c.key ? C.primary : 'rgba(0,0,0,0.15)', ...Shadows.sm }} />
+                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 9, color: cardBg === c.key ? C.primary : Colors.onSurface }}>{c.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Couleur du fond du message */}

@@ -43,7 +43,7 @@ import { useTTSGeneration } from '../../../src/hooks/useTTSGeneration';
 import { saveTTSBgMusic } from '../../../src/services/tts.service';
 import type { TTSVoiceKey } from '../../../src/types/models';
 import { Config } from '../../../src/constants/config';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../../../src/utils/storage';
 import { FeatureIntroCard } from '../../../src/components/ui/FeatureIntroCard';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
@@ -906,7 +906,6 @@ export default function PreviewScreen() {
     { key: 'pirate',           emoji: '🏴‍☠️', label: 'Pirate',      sub: 'Arr !'       },
     { key: 'robot',            emoji: '🤖', label: 'Robot',        sub: 'Bip bop'     },
     { key: 'presentateur',     emoji: '📻', label: 'Radio',        sub: 'Auditeurs'   },
-    { key: 'enfant',           emoji: '🧒', label: 'Enfant',       sub: 'Youpi !'     },
     { key: 'roi_reine',        emoji: '👑', label: 'Roi/Reine',    sub: 'Majesté'     },
   ];
   const [ttsVoiceKey,    setTtsVoiceKey]    = useState<TTSVoiceKey>('femme_douce');
@@ -3276,7 +3275,7 @@ export default function PreviewScreen() {
         {!isEditing && !!generatedContent && (
           <TouchableOpacity
             style={[
-              { flexDirection: 'row', alignItems: 'center', gap: 12, padding: Spacing[4], borderRadius: Radii.xl, borderWidth: 1.5 },
+              { flexDirection: 'row', alignItems: 'center', gap: 12, padding: Spacing[4], borderRadius: Radii.xl, borderWidth: 1.5, marginHorizontal: Spacing[4] },
               morseMode
                 ? { backgroundColor: '#0d0d1a', borderColor: '#00ff88' }
                 : { backgroundColor: Colors.surfaceContainerLow, borderColor: Colors.outlineVariant },
@@ -5643,11 +5642,12 @@ function makeStyles(C: ReturnType<typeof useColors>) {
 
   ttsVoicesRow: {
     flexDirection: 'row',
-    flexWrap: 'nowrap',
+    flexWrap: 'wrap',
     gap: 6,
   },
   ttsVoiceChip: {
-    flex: 1,
+    minWidth: 60,
+    flexGrow: 1,
     flexDirection: 'column',
     alignItems: 'center',
     paddingVertical: 8,
