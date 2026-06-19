@@ -983,12 +983,10 @@ const pt = {
   premium: {
     topbarTitle: 'Assinaturas ⭐',
     heroSubPremium: 'Você já tem o plano Premium 🎉',
-    heroSubEssentiel: 'Você já tem o plano Essencial ✦',
     heroSubDefault: 'Escolha o plano que combina com você',
     chooseYourPlan: 'Escolha seu plano',
     compareTitle: 'Comparação de planos',
     free: 'Gratuito',
-    planEssentiel: 'Essencial',
     planPremium: 'Premium',
     perMonth: 'por mês',
     perYear: 'por ano',

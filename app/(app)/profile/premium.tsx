@@ -17,34 +17,25 @@ import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/consta
 import { useColors } from '../../../src/hooks/useColors';
 
 // ── Feature comparison ─────────────────────────────────────────────────────────
-function getFeatures(t: TFunction): { label: string; free: string | boolean; essentiel: string | boolean; premium: string | boolean }[] {
+function getFeatures(t: TFunction): { label: string; free: string | boolean; premium: string | boolean }[] {
   return [
-    { label: t('premium.features.fullMode'),         free: false,            essentiel: false,                       premium: true },
-    { label: t('premium.features.aiCreations'),       free: '5',              essentiel: '10',                        premium: t('premium.unlimited') },
-    { label: t('premium.features.occasions'),         free: '2',              essentiel: t('premium.allFem', { count: 8 }),  premium: t('premium.allFem', { count: 8 }) },
-    { label: t('premium.features.formats'),           free: '2',              essentiel: t('premium.allMasc', { count: 4 }), premium: t('premium.allMasc', { count: 4 }) },
-    { label: t('premium.features.tones'),             free: '2',              essentiel: t('premium.allFem', { count: 5 }),  premium: t('premium.allFem', { count: 5 }) },
-    { label: t('premium.features.ads'),                free: t('common.yes'), essentiel: t('common.no'),              premium: t('common.no') },
-    { label: t('premium.features.activePots'),        free: '1',              essentiel: '3',                         premium: t('premium.unlimited') },
-    { label: t('premium.features.history'),           free: false,            essentiel: true,                        premium: true },
-    { label: t('premium.features.studioQr'),          free: false,            essentiel: false,                       premium: true },
-    { label: t('premium.features.aiPriority'),        free: false,            essentiel: false,                       premium: true },
-    { label: t('premium.features.prioritySupport'),   free: false,            essentiel: false,                       premium: true },
+    { label: t('premium.features.fullMode'),         free: false,            premium: true },
+    { label: t('premium.features.aiCreations'),       free: '5',              premium: t('premium.unlimited') },
+    { label: t('premium.features.occasions'),         free: '2',              premium: t('premium.allFem', { count: 8 }) },
+    { label: t('premium.features.formats'),           free: '2',              premium: t('premium.allMasc', { count: 4 }) },
+    { label: t('premium.features.tones'),             free: '2',              premium: t('premium.allFem', { count: 5 }) },
+    { label: t('premium.features.ads'),                free: t('common.yes'), premium: t('common.no') },
+    { label: t('premium.features.activePots'),        free: '1',              premium: t('premium.unlimited') },
+    { label: t('premium.features.history'),           free: false,            premium: true },
+    { label: t('premium.features.studioQr'),          free: false,            premium: true },
+    { label: t('premium.features.aiPriority'),        free: false,            premium: true },
+    { label: t('premium.features.prioritySupport'),   free: false,            premium: true },
   ];
 }
 
 // ── Pricing plans ──────────────────────────────────────────────────────────────
 function getPlans(t: TFunction) {
   return [
-    {
-      id: 'essentiel',
-      label: t('premium.planEssentiel'),
-      price: '2,49 €',
-      period: t('premium.perMonth'),
-      badge: null,
-      color: '#9b59b6',
-      priceId: 'price_essentiel_249',
-    },
     {
       id: 'monthly',
       label: t('premium.planPremium'),
@@ -67,8 +58,8 @@ function getPlans(t: TFunction) {
 }
 
 function FeatureRow({
-  label, free, essentiel, premium,
-}: { label: string; free: string | boolean; essentiel: string | boolean; premium: string | boolean }) {
+  label, free, premium,
+}: { label: string; free: string | boolean; premium: string | boolean }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const fmt = (v: string | boolean) => typeof v === 'boolean' ? (v ? '✓' : '—') : v;
@@ -76,7 +67,6 @@ function FeatureRow({
     <View style={styles.featureRow}>
       <Text style={styles.featureLabel}>{label}</Text>
       <Text style={styles.featureFree}>{fmt(free)}</Text>
-      <Text style={styles.featureEssentiel}>{fmt(essentiel)}</Text>
       <Text style={styles.featurePremium}>{fmt(premium)}</Text>
     </View>
   );
@@ -87,12 +77,10 @@ export default function PremiumScreen() {
   const C = useColors();
   const router = useRouter();
   const { profile } = useAuthStore();
-  const [selectedPlan, setSelectedPlan] = useState<'essentiel' | 'monthly' | 'yearly'>('yearly');
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [isLoading, setIsLoading] = useState(false);
 
   const isPremium = profile?.plan === 'premium';
-  const isEssentiel = profile?.plan === 'essentiel';
-  const hasActivePlan = isPremium || isEssentiel;
 
   const FEATURES = useMemo(() => getFeatures(t), [t]);
   const PLANS = useMemo(() => getPlans(t), [t]);
@@ -127,23 +115,19 @@ export default function PremiumScreen() {
 
         {/* ── Hero ─────────────────────────────────── */}
         <LinearGradient
-          colors={isPremium ? ['#fdd34d', '#c97d10'] : isEssentiel ? ['#c39bd3', '#9b59b6'] : [C.primary, C.primaryContainer]}
+          colors={isPremium ? ['#fdd34d', '#c97d10'] : [C.primary, C.primaryContainer]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.hero}
         >
-          <Text style={styles.heroEmoji}>{isPremium ? '⭐' : isEssentiel ? '✦' : '🚀'}</Text>
+          <Text style={styles.heroEmoji}>{isPremium ? '⭐' : '🚀'}</Text>
           <Text style={styles.heroTitle}>Confettis & Cake</Text>
           <Text style={styles.heroSub}>
-            {isPremium
-              ? t('premium.heroSubPremium')
-              : isEssentiel
-              ? t('premium.heroSubEssentiel')
-              : t('premium.heroSubDefault')}
+            {isPremium ? t('premium.heroSubPremium') : t('premium.heroSubDefault')}
           </Text>
         </LinearGradient>
 
         {/* ── Plans tarifaires ──────────────────────── */}
-        {!hasActivePlan && (
+        {!isPremium && (
           <>
             <Text style={styles.sectionTitle}>{t('premium.chooseYourPlan')}</Text>
             <View style={styles.plansRow}>
@@ -154,7 +138,7 @@ export default function PremiumScreen() {
                     styles.planCard,
                     selectedPlan === plan.id && { borderColor: plan.color, backgroundColor: plan.color + '15' },
                   ]}
-                  onPress={() => setSelectedPlan(plan.id as 'essentiel' | 'monthly' | 'yearly')}
+                  onPress={() => setSelectedPlan(plan.id as 'monthly' | 'yearly')}
                   activeOpacity={0.85}
                 >
                   {plan.badge && (
@@ -187,7 +171,6 @@ export default function PremiumScreen() {
           <View style={[styles.featureRow, styles.featureHeader]}>
             <Text style={[styles.featureLabel, styles.featureHeaderLabel]}> </Text>
             <Text style={[styles.featureFree, styles.featureHeaderCol]}>{t('premium.free')}</Text>
-            <Text style={[styles.featureEssentiel, styles.featureHeaderCol, { color: '#9b59b6' }]}>{t('premium.planEssentiel')}</Text>
             <Text style={[styles.featurePremium, styles.featureHeaderCol, { color: Colors.secondary }]}>{t('premium.planPremium')}</Text>
           </View>
           {FEATURES.map((f, i) => (
@@ -199,13 +182,12 @@ export default function PremiumScreen() {
         </View>
 
         {/* ── CTA ──────────────────────────────────── */}
-        {!hasActivePlan && (
+        {!isPremium && (
           <>
             <TouchableOpacity
               style={[
                 styles.ctaBtn,
                 isLoading && { opacity: 0.5 },
-                selectedPlan === 'essentiel' && { backgroundColor: '#9b59b6' },
               ]}
               onPress={handleSubscribe}
               disabled={isLoading}
@@ -293,17 +275,13 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderBottomWidth: 0.5, borderBottomColor: C.primaryContainer,
   },
   featureLabel: {
-    flex: 1.6, fontFamily: 'BeVietnamPro_400Regular',
+    flex: 2, fontFamily: 'BeVietnamPro_400Regular',
     fontSize: 11, color: Colors.onSurface,
   },
   featureHeaderLabel: { fontFamily: 'BeVietnamPro_700Bold' },
   featureFree: {
-    flex: 0.85, textAlign: 'center',
+    flex: 1, textAlign: 'center',
     fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: Colors.onSurfaceVariant,
-  },
-  featureEssentiel: {
-    flex: 0.95, textAlign: 'center',
-    fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 11, color: '#9b59b6',
   },
   featurePremium: {
     flex: 1, textAlign: 'center',

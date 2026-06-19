@@ -996,12 +996,10 @@ Télécharge l'app et entre ce code à l'inscription !
   premium: {
     topbarTitle: 'Abonnements ⭐',
     heroSubPremium: 'Tu bénéficies déjà du plan Premium 🎉',
-    heroSubEssentiel: 'Tu bénéficies déjà du plan Essentiel ✦',
     heroSubDefault: 'Choisis le plan qui te correspond',
     chooseYourPlan: 'Choisis ton plan',
     compareTitle: 'Comparatif des plans',
     free: 'Gratuit',
-    planEssentiel: 'Essentiel',
     planPremium: 'Premium',
     perMonth: 'par mois',
     perYear: 'par an',

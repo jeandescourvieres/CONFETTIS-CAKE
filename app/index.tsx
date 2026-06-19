@@ -386,7 +386,13 @@ export default function LandingPage() {
   }));
 
   // On force le literal '{{accent}}' à rester dans la chaîne pour pouvoir styliser ce mot séparément.
-  const [heroTitleBefore, heroTitleAfter] = t('landing.heroTitle', { accent: '{{accent}}' }).split('{{accent}}');
+  // react-native-web ne respecte pas le \n du texte source comme un retour à la ligne dur
+  // (il est collapsé comme un espace normal) : on le découpe donc nous-même en 2 blocs <Text>
+  // distincts sur desktop. Sur mobile, on laisse tout s'enrouler naturellement en une seule phrase.
+  const heroTitleRaw = t('landing.heroTitle', { accent: '{{accent}}' });
+  const [heroTitleLine1, heroTitleLine2Raw] = heroTitleRaw.split('\n');
+  const heroTitleMobileFull = `${heroTitleLine1} ${heroTitleLine2Raw}`;
+  const [heroTitleBefore, heroTitleAfter] = (isWide ? heroTitleLine2Raw : heroTitleMobileFull).split('{{accent}}');
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.pageContent}>
@@ -405,9 +411,12 @@ export default function LandingPage() {
                 <Image source={require('../assets/logo.png')} style={styles.heroLogo} resizeMode="contain" />
               </View>
               <Text style={[styles.brandSub, !isWide && styles.textCenter]}>By Confettis & Cake</Text>
-              <Text style={[styles.heroTitle, !isWide && styles.textCenter]}>
+              {isWide && (
+                <Text style={styles.heroTitle}>{heroTitleLine1}</Text>
+              )}
+              <Text style={[styles.heroTitle, !isWide && [styles.textCenter, styles.heroTitleMobile]]}>
                 {heroTitleBefore}
-                <Text style={styles.heroTitleAccent}>{t('landing.heroAccent')}</Text>
+                <Text style={[styles.heroTitleAccent, !isWide && styles.heroTitleAccentMobile]}>{t('landing.heroAccent')}</Text>
                 {heroTitleAfter}
               </Text>
               <Text style={[styles.heroSubtitle, !isWide && styles.textCenter]}>
@@ -679,8 +688,10 @@ const styles = StyleSheet.create({
   },
   heroLogo: { width: 220, height: 96 },
   brandSub: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 14, color: VIOLET, letterSpacing: 1 },
-  heroTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 38, lineHeight: 46, color: '#3A2342', marginTop: 4 },
-  heroTitleAccent: { fontFamily: 'Pacifico_400Regular', fontSize: 34, color: '#EC4899' },
+  heroTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 30, lineHeight: 38, color: '#3A2342', marginTop: 4 },
+  heroTitleMobile: { fontSize: 22, lineHeight: 28 },
+  heroTitleAccent: { fontFamily: 'Pacifico_400Regular', fontSize: 27, color: '#EC4899' },
+  heroTitleAccentMobile: { fontSize: 19 },
   heroSubtitle: { fontFamily: 'BeVietnamPro_400Regular', fontSize: 16, lineHeight: 24, color: '#6B5868', maxWidth: 480 },
   heroCtaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginTop: 4 },
   heroCta: { borderRadius: 50, overflow: 'hidden', shadowColor: VIOLET, shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 6 },

@@ -982,12 +982,10 @@ const es = {
   premium: {
     topbarTitle: 'Suscripciones ⭐',
     heroSubPremium: 'Ya disfrutas del plan Premium 🎉',
-    heroSubEssentiel: 'Ya disfrutas del plan Esencial ✦',
     heroSubDefault: 'Elige el plan que más te convenga',
     chooseYourPlan: 'Elige tu plan',
     compareTitle: 'Comparativa de planes',
     free: 'Gratis',
-    planEssentiel: 'Esencial',
     planPremium: 'Premium',
     perMonth: 'al mes',
     perYear: 'al año',
