@@ -90,6 +90,7 @@ const en = {
       promotion: 'Promotion',
       thanks: 'Thank You',
       newyear: 'New Year',
+      retirement: 'Retirement',
     },
     relations: {
       best_friend: 'Best friend',
@@ -97,6 +98,7 @@ const en = {
       family: 'Family',
       partner: 'Love',
       colleague: 'Colleague',
+      child_of: 'Child of…',
       pet: 'Furball 🐾',
       other: 'Other',
     },
@@ -163,6 +165,7 @@ const en = {
       family: 'Family',
       partner: 'Partner',
       colleague: 'Colleague',
+      child_of: 'Child of…',
       pet: 'Furball 🐾',
       other: 'Other',
     },

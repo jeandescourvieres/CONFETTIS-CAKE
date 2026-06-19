@@ -90,6 +90,7 @@ const es = {
       promotion: 'Promoción',
       thanks: 'Agradecimiento',
       newyear: 'Año Nuevo',
+      retirement: 'Jubilación',
     },
     relations: {
       best_friend: 'Mejor amigo/a',
@@ -97,6 +98,7 @@ const es = {
       family: 'Familia',
       partner: 'Amor',
       colleague: 'Colega',
+      child_of: 'Hijo/a de…',
       pet: 'Bola de pelo 🐾',
       other: 'Otro/a',
     },
@@ -163,6 +165,7 @@ const es = {
       family: 'Familia',
       partner: 'Pareja',
       colleague: 'Colega',
+      child_of: 'Hijo/a de…',
       pet: 'Bola de pelo 🐾',
       other: 'Otro/a',
     },

@@ -90,6 +90,7 @@ const de = {
       promotion: 'Beförderung',
       thanks: 'Dankeschön',
       newyear: 'Neujahr',
+      retirement: 'Ruhestand',
     },
     relations: {
       best_friend: 'Beste/r Freund/in',
@@ -97,6 +98,7 @@ const de = {
       family: 'Familie',
       partner: 'Liebe',
       colleague: 'Kollege/in',
+      child_of: 'Kind von…',
       pet: 'Fellknäuel 🐾',
       other: 'Andere/r',
     },
@@ -163,6 +165,7 @@ const de = {
       family: 'Familie',
       partner: 'Partner/in',
       colleague: 'Kollege/in',
+      child_of: 'Kind von…',
       pet: 'Fellknäuel 🐾',
       other: 'Andere/r',
     },
