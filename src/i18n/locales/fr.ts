@@ -653,7 +653,7 @@ Télécharge l'app et entre ce code à l'inscription !
     navComment: 'Comment ça marche',
     navFaq: 'FAQ',
     navCta: "Télécharger l'app  →",
-    heroTitle: "Chaque anniversaire, chaque fête\nmérite {{accent}} qu'un texto à la dernière minute.",
+    heroTitle: "Chaque anniversaire, chaque fête,\nmérite {{accent}} qu'un texto à la dernière minute.",
     heroAccent: 'mieux',
     heroSubtitle: "Crée une carte d'anniversaire animée et personnalisée : une photo, une musique, un message qui vient du cœur. Envoyée en un clic. Inoubliable pour toujours.",
     heroCta: 'Créer une surprise 🎂',

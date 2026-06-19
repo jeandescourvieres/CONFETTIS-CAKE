@@ -411,14 +411,16 @@ export default function LandingPage() {
                 <Image source={require('../assets/logo.png')} style={styles.heroLogo} resizeMode="contain" />
               </View>
               <Text style={[styles.brandSub, !isWide && styles.textCenter]}>By Confettis & Cake</Text>
-              {isWide && (
-                <Text style={styles.heroTitle}>{heroTitleLine1}</Text>
-              )}
-              <Text style={[styles.heroTitle, !isWide && [styles.textCenter, styles.heroTitleMobile]]}>
-                {heroTitleBefore}
-                <Text style={[styles.heroTitleAccent, !isWide && styles.heroTitleAccentMobile]}>{t('landing.heroAccent')}</Text>
-                {heroTitleAfter}
-              </Text>
+              <View>
+                {isWide && (
+                  <Text style={styles.heroTitle}>{heroTitleLine1}</Text>
+                )}
+                <Text style={[styles.heroTitle, !isWide && [styles.textCenter, styles.heroTitleMobile]]}>
+                  {heroTitleBefore}
+                  <Text style={[styles.heroTitleAccent, !isWide && styles.heroTitleAccentMobile]}>{t('landing.heroAccent')}</Text>
+                  {heroTitleAfter}
+                </Text>
+              </View>
               <Text style={[styles.heroSubtitle, !isWide && styles.textCenter]}>
                 {t('landing.heroSubtitle')}
               </Text>
