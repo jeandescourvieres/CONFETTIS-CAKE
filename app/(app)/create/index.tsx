@@ -27,7 +27,9 @@ import { useAuthStore } from '../../../src/stores/authStore';
 import { getAge } from '../../../src/utils/dateHelpers';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
+import { useTablet } from '../../../src/hooks/useTablet';
 import { HelpModal } from '../../../src/components/ui/HelpModal';
+import { PremiumGateModal } from '../../../src/components/ui/PremiumGateModal';
 import type { Relation } from '../../../src/types/models';
 import type { MessageFormat, MessageTone } from '../../../src/types/models';
 import type { PersonalityTag, PetPersonalityTag, DogPersonalityTag, CatPersonalityTag, Occasion } from '../../../src/stores/createStore';
@@ -106,7 +108,25 @@ const RELATION_LABELS: Record<string, string> = {
   partner: 'Amour',
   colleague: 'Collègue',
   other: 'Connaissance',
+  pet: 'Animal',
+  child_of: 'Enfant',
 };
+
+function getRelationLabel(c: { relation: string; child_gender?: string | null; child_parent_contact_id?: string | null; child_parent_name?: string | null; pet_owner_name?: string | null }, allContacts: { id: string; name: string; civilite?: string | null; partner_contact_id?: string | null }[]): string {
+  if (c.relation === 'pet') return c.pet_owner_name ? `Animal de ${c.pet_owner_name}` : 'Animal';
+  if (c.relation !== 'child_of') return RELATION_LABELS[c.relation] ?? c.relation;
+  const gender = c.child_gender;
+  const role = gender === 'female' ? 'Fille de' : gender === 'male' ? 'Fils de' : 'Enfant de';
+  const parent = allContacts.find((p) => p.id === c.child_parent_contact_id);
+  if (!parent) return c.child_parent_name ? `${role} ${c.child_parent_name}` : 'Enfant';
+  const partner = allContacts.find((p) => p.id === (parent as any).partner_contact_id);
+  if (!partner) return `${role} ${parent.name}`;
+  const isMale = parent.civilite === 'M.';
+  const [p1, p2] = isMale ? [parent, partner] : [partner, parent];
+  return p1.name === p2.name
+    ? `${role} ${p1.name[0]}. et ${p2.name[0]}. ${p1.name}`
+    : `${role} ${p1.name} et ${p2.name}`;
+}
 
 const RELATIONS: { value: Relation; label: string; emoji: string }[] = [
   { value: 'colleague', label: 'Collègue', emoji: '💼' },
@@ -333,6 +353,7 @@ function ExtraFields({ color }: { color: string }) {
 function ContactChooser({ onExisting, onNew }: { onExisting: () => void; onNew: () => void }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const { isTablet } = useTablet();
   const router = useRouter();
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -343,7 +364,7 @@ function ContactChooser({ onExisting, onNew }: { onExisting: () => void; onNew: 
         <Text style={styles.topbarTitle}>Créer un message ✨</Text>
         <View style={{ width: 36 }} />
       </View>
-      <View style={styles.chooserContent}>
+      <View style={[styles.chooserContent, isTablet && styles.chooserContentTablet]}>
         {/* Hero */}
         <LinearGradient colors={['#9b6bb5', '#7C3AED', '#4A148C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.chooserHero}>
           <Text style={styles.chooserHeroEmoji}>✨</Text>
@@ -379,6 +400,7 @@ function ContactChooser({ onExisting, onNew }: { onExisting: () => void; onNew: 
 function ContactListPicker({ onSelect, onBack }: { onSelect: (id: string, name: string, rel: Relation) => void; onBack: () => void }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const { isTablet } = useTablet();
   const { data: contacts = [] } = useContacts();
   const [search, setSearch] = useState('');
   const filtered = contacts.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
@@ -392,7 +414,7 @@ function ContactListPicker({ onSelect, onBack }: { onSelect: (id: string, name: 
         <Text style={styles.topbarTitle}>Choisir un contact</Text>
         <View style={{ width: 32 }} />
       </View>
-      <View style={{ padding: Spacing[4] }}>
+      <View style={[{ padding: Spacing[4] }, isTablet && styles.chooserContentTablet]}>
         <TextInput
           style={styles.input}
           value={search}
@@ -402,7 +424,7 @@ function ContactListPicker({ onSelect, onBack }: { onSelect: (id: string, name: 
           autoFocus
         />
       </View>
-      <ScrollView keyboardShouldPersistTaps="handled">
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={isTablet ? styles.chooserContentTablet : undefined}>
         {filtered.map((c) => (
           <TouchableOpacity
             key={c.id}
@@ -414,7 +436,7 @@ function ContactListPicker({ onSelect, onBack }: { onSelect: (id: string, name: 
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.contactRowName}>{c.name}</Text>
-              <Text style={styles.contactRowRelation}>{RELATION_LABELS[c.relation] ?? c.relation}</Text>
+              <Text style={styles.contactRowRelation}>{getRelationLabel(c as any, contacts as any[])}</Text>
             </View>
             <Text style={styles.chooserArrow}>›</Text>
           </TouchableOpacity>
@@ -432,6 +454,7 @@ function CardPickerForChild({ occasion, contactId, contactName, senderName }: {
   const { data: cards = [], isLoading } = useCardTemplates(occasion);
   const profile = useAuthStore((s) => s.profile);
   const isPremium = profile?.plan !== 'free';
+  const [lockedCardGateVisible, setLockedCardGateVisible] = useState(false);
   if (isLoading || cards.length === 0) return null;
   return (
     <View style={{ marginTop: 20, gap: 10 }}>
@@ -451,11 +474,18 @@ function CardPickerForChild({ occasion, contactId, contactName, senderName }: {
                 pathname: '/(app)/cards/[id]',
                 params: { id: card.id, contactName, ...(contactId ? { contactId } : {}), senderName },
               } as never)}
-              onPressLocked={() => router.push('/(app)/profile/premium' as never)}
+              onPressLocked={() => setLockedCardGateVisible(true)}
             />
           </View>
         ))}
       </ScrollView>
+      <PremiumGateModal
+        visible={lockedCardGateVisible}
+        onClose={() => setLockedCardGateVisible(false)}
+        emoji="⭐"
+        title="Cette carte est exclusive Premium ⭐"
+        description="Débloque cette carte animée et toutes les autres créations exclusives en passant en Premium — pour des messages encore plus mémorables."
+      />
     </View>
   );
 }
@@ -463,6 +493,7 @@ function CardPickerForChild({ occasion, contactId, contactName, senderName }: {
 // ── Main Screen ───────────────────────────────────────────────────────────────
 export default function CreateScreen() {
   const router = useRouter();
+  const { isTablet } = useTablet();
   const C = useColors();
   const user = useAuthStore((s) => s.user);
   const myProfile = useAuthStore((s) => s.profile);
@@ -640,12 +671,20 @@ export default function CreateScreen() {
     if (templateOccasion === 'birthday') {
       query = query.eq('style', templateBirthdayStyle);
     }
+    let cancelled = false;
     query
       .order('created_at', { ascending: true })
       .then(({ data }) => {
+        if (cancelled) return;
         setTemplates((data as { id: string; title: string; content: string }[]) ?? []);
         setTemplatesLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTemplates([]);
+        setTemplatesLoading(false);
       });
+    return () => { cancelled = true; };
   }, [step, templateOccasion, templateTon, templateLongueur, templateSupportType, templateBirthdayStyle]);
 
   const handleTemplateSelect = async (content: string) => {
@@ -2505,7 +2544,7 @@ export default function CreateScreen() {
         />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, isTablet && styles.contentTablet]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
         {/* ── Intro générique (pas de contact) ──────────── */}
         {!contactId && (
@@ -2751,7 +2790,7 @@ export default function CreateScreen() {
               {contacts.map((c) => (
                 <TouchableOpacity key={c.id} style={styles.contactRow} onPress={() => handleContactSelect(c.id, c.name, c.relation)}>
                   <Text style={styles.contactRowName}>{c.name}</Text>
-                  <Text style={styles.contactRowRelation}>{RELATION_LABELS[c.relation] ?? c.relation}</Text>
+                  <Text style={styles.contactRowRelation}>{getRelationLabel(c as any, contacts as any[])}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -3497,6 +3536,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   topbarTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography['2xl'], color: Colors.onSurface },
 
   content: { padding: Spacing[4], paddingBottom: 80 },
+  contentTablet: { maxWidth: 720, width: '100%', alignSelf: 'center' },
   introBanner: {
     backgroundColor: C.primaryContainer,
     borderRadius: Radii.xl,
@@ -4090,6 +4130,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
 
   // Contact chooser
   chooserContent: { flex: 1, padding: Spacing[5], justifyContent: 'flex-start', gap: 16, paddingTop: Spacing[4] },
+  chooserContentTablet: { maxWidth: 600, width: '100%', alignSelf: 'center' },
   chooserHero: {
     borderRadius: Radii.xl,
     paddingVertical: Spacing[6],

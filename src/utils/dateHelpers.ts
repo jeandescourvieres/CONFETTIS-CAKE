@@ -72,11 +72,16 @@ export function getAge(birthdayISO: string, atNextBirthday = false): number {
 
 /**
  * Libellé humain du délai : "Aujourd'hui", "Demain", "Dans X jours", etc.
+ * Passe `t` (useTranslation) pour une version traduite ; sans `t`, retombe sur le français.
  */
-export function humanDaysUntil(days: number): string {
+export function humanDaysUntil(days: number, t?: (key: string, options?: Record<string, unknown>) => string): string {
+  if (t) {
+    if (days === 0) return t('common.today');
+    if (days === 1) return t('common.tomorrow');
+    return t('common.inDays', { count: days });
+  }
   if (days === 0) return "Aujourd'hui 🎉";
   if (days === 1) return 'Demain 🔥';
-  if (days <= 7) return `Dans ${days} jours`;
   return `Dans ${days} jours`;
 }
 

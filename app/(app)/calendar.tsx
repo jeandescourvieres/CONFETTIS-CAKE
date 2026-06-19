@@ -835,11 +835,19 @@ export default function CalendarScreen() {
 
         {/* ── Fêtes & Journées du mois ─────────────────── */}
         {/* ── Ajouter un contact ─── */}
-        <Text style={styles.addContactHint}>
-          {eventType === 'birthday'
-            ? "Maman, Pierre, ton chien, ton chat, ton poisson rouge… ou ton·ta meilleur·e ami·e ! 🐾🐟✨\n\nAjoute-les dans tes contacts pour ne rater aucun anniversaire (ou presque) ! 🎁"
-            : "Pierre, Marie, Valentine, Noël… ou ton·ta meilleur·e ami·e ! 🌸✨\n\nAjoute-les dans tes contacts pour ne rater aucune fête (ou presque) ! 🌸"}
-        </Text>
+        <View style={styles.addContactHint}>
+          <Text style={styles.addContactHintEmoji}>
+            {eventType === 'birthday' ? '🎂' : '🌸'}
+          </Text>
+          <Text style={styles.addContactHintTitle}>
+            {eventType === 'birthday' ? 'Qui fête son anniversaire ?' : 'Qui célèbre sa fête ?'}
+          </Text>
+          <Text style={styles.addContactHintSub}>
+            {eventType === 'birthday'
+              ? 'Tes proches, ta famille, tes amis… et même tes animaux !'
+              : 'Tes proches avec un prénom au calendrier français.'}
+          </Text>
+        </View>
         <TouchableOpacity
           style={styles.addEventBtn}
           onPress={() => router.push({ pathname: '/(app)/contacts/new', params: { resetKey: Date.now().toString() } } as never)}
@@ -1324,20 +1332,34 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
 
   addContactHint: {
-    fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.lg,
-    color: C.primary,
-    textAlign: 'center',
     marginHorizontal: Spacing[4],
     marginTop: Spacing[6],
     marginBottom: Spacing[3],
-    lineHeight: 26,
-    backgroundColor: C.primaryContainer + '50',
+    backgroundColor: C.primaryContainer + '40',
     borderWidth: 1.5,
-    borderColor: C.primary + '55',
+    borderColor: C.primary + '30',
     borderRadius: Radii.xl,
-    paddingVertical: Spacing[4],
-    paddingHorizontal: Spacing[4],
+    paddingVertical: Spacing[5],
+    paddingHorizontal: Spacing[5],
+    alignItems: 'center',
+    gap: 6,
+  },
+  addContactHintEmoji: {
+    fontSize: 36,
+    marginBottom: 2,
+  },
+  addContactHintTitle: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.lg,
+    color: C.primary,
+    textAlign: 'center',
+  },
+  addContactHintSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: Typography.sm,
+    color: C.onSurfaceVariant,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   // Modal signification prénom
   meaningOverlay: {

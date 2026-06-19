@@ -9,55 +9,62 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 
 // ── Feature comparison ─────────────────────────────────────────────────────────
-const FEATURES: { label: string; free: string | boolean; essentiel: string | boolean; premium: string | boolean }[] = [
-  { label: 'Créations IA / mois', free: '5',    essentiel: '10',           premium: 'Illimitées'              },
-  { label: 'Occasions',           free: '2',    essentiel: 'Toutes (8)',   premium: 'Toutes (8)'              },
-  { label: 'Formats',             free: '2',    essentiel: 'Tous (4)',     premium: 'Tous (4)'                },
-  { label: 'Tonalités',           free: '2',    essentiel: 'Toutes (5)',   premium: 'Toutes (5)'              },
-  { label: 'Publicités',          free: 'Oui',  essentiel: 'Non',          premium: 'Non'                     },
-  { label: 'Cagnottes actives',   free: '1',    essentiel: '3',            premium: 'Illimitées'              },
-  { label: 'Historique',          free: false,  essentiel: true,           premium: true                      },
-  { label: 'Studio / QR Code',   free: false,  essentiel: false,          premium: true                      },
-  { label: 'Priorité serveur IA', free: false,  essentiel: false,          premium: true                      },
-  { label: 'Support prioritaire', free: false,  essentiel: false,          premium: true                      },
-];
+function getFeatures(t: TFunction): { label: string; free: string | boolean; essentiel: string | boolean; premium: string | boolean }[] {
+  return [
+    { label: t('premium.features.fullMode'),         free: false,            essentiel: false,                       premium: true },
+    { label: t('premium.features.aiCreations'),       free: '5',              essentiel: '10',                        premium: t('premium.unlimited') },
+    { label: t('premium.features.occasions'),         free: '2',              essentiel: t('premium.allFem', { count: 8 }),  premium: t('premium.allFem', { count: 8 }) },
+    { label: t('premium.features.formats'),           free: '2',              essentiel: t('premium.allMasc', { count: 4 }), premium: t('premium.allMasc', { count: 4 }) },
+    { label: t('premium.features.tones'),             free: '2',              essentiel: t('premium.allFem', { count: 5 }),  premium: t('premium.allFem', { count: 5 }) },
+    { label: t('premium.features.ads'),                free: t('common.yes'), essentiel: t('common.no'),              premium: t('common.no') },
+    { label: t('premium.features.activePots'),        free: '1',              essentiel: '3',                         premium: t('premium.unlimited') },
+    { label: t('premium.features.history'),           free: false,            essentiel: true,                        premium: true },
+    { label: t('premium.features.studioQr'),          free: false,            essentiel: false,                       premium: true },
+    { label: t('premium.features.aiPriority'),        free: false,            essentiel: false,                       premium: true },
+    { label: t('premium.features.prioritySupport'),   free: false,            essentiel: false,                       premium: true },
+  ];
+}
 
 // ── Pricing plans ──────────────────────────────────────────────────────────────
-const PLANS = [
-  {
-    id: 'essentiel',
-    label: 'Essentiel',
-    price: '2,49 €',
-    period: 'par mois',
-    badge: null,
-    color: '#9b59b6',
-    priceId: 'price_essentiel_249',
-  },
-  {
-    id: 'monthly',
-    label: 'Premium',
-    price: '4,99 €',
-    period: 'par mois',
-    badge: null,
-    color: '#c97d10',
-    priceId: 'price_monthly_499',
-  },
-  {
-    id: 'yearly',
-    label: 'Premium',
-    price: '34,99 €',
-    period: 'par an',
-    badge: '🎉 −42 %',
-    color: '#c97d10',
-    priceId: 'price_yearly_3499',
-  },
-];
+function getPlans(t: TFunction) {
+  return [
+    {
+      id: 'essentiel',
+      label: t('premium.planEssentiel'),
+      price: '2,49 €',
+      period: t('premium.perMonth'),
+      badge: null,
+      color: '#9b59b6',
+      priceId: 'price_essentiel_249',
+    },
+    {
+      id: 'monthly',
+      label: t('premium.planPremium'),
+      price: '4,99 €',
+      period: t('premium.perMonth'),
+      badge: null,
+      color: '#c97d10',
+      priceId: 'price_monthly_499',
+    },
+    {
+      id: 'yearly',
+      label: t('premium.planPremium'),
+      price: '34,99 €',
+      period: t('premium.perYear'),
+      badge: '🎉 −42 %',
+      color: '#c97d10',
+      priceId: 'price_yearly_3499',
+    },
+  ];
+}
 
 function FeatureRow({
   label, free, essentiel, premium,
@@ -76,6 +83,7 @@ function FeatureRow({
 }
 
 export default function PremiumScreen() {
+  const { t } = useTranslation();
   const C = useColors();
   const router = useRouter();
   const { profile } = useAuthStore();
@@ -86,13 +94,16 @@ export default function PremiumScreen() {
   const isEssentiel = profile?.plan === 'essentiel';
   const hasActivePlan = isPremium || isEssentiel;
 
+  const FEATURES = useMemo(() => getFeatures(t), [t]);
+  const PLANS = useMemo(() => getPlans(t), [t]);
+
   const handleSubscribe = async () => {
     setIsLoading(true);
     try {
       Alert.alert(
-        '🚧 Bientôt disponible',
-        "L'abonnement sera disponible lors du lancement officiel de l'app.",
-        [{ text: 'OK' }],
+        t('premium.comingSoonTitle'),
+        t('premium.comingSoonMessage'),
+        [{ text: t('common.ok') }],
       );
     } finally {
       setIsLoading(false);
@@ -106,9 +117,9 @@ export default function PremiumScreen() {
       {/* Topbar */}
       <View style={styles.topbar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
-          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ {t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.topbarTitle}>Abonnements ⭐</Text>
+        <Text style={styles.topbarTitle}>{t('premium.topbarTitle')}</Text>
         <View style={{ minWidth: 70 }} />
       </View>
 
@@ -124,17 +135,17 @@ export default function PremiumScreen() {
           <Text style={styles.heroTitle}>Confettis & Cake</Text>
           <Text style={styles.heroSub}>
             {isPremium
-              ? 'Tu bénéficies déjà du plan Premium 🎉'
+              ? t('premium.heroSubPremium')
               : isEssentiel
-              ? 'Tu bénéficies déjà du plan Essentiel ✦'
-              : 'Choisis le plan qui te correspond'}
+              ? t('premium.heroSubEssentiel')
+              : t('premium.heroSubDefault')}
           </Text>
         </LinearGradient>
 
         {/* ── Plans tarifaires ──────────────────────── */}
         {!hasActivePlan && (
           <>
-            <Text style={styles.sectionTitle}>Choisis ton plan</Text>
+            <Text style={styles.sectionTitle}>{t('premium.chooseYourPlan')}</Text>
             <View style={styles.plansRow}>
               {PLANS.map((plan) => (
                 <TouchableOpacity
@@ -170,14 +181,14 @@ export default function PremiumScreen() {
         )}
 
         {/* ── Comparatif ───────────────────────────── */}
-        <Text style={styles.sectionTitle}>Comparatif des plans</Text>
+        <Text style={styles.sectionTitle}>{t('premium.compareTitle')}</Text>
         <View style={styles.compareTable}>
           {/* Header */}
           <View style={[styles.featureRow, styles.featureHeader]}>
             <Text style={[styles.featureLabel, styles.featureHeaderLabel]}> </Text>
-            <Text style={[styles.featureFree, styles.featureHeaderCol]}>Gratuit</Text>
-            <Text style={[styles.featureEssentiel, styles.featureHeaderCol, { color: '#9b59b6' }]}>Essentiel</Text>
-            <Text style={[styles.featurePremium, styles.featureHeaderCol, { color: Colors.secondary }]}>Premium</Text>
+            <Text style={[styles.featureFree, styles.featureHeaderCol]}>{t('premium.free')}</Text>
+            <Text style={[styles.featureEssentiel, styles.featureHeaderCol, { color: '#9b59b6' }]}>{t('premium.planEssentiel')}</Text>
+            <Text style={[styles.featurePremium, styles.featureHeaderCol, { color: Colors.secondary }]}>{t('premium.planPremium')}</Text>
           </View>
           {FEATURES.map((f, i) => (
             <View key={i}>
@@ -202,13 +213,11 @@ export default function PremiumScreen() {
             >
               <Text style={styles.ctaBtnText}>
                 {isLoading
-                  ? 'Traitement...'
-                  : `✨ Choisir ${PLANS.find((p) => p.id === selectedPlan)?.label} — ${PLANS.find((p) => p.id === selectedPlan)?.price}`}
+                  ? t('premium.processing')
+                  : t('premium.chooseBtn', { label: PLANS.find((p) => p.id === selectedPlan)?.label, price: PLANS.find((p) => p.id === selectedPlan)?.price })}
               </Text>
             </TouchableOpacity>
-            <Text style={styles.legalText}>
-              Abonnement sans engagement. Résiliable à tout moment. Prix TTC.
-            </Text>
+            <Text style={styles.legalText}>{t('premium.legalText')}</Text>
           </>
         )}
 

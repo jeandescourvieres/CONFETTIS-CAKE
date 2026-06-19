@@ -2,20 +2,20 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 
 export default function ExploreIndex() {
+  const { t } = useTranslation();
   const router = useRouter();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>🔭 Explorer</Text>
-      <Text style={styles.subtitle}>
-        Plonge dans la richesse des prénoms et des noms de famille — origines, significations, numérologie et bien plus encore ✨
-      </Text>
+      <Text style={styles.title}>{t('explore.title')}</Text>
+      <Text style={styles.subtitle}>{t('explore.subtitle')}</Text>
 
       <View style={styles.cards}>
         <TouchableOpacity
@@ -24,11 +24,9 @@ export default function ExploreIndex() {
           activeOpacity={0.85}
         >
           <Text style={styles.cardEmoji}>🔤</Text>
-          <Text style={[styles.cardTitle, { color: C.primary }]}>Explorer les prénoms</Text>
-          <Text style={styles.cardDesc}>
-            Origine, signification, traits de caractère, personnalités célèbres, courbe INSEE et numérologie
-          </Text>
-          <Text style={[styles.cardCta, { color: C.primary }]}>Découvrir →</Text>
+          <Text style={[styles.cardTitle, { color: C.primary }]}>{t('explore.firstNamesTitle')}</Text>
+          <Text style={styles.cardDesc}>{t('explore.firstNamesDesc')}</Text>
+          <Text style={[styles.cardCta, { color: C.primary }]}>{t('explore.discover')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -37,11 +35,9 @@ export default function ExploreIndex() {
           activeOpacity={0.85}
         >
           <Text style={styles.cardEmoji}>🌍</Text>
-          <Text style={[styles.cardTitle, { color: C.primary }]}>Explorer les noms de famille</Text>
-          <Text style={styles.cardDesc}>
-            Origine géographique, étymologie, variantes orthographiques, anecdote historique et numérologie
-          </Text>
-          <Text style={[styles.cardCta, { color: C.primary }]}>Découvrir →</Text>
+          <Text style={[styles.cardTitle, { color: C.primary }]}>{t('explore.lastNamesTitle')}</Text>
+          <Text style={styles.cardDesc}>{t('explore.lastNamesDesc')}</Text>
+          <Text style={[styles.cardCta, { color: C.primary }]}>{t('explore.discover')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

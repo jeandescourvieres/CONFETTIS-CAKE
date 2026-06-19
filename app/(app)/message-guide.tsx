@@ -6,37 +6,18 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Colors, Typography, Spacing, Radii } from '../../src/constants/theme';
 import { useCreateStore } from '../../src/stores/createStore';
 
 const MODES = [
-  {
-    emoji: '✨',
-    label: 'Avec l\'IA',
-    sub: 'L\'IA génère un message personnalisé pour toi en quelques secondes, selon l\'occasion et le contact.',
-    color: '#7C3AED',
-    bg: '#F3EFFF',
-    action: 'ia',
-  },
-  {
-    emoji: '📝',
-    label: 'Choisir un modèle',
-    sub: 'Parcours une bibliothèque de milliers de messages prêts à l\'emploi. Choisis-en un et personnalise-le à ta guise.',
-    color: '#0284C7',
-    bg: '#EFF6FF',
-    action: 'template',
-  },
-  {
-    emoji: '✏️',
-    label: 'À ma façon',
-    sub: 'Écris ton message librement dans la zone de saisie. L\'IA peut t\'aider à l\'améliorer.',
-    color: '#D97706',
-    bg: '#FFF7ED',
-    action: 'manual',
-  },
-];
+  { emoji: '✨', key: 'ia',       color: '#7C3AED', bg: '#F3EFFF', action: 'ia' },
+  { emoji: '📝', key: 'template', color: '#0284C7', bg: '#EFF6FF', action: 'template' },
+  { emoji: '✏️', key: 'manual',   color: '#D97706', bg: '#FFF7ED', action: 'manual' },
+] as const;
 
 export default function MessageGuideScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { setFormat } = useCreateStore();
 
@@ -53,9 +34,9 @@ export default function MessageGuideScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
-          <Text style={[styles.backLinkText, { color: Colors.primary }]}>‹ Retour</Text>
+          <Text style={[styles.backLinkText, { color: Colors.primary }]}>‹ {t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Créer un message</Text>
+        <Text style={styles.headerTitle}>{t('messageGuide.headerTitle')}</Text>
         <View style={{ minWidth: 70 }} />
       </View>
 
@@ -70,11 +51,11 @@ export default function MessageGuideScreen() {
           >
             <View style={styles.modeHeader}>
               <Text style={styles.modeEmoji}>{m.emoji}</Text>
-              <Text style={[styles.modeLabel, { color: m.color }]}>{m.label}</Text>
+              <Text style={[styles.modeLabel, { color: m.color }]}>{t(`messageGuide.modes.${m.key}.label`)}</Text>
             </View>
-            <Text style={styles.modeSub}>{m.sub}</Text>
+            <Text style={styles.modeSub}>{t(`messageGuide.modes.${m.key}.sub`)}</Text>
             <View style={[styles.modeBtn, { backgroundColor: m.color }]}>
-              <Text style={styles.modeBtnText}>Choisir ce mode →</Text>
+              <Text style={styles.modeBtnText}>{t('messageGuide.chooseMode')}</Text>
             </View>
           </TouchableOpacity>
         ))}

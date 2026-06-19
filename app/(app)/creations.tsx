@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMessages } from '../../src/hooks/useAIGenerate';
@@ -20,32 +21,13 @@ import type { Message } from '../../src/types/models';
 // ── Filter tabs ───────────────────────────────────────────────────────────────
 type Filter = 'all' | 'draft' | 'sent';
 
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: 'all', label: 'Tous' },
-  { value: 'draft', label: 'Brouillons' },
-  { value: 'sent', label: 'Envoyés' },
-];
+const FILTERS: Filter[] = ['all', 'draft', 'sent'];
 
 const FORMAT_EMOJI: Record<string, string> = {
   song: '🎵',
   poem: '✍️',
   message: '💬',
   joke: '✨',
-};
-
-const FORMAT_LABEL: Record<string, string> = {
-  song: 'Chanson',
-  poem: 'Poème',
-  message: 'Message',
-  joke: 'Humour',
-};
-
-const TONE_LABEL: Record<string, string> = {
-  humorous: 'Humoristique',
-  touching: 'Touchant',
-  poetic: 'Poétique',
-  playful: 'Chaleureux',
-  professional: 'Professionnel',
 };
 
 // ── Message card ──────────────────────────────────────────────────────────────
@@ -64,6 +46,7 @@ function MessageCard({
   selected: boolean;
   onToggleSelect: () => void;
 }) {
+  const { t } = useTranslation();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const isDraft = message.status === 'draft';
@@ -96,13 +79,13 @@ function MessageCard({
             </Text>
             <View style={[styles.statusBadge, isDraft ? styles.statusDraft : styles.statusSent]}>
               <Text style={[styles.statusText, isDraft ? styles.statusTextDraft : styles.statusTextSent]}>
-                {isDraft ? 'Brouillon' : 'Envoyé'}
+                {isDraft ? t('creations.status.draft') : t('creations.status.sent')}
               </Text>
             </View>
           </View>
           <View style={styles.cardMetaRow}>
             <Text style={styles.cardMeta}>
-              {FORMAT_LABEL[message.format] ?? 'Message'} · {TONE_LABEL[message.tone] ?? ''} · {dateLabel}
+              {t(`create.formats.${message.format}`, { defaultValue: t('create.formats.message') })} · {t(`creations.tones.${message.tone}`, { defaultValue: '' })} · {dateLabel}
             </Text>
             {message.format === 'song' && message.music_status !== 'none' && (
               <View style={[
@@ -142,22 +125,16 @@ function MessageCard({
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 function EmptyState({ filter, onCreate }: { filter: Filter; onCreate: () => void }) {
+  const { t } = useTranslation();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const messages: Record<Filter, string> = {
-    all: 'Aucune création pour l\'instant',
-    draft: 'Aucun brouillon',
-    sent: 'Aucun message envoyé',
-  };
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyEmoji}>✉️</Text>
-      <Text style={styles.emptyTitle}>{messages[filter]}</Text>
-      <Text style={styles.emptySubtitle}>
-        Utilise le générateur pour créer ton premier message IA
-      </Text>
+      <Text style={styles.emptyTitle}>{t(`creations.empty.${filter}`)}</Text>
+      <Text style={styles.emptySubtitle}>{t('creations.emptySub')}</Text>
       <TouchableOpacity style={styles.emptyBtn} onPress={onCreate} activeOpacity={0.85}>
-        <Text style={styles.emptyBtnText}>✨ Créer un message</Text>
+        <Text style={styles.emptyBtnText}>{t('creations.createFirst')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -165,6 +142,7 @@ function EmptyState({ filter, onCreate }: { filter: Filter; onCreate: () => void
 
 // ── Main Screen ───────────────────────────────────────────────────────────────
 export default function CreationsScreen() {
+  const { t } = useTranslation();
   const C = useColors();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -180,8 +158,8 @@ export default function CreationsScreen() {
     mutationFn: deleteMessage,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['messages'] }),
     onError: (err: unknown) => {
-      const msg = err instanceof Error ? err.message : 'Erreur lors de la suppression';
-      Alert.alert('Erreur', msg);
+      const msg = err instanceof Error ? err.message : t('creations.deleteError');
+      Alert.alert(t('common.error'), msg);
     },
   });
 
@@ -193,8 +171,8 @@ export default function CreationsScreen() {
       setSelectedIds(new Set());
     },
     onError: (err: unknown) => {
-      const msg = err instanceof Error ? err.message : 'Erreur lors de la suppression';
-      Alert.alert('Erreur', msg);
+      const msg = err instanceof Error ? err.message : t('creations.deleteError');
+      Alert.alert(t('common.error'), msg);
     },
   });
 
@@ -207,12 +185,12 @@ export default function CreationsScreen() {
 
   const handleDelete = (msg: Message) => {
     Alert.alert(
-      'Supprimer',
-      `Supprimer le message pour ${msg.contact_name} ?`,
+      t('creations.deleteTitle'),
+      t('creations.deleteConfirm', { name: msg.contact_name }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('creations.deleteTitle'),
           style: 'destructive',
           onPress: () => deleteMutation.mutate(msg.id),
         },
@@ -240,12 +218,12 @@ export default function CreationsScreen() {
   const handleDeleteSelected = () => {
     if (selectedIds.size === 0) return;
     Alert.alert(
-      'Supprimer',
-      `Supprimer ${selectedIds.size} message${selectedIds.size > 1 ? 's' : ''} ?`,
+      t('creations.deleteTitle'),
+      t('creations.deleteSelectedConfirm', { count: selectedIds.size }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('creations.deleteTitle'),
           style: 'destructive',
           onPress: () => deleteManyMutation.mutate(Array.from(selectedIds)),
         },
@@ -256,12 +234,12 @@ export default function CreationsScreen() {
   const handleDeleteAllDrafts = () => {
     if (drafts.length === 0) return;
     Alert.alert(
-      'Supprimer tous les brouillons',
-      `Supprimer les ${drafts.length} brouillon${drafts.length > 1 ? 's' : ''} ?`,
+      t('creations.deleteAllDraftsTitle'),
+      t('creations.deleteAllDraftsConfirm', { count: drafts.length }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Tout supprimer',
+          text: t('creations.deleteAllBtn'),
           style: 'destructive',
           onPress: () => deleteManyMutation.mutate(drafts.map((m) => m.id)),
         },
@@ -278,13 +256,11 @@ export default function CreationsScreen() {
         {selectionMode ? (
           <>
             <TouchableOpacity onPress={cancelSelection}>
-              <Text style={styles.headerAction}>Annuler</Text>
+              <Text style={styles.headerAction}>{t('common.cancel')}</Text>
             </TouchableOpacity>
-            <Text style={styles.headerCount}>
-              {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
-            </Text>
+            <Text style={styles.headerCount}>{t('creations.selectedCount', { count: selectedIds.size })}</Text>
             <TouchableOpacity onPress={selectAll}>
-              <Text style={styles.headerAction}>Tout</Text>
+              <Text style={styles.headerAction}>{t('creations.selectAll')}</Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -292,11 +268,11 @@ export default function CreationsScreen() {
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
               <Text style={styles.backBtnText}>‹</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Mes messages</Text>
+            <Text style={styles.headerTitle}>{t('creations.title')}</Text>
             <View style={styles.headerRight}>
               {messages.length > 0 && (
                 <TouchableOpacity onPress={() => setSelectionMode(true)} style={styles.selectBtn}>
-                  <Text style={styles.selectBtnText}>Supprimer...</Text>
+                  <Text style={styles.selectBtnText}>{t('creations.selectBtn')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -307,18 +283,14 @@ export default function CreationsScreen() {
       {/* Intro */}
       {!selectionMode && (
         <View style={styles.introBar}>
-          <Text style={styles.introText}>
-            Retrouve ici tous tes brouillons et messages créés ou envoyés — classés du plus récent au plus ancien 💬
-          </Text>
+          <Text style={styles.introText}>{t('creations.introText')}</Text>
         </View>
       )}
 
       {/* Bouton rapide "Supprimer tous les brouillons" */}
       {!selectionMode && drafts.length > 0 && (
         <TouchableOpacity style={styles.draftsDeleteBar} onPress={handleDeleteAllDrafts} activeOpacity={0.8}>
-          <Text style={styles.draftsDeleteText}>
-            🗑 Supprimer tous les brouillons ({drafts.length})
-          </Text>
+          <Text style={styles.draftsDeleteText}>{t('creations.draftsDeleteBtn', { count: drafts.length })}</Text>
         </TouchableOpacity>
       )}
 
@@ -326,13 +298,13 @@ export default function CreationsScreen() {
       <View style={styles.filterRow}>
         {FILTERS.map((f) => (
           <TouchableOpacity
-            key={f.value}
-            style={[styles.filterChip, filter === f.value && styles.filterChipActive]}
-            onPress={() => setFilter(f.value)}
+            key={f}
+            style={[styles.filterChip, filter === f && styles.filterChipActive]}
+            onPress={() => setFilter(f)}
           >
-            <Text style={[styles.filterLabel, filter === f.value && styles.filterLabelActive]}>
-              {f.label}
-              {f.value === 'draft' && messages.filter((m) => m.status === 'draft').length > 0
+            <Text style={[styles.filterLabel, filter === f && styles.filterLabelActive]}>
+              {t(`creations.filters.${f}`)}
+              {f === 'draft' && messages.filter((m) => m.status === 'draft').length > 0
                 ? ` (${messages.filter((m) => m.status === 'draft').length})`
                 : ''}
             </Text>
@@ -378,8 +350,8 @@ export default function CreationsScreen() {
           >
             <Text style={styles.deleteSelectedText}>
               {deleteManyMutation.isPending
-                ? 'Suppression...'
-                : `🗑 Supprimer${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
+                ? t('creations.deleting')
+                : `${t('creations.deleteSelectedBtn')}${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
             </Text>
           </TouchableOpacity>
         </View>

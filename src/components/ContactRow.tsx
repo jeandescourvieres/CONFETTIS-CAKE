@@ -135,6 +135,8 @@ const RELATION_LABELS: Record<string, string> = {
   partner: 'Partenaire',
   colleague: 'Collègue',
   other: 'Autre',
+  pet: 'Animal',
+  child_of: 'Enfant',
 };
 
 function extractFamilyLink(notes: string | null | undefined): string | null {

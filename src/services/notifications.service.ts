@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import type { Contact, UpcomingEvent } from '../types/models';
 import { Config } from '../constants/config';
+import { extractFirstName, extractLastName } from '../utils/nameHelpers';
 import { getUpcomingHolidays, type HolidayWithDate } from '../utils/generalHolidays';
 
 // Configure le handler global (affichage même en foreground)
@@ -51,7 +52,8 @@ export async function scheduleEventReminder(
   triggerDate.setHours(9, 0, 0, 0);
 
   const isToday = triggerDays === 0;
-  const name = event.contact.name;
+  const raw = event.contact.name;
+  const name = `${extractFirstName(raw)} ${extractLastName(raw)}`.trim() || raw;
   const eventLabel = event.eventType === 'birthday' ? 'anniversaire' : 'fête';
 
   const title = isToday

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMyPots } from '../../../src/hooks/usePot';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
@@ -28,13 +29,14 @@ function ProgressBar({ current, target }: { current: number; target: number }) {
 
 // ── Pot card ──────────────────────────────────────────────────────────────────
 function PotCard({ pot, onPress }: { pot: Pot; onPress: () => void }) {
+  const { t } = useTranslation();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const pct = Math.min(Math.round((pot.current_amount / pot.target_amount) * 100), 100);
   const isCompleted = pot.status === 'completed';
   const isClosed = pot.status === 'closed';
   const statusColor = isCompleted ? '#4CAF50' : isClosed ? Colors.outlineVariant : C.primary;
-  const statusLabel = isCompleted ? '✓ Objectif atteint' : isClosed ? 'Clôturée' : 'En cours';
+  const statusLabel = isCompleted ? t('pot.list.statusCompleted') : isClosed ? t('pot.list.statusClosed') : t('pot.list.statusOngoing');
   const contact = pot.contact as { name?: string } | undefined;
   const deadline = pot.deadline
     ? new Date(pot.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -56,32 +58,32 @@ function PotCard({ pot, onPress }: { pot: Pot; onPress: () => void }) {
       <View style={styles.amountRow}>
         <Text style={styles.amountCurrent}>{pot.current_amount.toFixed(2)} €</Text>
         <Text style={styles.amountPct}>{pct} %</Text>
-        <Text style={styles.amountTarget}>sur {pot.target_amount.toFixed(2)} €</Text>
+        <Text style={styles.amountTarget}>{t('pot.list.amountTarget', { amount: pot.target_amount.toFixed(2) })}</Text>
       </View>
 
       {/* ── Bloc infos ─────────────────────────────── */}
       <View style={styles.infoGrid}>
         <View style={styles.infoRow}>
           <View style={styles.infoCell}>
-            <Text style={styles.infoLabel}>👤 Bénéficiaire</Text>
+            <Text style={styles.infoLabel}>{t('pot.list.beneficiary')}</Text>
             <Text style={styles.infoValue}>{contact?.name ?? '—'}</Text>
           </View>
           <View style={[styles.infoCell, styles.infoCellRight]}>
-            <Text style={styles.infoLabel}>🎯 Objectif</Text>
+            <Text style={styles.infoLabel}>{t('pot.list.target')}</Text>
             <Text style={styles.infoValue}>{pot.target_amount.toFixed(2)} €</Text>
           </View>
         </View>
         <View style={styles.infoRow}>
           <View style={styles.infoCell}>
-            <Text style={styles.infoLabel}>🎁 Description du cadeau</Text>
+            <Text style={styles.infoLabel}>{t('pot.list.giftDescription')}</Text>
             <Text style={styles.infoValue} numberOfLines={2}>
               {pot.gift_description?.trim() || '—'}
             </Text>
           </View>
           <View style={[styles.infoCell, styles.infoCellRight]}>
-            <Text style={styles.infoLabel}>📅 Date limite</Text>
+            <Text style={styles.infoLabel}>{t('pot.list.deadline')}</Text>
             <Text style={styles.infoValue}>
-              {deadline ?? 'Pas de date limite'}
+              {deadline ?? t('pot.list.noDeadline')}
             </Text>
           </View>
         </View>
@@ -89,7 +91,7 @@ function PotCard({ pot, onPress }: { pot: Pot; onPress: () => void }) {
 
       {/* ── Voir le détail ─────────────────────────── */}
       <View style={styles.cardFooter}>
-        <Text style={styles.footerSeeMore}>Voir le détail</Text>
+        <Text style={styles.footerSeeMore}>{t('pot.list.seeDetail')}</Text>
         <Text style={styles.footerChevron}>›</Text>
       </View>
 
@@ -99,17 +101,16 @@ function PotCard({ pot, onPress }: { pot: Pot; onPress: () => void }) {
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 function EmptyState({ onCreate }: { onCreate: () => void }) {
+  const { t } = useTranslation();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyEmoji}>🎁</Text>
-      <Text style={styles.emptyTitle}>Aucune cagnotte</Text>
-      <Text style={styles.emptySub}>
-        Créez une cagnotte collective pour offrir un cadeau groupé à un proche
-      </Text>
+      <Text style={styles.emptyTitle}>{t('pot.list.emptyTitle')}</Text>
+      <Text style={styles.emptySub}>{t('pot.list.emptySub')}</Text>
       <TouchableOpacity style={styles.emptyBtn} onPress={onCreate} activeOpacity={0.85}>
-        <Text style={styles.emptyBtnText}>+ Créer une cagnotte</Text>
+        <Text style={styles.emptyBtnText}>{t('pot.list.emptyBtn')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -117,6 +118,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function PotListScreen() {
+  const { t } = useTranslation();
   const C = useColors();
   const router = useRouter();
   const { data: pots = [], isLoading } = useMyPots();
@@ -137,17 +139,15 @@ export default function PotListScreen() {
           <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
         <View>
-          <Text style={styles.headerTitle}>Cagnottes 🎁</Text>
-          <Text style={styles.headerSub}>
-            {activePots.length} active{activePots.length !== 1 ? 's' : ''}
-          </Text>
+          <Text style={styles.headerTitle}>{t('pot.list.title')}</Text>
+          <Text style={styles.headerSub}>{t('pot.list.activeCount', { count: activePots.length })}</Text>
         </View>
         <TouchableOpacity
           style={styles.createBtn}
           onPress={() => router.push('/(app)/pot/new' as never)}
           activeOpacity={0.85}
         >
-          <Text style={styles.createBtnText}>+ Nouvelle</Text>
+          <Text style={styles.createBtnText}>{t('pot.list.newBtn')}</Text>
         </TouchableOpacity>
       </LinearGradient>
 
@@ -167,9 +167,7 @@ export default function PotListScreen() {
         ListFooterComponent={
           closedPots.length > 0 ? (
             <View style={styles.sectionFooter}>
-              <Text style={styles.sectionFooterText}>
-                + {closedPots.length} cagnotte{closedPots.length > 1 ? 's' : ''} clôturée{closedPots.length > 1 ? 's' : ''}
-              </Text>
+              <Text style={styles.sectionFooterText}>{t('pot.list.closedFooter', { count: closedPots.length })}</Text>
             </View>
           ) : null
         }

@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
 import * as SecureStore from '../src/utils/storage';
 import { Radii, Typography } from '../src/constants/theme';
+import { useTablet } from '../src/hooks/useTablet';
 
 const { width: W, height: H } = Dimensions.get('window');
 const IMG_W = Math.round(W * 0.70);
@@ -90,6 +91,7 @@ function FloatingParticle({ emoji, xRatio, delay }: { emoji: string; xRatio: num
 // ── Écran de bienvenue ────────────────────────────────────────────────────────
 export default function WelcomeScreen() {
   const router     = useRouter();
+  const { isTablet } = useTablet();
   const soundRef   = useRef<Audio.Sound | null>(null);
   const mountedRef = useRef(true);
   const [heroImage] = useState(() => HERO_IMAGES[Math.floor(Math.random() * HERO_IMAGES.length)]);
@@ -161,7 +163,7 @@ export default function WelcomeScreen() {
       {/* Boutons collés en bas, par-dessus l'image */}
       <SafeAreaView style={styles.safe} edges={['bottom']} pointerEvents="box-none">
         <Animated.View style={[styles.bottomGroup, { opacity: fadeOpacity, transform: [{ translateY: fadeY }] }]}>
-          <View style={styles.btnWrap}>
+          <View style={[styles.btnWrap, isTablet && styles.btnWrapTablet]}>
             <TouchableOpacity style={styles.btn} onPress={stopAndEnter} activeOpacity={0.85}>
               <Text style={styles.btnText}>C'est parti ! 🎉</Text>
             </TouchableOpacity>
@@ -328,6 +330,10 @@ const styles = StyleSheet.create({
   btnWrap: {
     width: '50%',
     alignSelf: 'center',
+  },
+  btnWrapTablet: {
+    width: '40%',
+    maxWidth: 280,
   },
 
   btn: {

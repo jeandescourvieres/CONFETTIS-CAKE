@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as SecureStore from '../../src/utils/storage';
 import { useAuthStore } from '../../src/stores/authStore';
 import { PremiumGateModal } from '../../src/components/ui/PremiumGateModal';
@@ -30,6 +31,7 @@ function CheckItem({ text, color }: { text: string; color: string }) {
 }
 
 export default function FeaturesIntroScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
   const [premiumGateVisible, setPremiumGateVisible] = useState(false);
@@ -63,61 +65,55 @@ export default function FeaturesIntroScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* En-tête */}
-        <Text style={styles.title}>Bienvenue dans ConfettiCake ! 👋</Text>
-        <Text style={styles.subtitle}>Choisis ton expérience{'\n'}pour commencer</Text>
+        <Text style={styles.title}>{t('featuresIntro.title')}</Text>
+        <Text style={styles.subtitle}>{t('featuresIntro.subtitle')}</Text>
 
         {/* ── Carte Mode Apprentissage ── */}
         <View style={[styles.card, styles.cardAppr]}>
           <Text style={styles.cardEmoji}>🍬</Text>
-          <Text style={styles.cardMode}>Mode</Text>
-          <Text style={[styles.cardTitle, { color: APPRENTISSAGE_COLOR }]}>Apprentissage</Text>
-          <Text style={[styles.cardTagline, { color: APPRENTISSAGE_COLOR + 'BB' }]}>Simplifié et guidé</Text>
-          <Text style={styles.cardDesc}>
-            {"L'essentiel pour découvrir l'application pas à pas et avancer à ton rythme."}
-          </Text>
+          <Text style={styles.cardMode}>{t('featuresIntro.modeLabel')}</Text>
+          <Text style={[styles.cardTitle, { color: APPRENTISSAGE_COLOR }]}>{t('featuresIntro.learning.title')}</Text>
+          <Text style={[styles.cardTagline, { color: APPRENTISSAGE_COLOR + 'BB' }]}>{t('featuresIntro.learning.tagline')}</Text>
+          <Text style={styles.cardDesc}>{t('featuresIntro.learning.desc')}</Text>
           <View style={styles.checks}>
-            <CheckItem text="Interface épurée"  color={APPRENTISSAGE_COLOR} />
-            <CheckItem text="Fonctions clés"    color={APPRENTISSAGE_COLOR} />
-            <CheckItem text="Parcours guidé"    color={APPRENTISSAGE_COLOR} />
+            <CheckItem text={t('featuresIntro.learning.check1')} color={APPRENTISSAGE_COLOR} />
+            <CheckItem text={t('featuresIntro.learning.check2')} color={APPRENTISSAGE_COLOR} />
+            <CheckItem text={t('featuresIntro.learning.check3')} color={APPRENTISSAGE_COLOR} />
           </View>
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: APPRENTISSAGE_COLOR }]}
             onPress={() => choose('simple')}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnText}>Choisir ce mode</Text>
+            <Text style={styles.btnText}>{t('featuresIntro.chooseBtn')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── Carte Mode Complet ── */}
         <View style={[styles.card, styles.cardComplet]}>
           <Text style={styles.cardEmoji}>🎉</Text>
-          <Text style={styles.cardMode}>Mode</Text>
-          <Text style={[styles.cardTitle, { color: COMPLET_COLOR }]}>Complet</Text>
-          <Text style={[styles.cardTagline, { color: COMPLET_COLOR + 'BB' }]}>Pour aller plus loin</Text>
-          <Text style={styles.cardDesc}>
-            {"Accède à toutes les fonctionnalités et crée sans limites."}
-          </Text>
+          <Text style={styles.cardMode}>{t('featuresIntro.modeLabel')}</Text>
+          <Text style={[styles.cardTitle, { color: COMPLET_COLOR }]}>{t('featuresIntro.full.title')}</Text>
+          <Text style={[styles.cardTagline, { color: COMPLET_COLOR + 'BB' }]}>{t('featuresIntro.full.tagline')}</Text>
+          <Text style={styles.cardDesc}>{t('featuresIntro.full.desc')}</Text>
           <View style={styles.checks}>
-            <CheckItem text="Toutes les fonctionnalités"  color={COMPLET_COLOR} />
-            <CheckItem text="Personnalisation avancée"    color={COMPLET_COLOR} />
-            <CheckItem text="Plus de possibilités"        color={COMPLET_COLOR} />
+            <CheckItem text={t('featuresIntro.full.check1')} color={COMPLET_COLOR} />
+            <CheckItem text={t('featuresIntro.full.check2')} color={COMPLET_COLOR} />
+            <CheckItem text={t('featuresIntro.full.check3')} color={COMPLET_COLOR} />
           </View>
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: COMPLET_COLOR }]}
             onPress={() => choose('advanced')}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnText}>Choisir ce mode</Text>
+            <Text style={styles.btnText}>{t('featuresIntro.chooseBtn')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Note de bas de page */}
         <View style={styles.footer}>
           <Text style={styles.footerIcon}>🔄</Text>
-          <Text style={styles.footerText}>
-            Tu pourras changer de mode à tout moment dans les paramètres.
-          </Text>
+          <Text style={styles.footerText}>{t('featuresIntro.footerText')}</Text>
         </View>
       </ScrollView>
 
@@ -125,8 +121,8 @@ export default function FeaturesIntroScreen() {
         visible={premiumGateVisible}
         onClose={() => setPremiumGateVisible(false)}
         emoji="🍭"
-        title="Le mode complet est réservé au Premium"
-        description="Débloque toutes les fonctionnalités avancées de Confettis & Cake — horoscope, numérologie, animaux, cartes animées et bien plus — en passant en mode complet avec un abonnement Premium ⭐"
+        title={t('featuresIntro.gateTitle')}
+        description={t('featuresIntro.gateDesc')}
       />
     </SafeAreaView>
   );

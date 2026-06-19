@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Typography, Radii, Spacing } from '@constants/theme';
 import { useThemeStore } from '../../src/stores/themeStore';
 import { scrollToTopRegistry } from '../../src/utils/scrollRegistry';
+import { useTablet } from '../../src/hooks/useTablet';
 
 // ── Tabs visibles (13 items dans l'ordre demandé) ─────────────────────────────
 const VISIBLE_TABS: { routeName: string; emoji: string; label: string }[] = [
@@ -36,6 +37,7 @@ function PersistentTabBar() {
   const primary = appTheme?.primary ?? Colors.primary;
   const router = useRouter();
   const segments = useSegments();
+  const { isTablet } = useTablet();
 
   // segments = ['(app)', 'dashboard'] ou ['(app)', 'contacts', 'new'] etc.
   const seg1 = (segments[1] ?? '') as string;
@@ -45,7 +47,7 @@ function PersistentTabBar() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={tabStyles.scrollContent}
+        contentContainerStyle={[tabStyles.scrollContent, isTablet && tabStyles.scrollContentTablet]}
         bounces={false}
       >
         {VISIBLE_TABS.map((tab) => {
@@ -75,12 +77,12 @@ function PersistentTabBar() {
           return (
             <TouchableOpacity
               key={tab.routeName}
-              style={[tabStyles.item, isFocused && tabStyles.itemActive]}
+              style={[tabStyles.item, isTablet && tabStyles.itemTablet, isFocused && tabStyles.itemActive]}
               onPress={onPress}
               activeOpacity={0.75}
             >
-              <Text style={tabStyles.emoji}>{tab.emoji}</Text>
-              <Text style={[tabStyles.label, isFocused && { color: primary }]}>
+              <Text style={[tabStyles.emoji, isTablet && tabStyles.emojiTablet]}>{tab.emoji}</Text>
+              <Text style={[tabStyles.label, isTablet && tabStyles.labelTablet, isFocused && { color: primary }]}>
                 {tab.label}
               </Text>
               {isFocused && (
@@ -116,6 +118,11 @@ const tabStyles = StyleSheet.create({
     paddingBottom: 3,
     gap: 4,
   },
+  scrollContentTablet: {
+    paddingHorizontal: Spacing[6],
+    gap: 8,
+    alignSelf: 'center',
+  },
   item: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -125,15 +132,25 @@ const tabStyles = StyleSheet.create({
     minWidth: 60,
     gap: 1,
   },
+  itemTablet: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    minWidth: 76,
+    gap: 3,
+  },
   itemActive: {
     backgroundColor: Colors.surfaceContainerLow,
   },
   emoji: { fontSize: 18 },
+  emojiTablet: { fontSize: 22 },
   label: {
     fontFamily: 'BeVietnamPro_600SemiBold',
     fontSize: 10,
     color: Colors.outlineVariant,
     textAlign: 'center',
+  },
+  labelTablet: {
+    fontSize: 12,
   },
   activeDot: {
     width: 4, height: 4, borderRadius: 2, marginTop: 1,

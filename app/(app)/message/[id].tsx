@@ -17,6 +17,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useMessage } from '../../../src/hooks/useAIGenerate';
 import { useGroupMessage, formatSigners, groupShareUrl } from '../../../src/hooks/useGroupMessages';
 import { deleteMessage, markMessageSent } from '../../../src/services/messages.service';
@@ -25,17 +26,13 @@ import { useCreateStore } from '../../../src/stores/createStore';
 import { buildSignatureText, getSignatureLabels } from '../../../src/utils/signature';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
-import type { MessageFormat, MessageTone, MusicStatus } from '../../../src/types/models';
+import type { MusicStatus } from '../../../src/types/models';
 
 const FORMAT_EMOJI: Record<string, string> = { song: '🎵', poem: '✍️', message: '💬', joke: '✨' };
-const FORMAT_LABEL: Record<MessageFormat, string> = { song: 'Chanson', poem: 'Poème', message: 'Message', joke: 'Humour' };
-const TONE_LABEL: Record<MessageTone, string> = {
-  humorous: 'Humoristique', touching: 'Touchant', poetic: 'Poétique',
-  playful: 'Chaleureux', professional: 'Professionnel', childlike: 'Enfantin ✨',
-};
 
 // ── Mini lecteur audio ────────────────────────────────────────────────────────
 function MiniAudioPlayer({ audioUrl, musicStatus }: { audioUrl: string | null; musicStatus: MusicStatus }) {
+  const { t } = useTranslation();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -53,7 +50,7 @@ function MiniAudioPlayer({ audioUrl, musicStatus }: { audioUrl: string | null; m
       <View style={styles.audioBar}>
         <ActivityIndicator size="small" color={Colors.white} />
         <Text style={styles.audioBarText}>
-          {musicStatus === 'queued' ? '⏳ En file d\'attente...' : '🎵 Génération en cours...'}
+          {musicStatus === 'queued' ? t('message.audioQueued') : t('message.audioGenerating')}
         </Text>
       </View>
     );
@@ -61,7 +58,7 @@ function MiniAudioPlayer({ audioUrl, musicStatus }: { audioUrl: string | null; m
   if (musicStatus === 'failed') {
     return (
       <View style={[styles.audioBar, { backgroundColor: 'rgba(0,0,0,0.25)' }]}>
-        <Text style={styles.audioBarText}>⚠️ Génération audio échouée</Text>
+        <Text style={styles.audioBarText}>{t('message.audioFailed')}</Text>
       </View>
     );
   }
@@ -109,20 +106,23 @@ function MiniAudioPlayer({ audioUrl, musicStatus }: { audioUrl: string | null; m
   );
 }
 
-const SHARE_CHANNELS = [
-  { id: 'whatsapp', label: 'WhatsApp', emoji: '💬', color: '#25D366' },
-  { id: 'sms', label: 'SMS', emoji: '📱', color: Colors.primary },
-  { id: 'email', label: 'Email', emoji: '📧', color: '#EA4335' },
-  { id: 'qr', label: 'QR Code', emoji: '⬛', color: Colors.onSurface },
-  { id: 'copy', label: 'Copier', emoji: '📋', color: Colors.onSurfaceVariant },
-];
+function getShareChannels(t: TFunction) {
+  return [
+    { id: 'whatsapp', label: 'WhatsApp', emoji: '💬', color: '#25D366' },
+    { id: 'sms', label: 'SMS', emoji: '📱', color: Colors.primary },
+    { id: 'email', label: 'Email', emoji: '📧', color: '#EA4335' },
+    { id: 'qr', label: 'QR Code', emoji: '⬛', color: Colors.onSurface },
+    { id: 'copy', label: t('message.copy'), emoji: '📋', color: Colors.onSurfaceVariant },
+  ];
+}
 
 export default function MessageDetailScreen() {
   const C = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const SHARE_CHANNELS = useMemo(() => getShareChannels(t), [t]);
   const profile = useAuthStore((s) => s.profile);
   const [sending, setSending] = useState(false);
   const [photoShape, setPhotoShape] = useState<'square' | 'round'>('square');
@@ -144,11 +144,11 @@ export default function MessageDetailScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      'Supprimer ce message ?',
-      'Cette action est irréversible.',
+      t('message.deleteTitle'),
+      t('message.deleteDesc'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Supprimer', style: 'destructive', onPress: () => deleteMutation.mutate() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('creations.deleteTitle'), style: 'destructive', onPress: () => deleteMutation.mutate() },
       ],
     );
   };
@@ -165,7 +165,7 @@ export default function MessageDetailScreen() {
     }
 
     const emoji = FORMAT_EMOJI[message.format] ?? '💬';
-    const baseText = `${emoji} Pour ${message.contact_name}\n\n${message.content}`;
+    const baseText = `${emoji} ${t('message.forContact', { name: message.contact_name })}\n\n${message.content}`;
     const text = showSig ? baseText + buildSignatureText(i18n.language) : baseText;
 
     try {
@@ -178,7 +178,7 @@ export default function MessageDetailScreen() {
       } else if (channelId === 'sms') {
         await Linking.openURL(`sms:?body=${encodeURIComponent(text)}`);
       } else if (channelId === 'email') {
-        const subject = encodeURIComponent(`🎉 Pour ${message.contact_name}`);
+        const subject = encodeURIComponent(t('message.emailSubject', { name: message.contact_name }));
         await Linking.openURL(`mailto:?subject=${subject}&body=${encodeURIComponent(text)}`);
       } else if (channelId === 'copy') {
         await Share.share({ message: text });
@@ -193,13 +193,25 @@ export default function MessageDetailScreen() {
     }
   };
 
+  const handleEdit = () => {
+    if (!message) return;
+    const store = useCreateStore.getState();
+    store.setContact(message.contact_id, message.contact_name, message.relation);
+    store.setFormat(message.format);
+    store.setTone(message.tone);
+    store.setGeneratedContent(message.content);
+    store.setSavedMessageId(message.id);
+    store.bumpSessionKey();
+    router.push({ pathname: '/(app)/create/preview', params: { fromTemplate: '1' } } as never);
+  };
+
   const styles = useMemo(() => makeStyles(C), [C]);
 
   if (isLoading || !message) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingCenter}>
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -221,10 +233,10 @@ export default function MessageDetailScreen() {
       {/* Topbar */}
       <View style={styles.topbar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
-          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ {t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle} numberOfLines={1}>
-          Pour {message.contact_name}
+          {t('message.forContact', { name: message.contact_name })}
         </Text>
         <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
           <Text style={styles.deleteBtnText}>🗑</Text>
@@ -243,22 +255,27 @@ export default function MessageDetailScreen() {
           style={styles.hero}
         >
           <Text style={styles.heroEmoji}>{FORMAT_EMOJI[message.format] ?? '💬'}</Text>
-          <Text style={styles.heroName}>Pour {message.contact_name}</Text>
+          <Text style={styles.heroName}>{t('message.forContact', { name: message.contact_name })}</Text>
           <View style={styles.heroBadgeRow}>
             <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>{FORMAT_LABEL[message.format]}</Text>
+              <Text style={styles.heroBadgeText}>{t(`create.formats.${message.format}`)}</Text>
             </View>
             <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>{TONE_LABEL[message.tone]}</Text>
+              <Text style={styles.heroBadgeText}>{t(`creations.tones.${message.tone}`)}</Text>
             </View>
             <View style={[styles.heroBadge, message.status === 'sent' && styles.heroBadgeSent]}>
               <Text style={styles.heroBadgeText}>
-                {message.status === 'sent' ? '✓ Envoyé' : 'Brouillon'}
+                {message.status === 'sent' ? t('message.sentBadge') : t('creations.status.draft')}
               </Text>
             </View>
           </View>
           <Text style={styles.heroDate}>{dateLabel}</Text>
         </LinearGradient>
+
+        {/* ── Reprendre la main pour retravailler le message ── */}
+        <TouchableOpacity style={[styles.editBtn, { backgroundColor: C.primary }]} onPress={handleEdit} activeOpacity={0.85}>
+          <Text style={styles.editBtnText}>{t('message.editBtn')}</Text>
+        </TouchableOpacity>
 
         {/* ── Lecteur audio (chansons + messages avec musique) ── */}
         {(isSong || message.audio_url) && (
@@ -273,13 +290,13 @@ export default function MessageDetailScreen() {
                 style={[styles.shapeBtn, photoShape === 'square' && styles.shapeBtnActive]}
                 onPress={() => setPhotoShape('square')}
               >
-                <Text style={[styles.shapeBtnText, photoShape === 'square' && styles.shapeBtnTextActive]}>⬛ Carré</Text>
+                <Text style={[styles.shapeBtnText, photoShape === 'square' && styles.shapeBtnTextActive]}>{t('message.photoSquare')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.shapeBtn, photoShape === 'round' && styles.shapeBtnActive]}
                 onPress={() => setPhotoShape('round')}
               >
-                <Text style={[styles.shapeBtnText, photoShape === 'round' && styles.shapeBtnTextActive]}>⭕ Rond</Text>
+                <Text style={[styles.shapeBtnText, photoShape === 'round' && styles.shapeBtnTextActive]}>{t('message.photoRound')}</Text>
               </TouchableOpacity>
             </View>
             {photoShape === 'square' ? (
@@ -318,7 +335,7 @@ export default function MessageDetailScreen() {
         {/* ── Co-signataires ───────────────────────────── */}
         {groupSignatures.length > 0 && (
           <View style={styles.groupBlock}>
-            <Text style={styles.groupBlockTitle}>✍️ Co-signataires</Text>
+            <Text style={styles.groupBlockTitle}>{t('message.coSigners')}</Text>
             <Text style={styles.groupBlockNames}>{formatSigners(groupSignatures, 5)}</Text>
             {groupSignatures.some((s) => s.signer_note) && (
               <View style={styles.notesBlock}>
@@ -333,16 +350,16 @@ export default function MessageDetailScreen() {
               style={styles.copySignersBtn}
               onPress={() => {
                 const names = groupSignatures.map((s) => s.signer_name).join(', ');
-                Share.share({ message: `De la part de : ${names}` });
+                Share.share({ message: t('message.fromAll', { names }) });
               }}
             >
-              <Text style={styles.copySignersBtnText}>📋 Copier la liste</Text>
+              <Text style={styles.copySignersBtnText}>{t('message.copySignersList')}</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* ── Partage ──────────────────────────────────── */}
-        <Text style={styles.sectionLabel}>Envoyer via</Text>
+        <Text style={styles.sectionLabel}>{t('message.sendVia')}</Text>
         <View style={styles.shareGrid}>
           {SHARE_CHANNELS.map((ch) => (
             <TouchableOpacity
@@ -488,6 +505,20 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontSize: Typography.xs,
     color: 'rgba(255,255,255,0.7)',
     textTransform: 'capitalize',
+  },
+
+  editBtn: {
+    marginHorizontal: Spacing[4],
+    marginBottom: Spacing[4],
+    borderRadius: Radii.full,
+    paddingVertical: 14,
+    alignItems: 'center',
+    ...Shadows.sm,
+  },
+  editBtnText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: Typography.md,
+    color: Colors.white,
   },
 
   contentCard: {

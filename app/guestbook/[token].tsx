@@ -18,11 +18,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../src/services/supabase';
 
 const PURPLE = '#7B1FA2';
 
 export default function GuestbookContributeScreen() {
+  const { t } = useTranslation();
   const { token } = useLocalSearchParams<{ token: string }>();
 
   const [name, setName] = useState('');
@@ -44,7 +46,7 @@ export default function GuestbookContributeScreen() {
         },
       });
       if (fnErr) {
-        let detail = (fnErr as Error).message ?? 'Erreur';
+        let detail = (fnErr as Error).message ?? t('common.error');
         try {
           const ctx = (fnErr as unknown as { context?: unknown }).context;
           if (ctx && typeof (ctx as Response).json === 'function') {
@@ -57,7 +59,7 @@ export default function GuestbookContributeScreen() {
       if (data?.error) throw new Error(data.error);
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(err instanceof Error ? err.message : t('errors.generic'));
     } finally {
       setIsPending(false);
     }
@@ -70,10 +72,8 @@ export default function GuestbookContributeScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <Text style={styles.successEmoji}>🎉</Text>
-          <Text style={styles.successTitle}>Merci {name} !</Text>
-          <Text style={styles.successDesc}>
-            Ton message a bien été ajouté au livre d'or. L'organisateur pourra le lire et le partager avec tout le monde 💛
-          </Text>
+          <Text style={styles.successTitle}>{t('guestbook.contribute.successTitle', { name })}</Text>
+          <Text style={styles.successDesc}>{t('guestbook.contribute.successDesc')}</Text>
           <View style={styles.footerBrand}>
             <Text style={styles.footerBrandText}>🎂 Confettis & Cake</Text>
           </View>
@@ -103,14 +103,12 @@ export default function GuestbookContributeScreen() {
           {/* Carte principale */}
           <View style={styles.card}>
             <Text style={styles.cardEmoji}>📒</Text>
-            <Text style={styles.cardTitle}>Livre d'or numérique</Text>
-            <Text style={styles.cardSub}>
-              Laisse un mot dans ce livre d'or — il sera conservé précieusement 💛
-            </Text>
+            <Text style={styles.cardTitle}>{t('guestbook.contribute.cardTitle')}</Text>
+            <Text style={styles.cardSub}>{t('guestbook.contribute.cardSub')}</Text>
           </View>
 
           {/* Formulaire */}
-          <Text style={styles.label}>Ton prénom *</Text>
+          <Text style={styles.label}>{t('guestbook.contribute.nameLabel')}</Text>
           <TextInput
             style={styles.input}
             placeholder="Marie"
@@ -122,10 +120,10 @@ export default function GuestbookContributeScreen() {
             returnKeyType="next"
           />
 
-          <Text style={styles.label}>Ton message *</Text>
+          <Text style={styles.label}>{t('guestbook.contribute.messageLabel')}</Text>
           <TextInput
             style={[styles.input, styles.inputMulti]}
-            placeholder="Écris quelques mots du fond du cœur... 💛"
+            placeholder={t('guestbook.contribute.messagePlaceholder')}
             placeholderTextColor="#aaa"
             value={message}
             onChangeText={setMessage}
@@ -149,13 +147,11 @@ export default function GuestbookContributeScreen() {
           >
             {isPending
               ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={styles.submitBtnText}>📒 Signer le livre d'or</Text>
+              : <Text style={styles.submitBtnText}>{t('guestbook.contribute.submitBtn')}</Text>
             }
           </TouchableOpacity>
 
-          <Text style={styles.disclaimer}>
-            En signant, tu acceptes que ton prénom et ton message soient visibles par l'organisateur du livre d'or.
-          </Text>
+          <Text style={styles.disclaimer}>{t('guestbook.contribute.disclaimer')}</Text>
 
           <View style={{ height: 40 }} />
         </ScrollView>

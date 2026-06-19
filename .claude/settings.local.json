@@ -75,7 +75,10 @@
       "Bash(supabase secrets *)",
       "mcp__plugin_supabase_supabase__execute_sql",
       "Bash(git push *)",
-      "PowerShell(Stop-Process *)"
+      "PowerShell(Stop-Process *)",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(awk -F: '$1>970')"
     ]
   }
 }

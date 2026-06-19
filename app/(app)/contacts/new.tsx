@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
+import { useTranslation } from 'react-i18next';
 import { uploadContactAvatar } from '../../../src/services/contacts.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -25,54 +26,10 @@ import { HelpModal } from '../../../src/components/ui/HelpModal';
 import { Button3D } from '../../../src/components/ui/Button3D';
 import type { Relation } from '../../../src/types/models';
 
-const SEND_TIMES: { value: 'morning' | 'afternoon' | 'evening' | 'anytime'; label: string; emoji: string }[] = [
-  { value: 'morning',   label: 'Matin',       emoji: '🌅' },
-  { value: 'afternoon', label: 'Après-midi',  emoji: '☀️' },
-  { value: 'evening',   label: 'Soir',        emoji: '🌙' },
-  { value: 'anytime',   label: 'Peu importe', emoji: '🕐' },
-];
-
-const PERSONALITY_TAGS: { value: string; label: string }[] = [
-  { value: 'drôle', label: 'Drôle' },
-  { value: 'calme', label: 'Calme' },
-  { value: 'passionné', label: 'Passionné·e' },
-  { value: 'créatif', label: 'Créatif·ve' },
-  { value: 'sportif', label: 'Sportif·ve' },
-  { value: 'gourmand', label: 'Gourmand·e' },
-  { value: 'voyageur', label: 'Voyageur·se' },
-  { value: 'geek', label: 'Geek' },
-];
-
-const PET_PERSONALITY_TAGS: { value: string; label: string }[] = [
-  { value: 'joueur',       label: '🎾 Joueur'       },
-  { value: 'câlin',        label: '🤗 Câlin'        },
-  { value: 'indépendant',  label: '😎 Indépendant'  },
-  { value: 'gourmand',     label: '🍖 Gourmand'     },
-  { value: 'peureux',      label: '😨 Peureux'      },
-  { value: 'actif',        label: '⚡ Actif'        },
-  { value: 'dormeur',      label: '😴 Dormeur'      },
-  { value: 'affectueux',   label: '💛 Affectueux'   },
-  { value: 'espiègle',     label: '😏 Espiègle'     },
-  { value: 'protecteur',   label: '🛡️ Protecteur'   },
-  { value: 'bavard',       label: '🗣️ Bavard'        },
-  { value: 'timide',       label: '🙈 Timide'       },
-];
-
 const PET_TYPE_EMOJIS: Record<string, string> = {
   chien: '🐶', chat: '🐱', lapin: '🐰', perroquet: '🦜',
   hamster: '🐹', poisson: '🐠', cheval: '🐴', autre: '🐾',
 };
-
-const RELATIONS: { value: Relation; label: string; emoji: string }[] = [
-  { value: 'best_friend', label: 'Meilleur·e ami·e', emoji: '💜' },
-  { value: 'friend', label: 'Ami·e', emoji: '😊' },
-  { value: 'family', label: 'Famille', emoji: '👨‍👩‍👧' },
-  { value: 'partner', label: 'Partenaire', emoji: '💑' },
-  { value: 'colleague', label: 'Collègue', emoji: '💼' },
-  { value: 'child_of', label: 'Enfant de…', emoji: '👶' },
-  { value: 'pet', label: 'Animal de compagnie', emoji: '🐾' },
-  { value: 'other', label: 'Connaissance', emoji: '👤' },
-];
 
 function buildNotes(relation: string, familyLink: string, notes: string): string | null {
   // Retire un éventuel "Lien : ..." existant des notes
@@ -85,10 +42,55 @@ function buildNotes(relation: string, familyLink: string, notes: string): string
 }
 
 export default function NewContactScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const C = useColors();
   const { editId, ownerName: ownerNameParam, resetKey } = useLocalSearchParams<{ editId?: string; ownerName?: string; resetKey?: string }>();
   const isEditing = !!editId;
+
+  const SEND_TIMES: { value: 'morning' | 'afternoon' | 'evening' | 'anytime'; label: string; emoji: string }[] = [
+    { value: 'morning',   label: t('contactNew.sendMorning'),   emoji: '🌅' },
+    { value: 'afternoon', label: t('contactNew.sendAfternoon'), emoji: '☀️' },
+    { value: 'evening',   label: t('contactNew.sendEvening'),   emoji: '🌙' },
+    { value: 'anytime',   label: t('contactNew.sendAnytime'),   emoji: '🕐' },
+  ];
+
+  const PERSONALITY_TAGS: { value: string; label: string }[] = [
+    { value: 'drôle', label: t('contactNew.personalityFunny') },
+    { value: 'calme', label: t('contactNew.personalityCalm') },
+    { value: 'passionné', label: t('contactNew.personalityPassionate') },
+    { value: 'créatif', label: t('contactNew.personalityCreative') },
+    { value: 'sportif', label: t('contactNew.personalitySporty') },
+    { value: 'gourmand', label: t('contactNew.personalityFoodie') },
+    { value: 'voyageur', label: t('contactNew.personalityTraveler') },
+    { value: 'geek', label: t('contactNew.personalityGeek') },
+  ];
+
+  const PET_PERSONALITY_TAGS: { value: string; label: string }[] = [
+    { value: 'joueur',       label: `🎾 ${t('contactNew.petPersonalityPlayful')}` },
+    { value: 'câlin',        label: `🤗 ${t('contactNew.petPersonalityCuddly')}` },
+    { value: 'indépendant',  label: `😎 ${t('contactNew.petPersonalityIndependent')}` },
+    { value: 'gourmand',     label: `🍖 ${t('contactNew.petPersonalityFoodie')}` },
+    { value: 'peureux',      label: `😨 ${t('contactNew.petPersonalityFearful')}` },
+    { value: 'actif',        label: `⚡ ${t('contactNew.petPersonalityActive')}` },
+    { value: 'dormeur',      label: `😴 ${t('contactNew.petPersonalitySleepy')}` },
+    { value: 'affectueux',   label: `💛 ${t('contactNew.petPersonalityAffectionate')}` },
+    { value: 'espiègle',     label: `😏 ${t('contactNew.petPersonalityMischievous')}` },
+    { value: 'protecteur',   label: `🛡️ ${t('contactNew.petPersonalityProtective')}` },
+    { value: 'bavard',       label: `🗣️ ${t('contactNew.petPersonalityChatty')}` },
+    { value: 'timide',       label: `🙈 ${t('contactNew.petPersonalityShy')}` },
+  ];
+
+  const RELATIONS: { value: Relation; label: string; emoji: string }[] = [
+    { value: 'best_friend', label: t('contacts.relations.best_friend'), emoji: '💜' },
+    { value: 'friend', label: t('contacts.relations.friend'), emoji: '😊' },
+    { value: 'family', label: t('contacts.relations.family'), emoji: '👨‍👩‍👧' },
+    { value: 'partner', label: t('contacts.relations.partner'), emoji: '💑' },
+    { value: 'colleague', label: t('contacts.relations.colleague'), emoji: '💼' },
+    { value: 'child_of', label: t('contacts.relations.child_of'), emoji: '👶' },
+    { value: 'pet', label: t('contacts.relations.pet'), emoji: '🐾' },
+    { value: 'other', label: t('contacts.relations.other'), emoji: '👤' },
+  ];
 
   const { mutateAsync: createContact, isPending: isCreating } = useCreateContact();
   const { mutateAsync: updateContact, isPending: isUpdating } = useUpdateContact();
@@ -282,7 +284,7 @@ export default function NewContactScreen() {
   const pickFromCamera = async () => {
     setShowAvatarPicker(false);
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Permission refusée', "Autorisez l'accès à la caméra dans les réglages."); return; }
+    if (status !== 'granted') { Alert.alert(t('contactNew.permissionDeniedTitle'), t('contactNew.cameraPermissionMsg')); return; }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
     if (!result.canceled) setAvatarUri(result.assets[0].uri);
   };
@@ -290,7 +292,7 @@ export default function NewContactScreen() {
   const pickFromGallery = async () => {
     setShowAvatarPicker(false);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Permission refusée', "Autorisez l'accès aux photos dans les réglages."); return; }
+    if (status !== 'granted') { Alert.alert(t('contactNew.permissionDeniedTitle'), t('contactNew.photosPermissionMsg')); return; }
     const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8, mediaTypes: ImagePicker.MediaTypeOptions.Images });
     if (!result.canceled) setAvatarUri(result.assets[0].uri);
   };
@@ -309,20 +311,20 @@ export default function NewContactScreen() {
   const handleSave = async () => {
     const missing: string[] = [];
     if (!lastName.trim())
-      missing.push(relation === 'pet' ? '• Nom de l\'animal' : '• Nom de famille');
+      missing.push(relation === 'pet' ? t('contactNew.missingPetName') : t('contactNew.missingLastName'));
     if (relation !== 'pet') {
-      if (!firstName.trim())           missing.push('• Prénom');
-      if (!civilite && relation !== 'child_of') missing.push('• Civilité (M. ou Mme)');
-      if (relation === 'child_of' && !childParentContactId) missing.push('• Contact parent');
-      if (relation === 'child_of' && !childGender)          missing.push('• Genre (fille ou garçon)');
-      if (!birthday)                   missing.push('• Date de naissance');
-      if (relation === 'family' && !familyLink.trim()) missing.push('• Lien de parenté (ex : Oncle, Belle-fille…)');
+      if (!firstName.trim())           missing.push(t('contactNew.missingFirstName'));
+      if (!civilite && relation !== 'child_of') missing.push(t('contactNew.missingCivilite'));
+      if (relation === 'child_of' && !childParentContactId) missing.push(t('contactNew.missingParentContact'));
+      if (relation === 'child_of' && !childGender)          missing.push(t('contactNew.missingChildGender'));
+      if (!birthday)                   missing.push(t('contactNew.missingBirthday'));
+      if (relation === 'family' && !familyLink.trim()) missing.push(t('contactNew.missingFamilyLink'));
     }
     if (missing.length > 0) {
       Alert.alert(
-        'Champs obligatoires manquants',
-        'L\'enregistrement n\'est pas possible tant que les champs suivants ne sont pas renseignés :\n\n' + missing.join('\n'),
-        [{ text: 'OK' }]
+        t('contactNew.missingFieldsTitle'),
+        t('contactNew.missingFieldsMsg') + missing.join('\n'),
+        [{ text: t('contactNew.ok') }]
       );
       return;
     }
@@ -335,11 +337,11 @@ export default function NewContactScreen() {
       );
       if (duplicate) {
         Alert.alert(
-          'Contact déjà existant',
-          `Un contact nommé "${duplicate.name}" existe déjà. Veux-tu quand même l'ajouter ?`,
+          t('contactNew.duplicateTitle'),
+          t('contactNew.duplicateMsg', { name: duplicate.name }),
           [
-            { text: 'Annuler', style: 'cancel' },
-            { text: 'Ajouter quand même', onPress: async () => { const id = await doSave(fullName); if (id) router.back(); } },
+            { text: t('contactNew.cancel'), style: 'cancel' },
+            { text: t('contactNew.addAnyway'), onPress: async () => { const id = await doSave(fullName); if (id) router.back(); } },
           ]
         );
         return;
@@ -357,7 +359,7 @@ export default function NewContactScreen() {
     }
     // Mode création : enregistre le contact d'abord, puis navigue
     if (!lastName.trim() || !firstName.trim()) {
-      Alert.alert('Nom requis', "Renseigne au moins le nom et le prénom avant d'ajouter un animal.");
+      Alert.alert(t('contactNew.nameRequiredTitle'), t('contactNew.nameRequiredMsg'));
       return;
     }
     const fullName = [lastName.trim(), firstName.trim()].filter(Boolean).join(' ');
@@ -434,8 +436,8 @@ export default function NewContactScreen() {
         return created.id;
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde.';
-      Alert.alert('Erreur', msg);
+      const msg = err instanceof Error ? err.message : t('contactNew.saveErrorMsg');
+      Alert.alert(t('contactNew.errorTitle'), msg);
       return null;
     }
   };
@@ -445,15 +447,15 @@ export default function NewContactScreen() {
       {/* Topbar */}
       <View style={styles.topbar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
-          <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
+          <Text style={[styles.backLinkText, { color: C.primary }]}>{t('contactNew.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.topbarTitle}>{isEditing ? 'Modifier le contact' : 'Nouveau contact'}</Text>
+        <Text style={styles.topbarTitle}>{isEditing ? t('contacts.editContact') : t('contacts.newContact')}</Text>
         <View style={styles.topbarRight}>
           <HelpModal
-            title="Fiche contact"
-            content={"Renseigne au minimum le prénom et la date d'anniversaire pour activer les rappels automatiques.\n\n📸 Ajoute une photo en appuyant sur l'avatar.\n\n🐾 Pour un animal, choisis 'Animal de compagnie' et renseigne 'Animal de qui ?'.\n\n🌍 Si ton contact est étranger, sélectionne sa langue pour que l'IA génère le message dans sa langue."}
+            title={t('contacts.detail.title')}
+            content={t('contactNew.helpContent')}
           />
-          <Button3D label="Enregistrer" onPress={handleSave} disabled={isPending} size="sm" />
+          <Button3D label={t('contactNew.save')} onPress={handleSave} disabled={isPending} size="sm" />
         </View>
       </View>
 
@@ -462,11 +464,11 @@ export default function NewContactScreen() {
         <View style={{ backgroundColor: '#F0F9FF', borderRadius: 14, borderWidth: 1.5, borderColor: '#BAE6FD', padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: Spacing[2] }}>
           <Text style={{ fontSize: 22 }}>🖼️</Text>
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 13, color: '#0369A1' }}>Personnalise la fiche de ce contact</Text>
+            <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 13, color: '#0369A1' }}>{t('contactNew.photoIntroTitle')}</Text>
             <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#0284C7', lineHeight: 18 }}>
-              {'📷 Appuie sur le rond ci-dessous pour charger une vraie photo.\n✨ Une fois la fiche créée, tu pourras aussi générer un '}
-              <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>portrait IA unique</Text>
-              {' (un avatar) depuis la fiche du contact.'}
+              {t('contactNew.photoIntroBefore')}
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{t('contactNew.photoIntroBold')}</Text>
+              {t('contactNew.photoIntroAfter')}
             </Text>
           </View>
         </View>
@@ -488,19 +490,19 @@ export default function NewContactScreen() {
             </View>
           </View>
           <Text style={styles.avatarHint}>
-            {avatarUri ? 'Changer la photo' : 'Ajouter une photo'}
+            {avatarUri ? t('contactNew.changePhoto') : t('contactNew.addPhoto')}
           </Text>
         </TouchableOpacity>
 
         {/* Nom + Prénom */}
         <View style={styles.labelWrap}>
-          <Text style={styles.label}>{relation === 'pet' ? '🐾 Nom de l\'animal *' : 'Nom *'}</Text>
+          <Text style={styles.label}>{relation === 'pet' ? t('contactNew.petNameLabel') : t('contactNew.lastNameLabel')}</Text>
         </View>
         <TextInput
           style={styles.input}
           value={lastName}
           onChangeText={(v) => setLastName(relation === 'pet' ? v : formatLastName(v))}
-          placeholder={relation === 'pet' ? 'Ex: Rex' : 'Ex: DUPONT'}
+          placeholder={relation === 'pet' ? t('contactNew.petNamePlaceholder') : t('contactNew.lastNamePlaceholder')}
           placeholderTextColor={Colors.outlineVariant}
           autoCapitalize={relation === 'pet' ? 'words' : 'characters'}
           returnKeyType="next"
@@ -508,12 +510,12 @@ export default function NewContactScreen() {
 
         {relation !== 'pet' && (
           <>
-            <View style={styles.labelWrap}><Text style={styles.label}>Prénom *</Text></View>
+            <View style={styles.labelWrap}><Text style={styles.label}>{t('contactNew.firstNameLabel')}</Text></View>
             <TextInput
               style={styles.input}
               value={firstName}
               onChangeText={(v) => setFirstName(formatFirstName(v))}
-              placeholder="Ex: Marie"
+              placeholder={t('contactNew.firstNamePlaceholder')}
               placeholderTextColor={Colors.outlineVariant}
               autoCapitalize="none"
               returnKeyType="next"
@@ -525,7 +527,7 @@ export default function NewContactScreen() {
         {relation !== 'pet' && (
           <>
             <View style={styles.labelWrap}>
-              <Text style={styles.label}>Civilité <Text style={{ color: Colors.error }}>*</Text></Text>
+              <Text style={styles.label}>{t('contactNew.civiliteLabel')} <Text style={{ color: Colors.error }}>*</Text></Text>
             </View>
             <View style={[
               styles.civiliteRow,
@@ -539,34 +541,34 @@ export default function NewContactScreen() {
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.civiliteBtnText, civilite === val && styles.civiliteBtnTextActive]}>
-                    {val === 'M.' ? '👨 Monsieur' : '👩 Madame'}
+                    {val === 'M.' ? t('contactNew.civiliteM') : t('contactNew.civiliteMme')}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
             {!civilite && lastName.trim() && (
               <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.error, marginTop: 2 }}>
-                ⚠ La civilité est obligatoire — elle permet d'adapter les occasions (Fête des mères / pères)
+                {t('contactNew.civiliteWarning')}
               </Text>
             )}
           </>
         )}
 
         {/* Date de naissance */}
-        <View style={styles.labelWrap}><Text style={styles.label}>Date de naissance <Text style={{ color: Colors.error }}>*</Text></Text></View>
+        <View style={styles.labelWrap}><Text style={styles.label}>{t('contactNew.birthdayLabel')} <Text style={{ color: Colors.error }}>*</Text></Text></View>
         <TouchableOpacity
-          style={styles.input}
+          style={[styles.input, !birthday && relation === 'child_of' && { borderColor: Colors.error, borderWidth: 1.5 }]}
           onPress={() => setShowDatePicker(true)}
         >
           <Text style={birthday ? styles.inputText : styles.inputPlaceholder}>
             {birthday
               ? birthday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-              : 'Sélectionner une date'}
+              : t('contactNew.selectDatePlaceholder')}
           </Text>
         </TouchableOpacity>
-        {!birthday && lastName.trim() && relation !== 'pet' && (
+        {!birthday && (relation === 'child_of' || lastName.trim()) && relation !== 'pet' && (
           <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: Colors.error, marginTop: 2 }}>
-            ⚠ La date de naissance est obligatoire pour les rappels automatiques
+            {t('contactNew.birthdayWarning')}
           </Text>
         )}
         {showDatePicker && Platform.OS === 'ios' && (
@@ -574,9 +576,9 @@ export default function NewContactScreen() {
             <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowDatePicker(false)}>
               <View style={styles.pickerSheet}>
                 <View style={styles.pickerHeader}>
-                  <Text style={styles.pickerTitle}>Date de naissance</Text>
+                  <Text style={styles.pickerTitle}>{t('contactNew.birthdayLabel')}</Text>
                   <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                    <Text style={styles.pickerOk}>OK ✓</Text>
+                    <Text style={styles.pickerOk}>{t('contactNew.pickerOk')}</Text>
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -611,7 +613,7 @@ export default function NewContactScreen() {
         )}
 
         {/* Fête */}
-        <View style={styles.labelWrap}><Text style={styles.label}>🌸 Fête le…</Text></View>
+        <View style={styles.labelWrap}><Text style={styles.label}>{t('contactNew.namedayLabel')}</Text></View>
         <TouchableOpacity
           style={styles.input}
           onPress={() => setShowNameDayPicker(true)}
@@ -619,7 +621,7 @@ export default function NewContactScreen() {
           <Text style={nameDay ? styles.inputText : styles.inputPlaceholder}>
             {nameDay
               ? nameDay.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
-              : 'Sélectionner une date (jour et mois)'}
+              : t('contactNew.selectNamedayPlaceholder')}
           </Text>
         </TouchableOpacity>
         {nameDay && (
@@ -628,7 +630,7 @@ export default function NewContactScreen() {
             style={{ alignSelf: 'flex-end', marginTop: 4 }}
           >
             <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant }}>
-              ✕ Supprimer la date de fête
+              {t('contactNew.removeNameday')}
             </Text>
           </TouchableOpacity>
         )}
@@ -637,9 +639,9 @@ export default function NewContactScreen() {
             <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowNameDayPicker(false)}>
               <View style={styles.pickerSheet}>
                 <View style={styles.pickerHeader}>
-                  <Text style={styles.pickerTitle}>Jour et mois de la fête</Text>
+                  <Text style={styles.pickerTitle}>{t('contactNew.namedayPickerTitle')}</Text>
                   <TouchableOpacity onPress={() => setShowNameDayPicker(false)}>
-                    <Text style={styles.pickerOk}>OK ✓</Text>
+                    <Text style={styles.pickerOk}>{t('contactNew.pickerOk')}</Text>
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -675,12 +677,12 @@ export default function NewContactScreen() {
 
         {/* Téléphone — masqué pour les animaux */}
         {relation !== 'pet' && <>
-        <View style={styles.labelWrap}><Text style={styles.label}>Téléphone</Text></View>
+        <View style={styles.labelWrap}><Text style={styles.label}>{t('contacts.phone')}</Text></View>
         <TextInput
           style={styles.input}
           value={phone}
           onChangeText={setPhone}
-          placeholder="+33 6 00 00 00 00"
+          placeholder={t('contactNew.phonePlaceholder')}
           placeholderTextColor={Colors.outlineVariant}
           keyboardType="phone-pad"
         />
@@ -688,12 +690,12 @@ export default function NewContactScreen() {
 
         {/* Email — masqué pour les animaux */}
         {relation !== 'pet' && <>
-        <View style={styles.labelWrap}><Text style={styles.label}>Email</Text></View>
+        <View style={styles.labelWrap}><Text style={styles.label}>{t('contacts.email')}</Text></View>
         <TextInput
           style={styles.input}
           value={email}
           onChangeText={setEmail}
-          placeholder="email@exemple.com"
+          placeholder={t('contactNew.emailPlaceholder')}
           placeholderTextColor={Colors.outlineVariant}
           keyboardType="email-address"
           autoCapitalize="none"
@@ -702,7 +704,7 @@ export default function NewContactScreen() {
 
         {/* Relation — masqué pour les animaux */}
         {relation !== 'pet' && <>
-        <View style={styles.labelWrap}><Text style={styles.label}>Nature de ta relation</Text></View>
+        <View style={styles.labelWrap}><Text style={styles.label}>{t('contactNew.relationLabel')}</Text></View>
         <View style={styles.relationGrid}>
           {RELATIONS.map((r) => (
             <TouchableOpacity
@@ -722,18 +724,37 @@ export default function NewContactScreen() {
         {relation === 'family' && (
           <View style={[styles.familyLinkBox, !familyLink.trim() && styles.familyLinkBoxRequired]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.familyLinkTitle}>Précisez le lien 👨‍👩‍👧</Text>
-              <Text style={styles.familyLinkRequired}>obligatoire</Text>
+              <Text style={styles.familyLinkTitle}>{t('contactNew.familyLinkTitle')}</Text>
+              <Text style={styles.familyLinkRequired}>{t('contactNew.required')}</Text>
             </View>
             <View style={styles.familyLinkChips}>
-              {['Frère', 'Sœur', 'Beau-frère', 'Belle-sœur', 'Père', 'Mère', 'Grand-père', 'Grand-mère', 'Oncle', 'Tante', 'Cousin', 'Cousine', 'Fils', 'Fille', 'Belle-fille', 'Gendre', 'Petit-fils', 'Petite-fille'].map((sub) => (
+              {[
+                { value: 'frère', label: t('contactNew.familyLinkBrother') },
+                { value: 'sœur', label: t('contactNew.familyLinkSister') },
+                { value: 'beau-frère', label: t('contactNew.familyLinkBroInLaw') },
+                { value: 'belle-sœur', label: t('contactNew.familyLinkSisInLaw') },
+                { value: 'père', label: t('contactNew.familyLinkFather') },
+                { value: 'mère', label: t('contactNew.familyLinkMother') },
+                { value: 'grand-père', label: t('contactNew.familyLinkGrandpa') },
+                { value: 'grand-mère', label: t('contactNew.familyLinkGrandma') },
+                { value: 'oncle', label: t('contactNew.familyLinkUncle') },
+                { value: 'tante', label: t('contactNew.familyLinkAunt') },
+                { value: 'cousin', label: t('contactNew.familyLinkCousinM') },
+                { value: 'cousine', label: t('contactNew.familyLinkCousinF') },
+                { value: 'fils', label: t('contactNew.familyLinkSon') },
+                { value: 'fille', label: t('contactNew.familyLinkDaughter') },
+                { value: 'belle-fille', label: t('contactNew.familyLinkDaughterInLaw') },
+                { value: 'gendre', label: t('contactNew.familyLinkSonInLaw') },
+                { value: 'petit-fils', label: t('contactNew.familyLinkGrandson') },
+                { value: 'petite-fille', label: t('contactNew.familyLinkGranddaughter') },
+              ].map((sub) => (
                 <TouchableOpacity
-                  key={sub}
-                  style={[styles.tagBtn, familyLink === sub.toLowerCase() && styles.tagBtnActive]}
-                  onPress={() => setFamilyLink(familyLink === sub.toLowerCase() ? '' : sub.toLowerCase())}
+                  key={sub.value}
+                  style={[styles.tagBtn, familyLink === sub.value && styles.tagBtnActive]}
+                  onPress={() => setFamilyLink(familyLink === sub.value ? '' : sub.value)}
                 >
-                  <Text style={[styles.tagLabel, familyLink === sub.toLowerCase() && styles.tagLabelActive]}>
-                    {sub}
+                  <Text style={[styles.tagLabel, familyLink === sub.value && styles.tagLabelActive]}>
+                    {sub.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -742,7 +763,7 @@ export default function NewContactScreen() {
               style={[styles.input, { marginTop: 8 }]}
               value={familyLink}
               onChangeText={setFamilyLink}
-              placeholder="Ou saisissez (ex: beau-frère, marraine...)"
+              placeholder={t('contactNew.familyLinkCustomPlaceholder')}
               placeholderTextColor={Colors.outlineVariant}
               autoCapitalize="none"
             />
@@ -755,9 +776,9 @@ export default function NewContactScreen() {
           <View style={{ gap: 12, marginTop: 4 }}>
             {/* Genre */}
             <View>
-              <Text style={styles.label}>Fille ou garçon ?</Text>
+              <Text style={styles.label}>{t('contactNew.childGenderLabel')}</Text>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
-                {([{ value: 'female', label: '👧 Fille' }, { value: 'male', label: '👦 Garçon' }] as const).map((g) => (
+                {([{ value: 'female', label: t('contactNew.girl') }, { value: 'male', label: t('contactNew.boy') }] as const).map((g) => (
                   <TouchableOpacity
                     key={g.value}
                     style={[styles.relationBtn, childGender === g.value && styles.relationBtnActive, { flex: 1, justifyContent: 'center', paddingVertical: 10 }]}
@@ -771,14 +792,14 @@ export default function NewContactScreen() {
             </View>
             {/* Sélecteur parent */}
             <View>
-              <Text style={styles.label}>Parent (contact existant)</Text>
+              <Text style={styles.label}>{t('contactNew.childParentLabel')}</Text>
               <TouchableOpacity
                 style={[styles.input, { justifyContent: 'center', marginTop: 6 }]}
                 onPress={() => { setChildParentSearch(''); setShowChildParentPicker(true); }}
                 activeOpacity={0.75}
               >
                 <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 15, color: childParentName ? Colors.onSurface : Colors.outlineVariant }}>
-                  {childParentName || 'Sélectionner un parent 👆'}
+                  {childParentName || t('contactNew.selectParentPlaceholder')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -790,30 +811,30 @@ export default function NewContactScreen() {
           <>
             {/* Type d'animal */}
             <View style={styles.labelWrap}>
-              <Text style={styles.label}>🐾 Type d'animal</Text>
+              <Text style={styles.label}>{t('contactNew.petTypeLabel')}</Text>
             </View>
             <View style={styles.relationGrid}>
               {([
-                { value: 'chien',     label: 'Chien',     emoji: '🐶' },
-                { value: 'chat',      label: 'Chat',      emoji: '🐱' },
-                { value: 'lapin',     label: 'Lapin',     emoji: '🐰' },
-                { value: 'perroquet', label: 'Perroquet', emoji: '🦜' },
-                { value: 'hamster',   label: 'Hamster',   emoji: '🐹' },
-                { value: 'poisson',   label: 'Poisson',   emoji: '🐠' },
-                { value: 'cheval',    label: 'Cheval',    emoji: '🐴' },
-                { value: 'autre',     label: 'Autre',     emoji: '🐾' },
-              ] as const).map((t) => (
+                { value: 'chien',     label: t('contactNew.petTypeDog'),    emoji: '🐶' },
+                { value: 'chat',      label: t('contactNew.petTypeCat'),    emoji: '🐱' },
+                { value: 'lapin',     label: t('contactNew.petTypeRabbit'), emoji: '🐰' },
+                { value: 'perroquet', label: t('contactNew.petTypeParrot'), emoji: '🦜' },
+                { value: 'hamster',   label: t('contactNew.petTypeHamster'), emoji: '🐹' },
+                { value: 'poisson',   label: t('contactNew.petTypeFish'),   emoji: '🐠' },
+                { value: 'cheval',    label: t('contactNew.petTypeHorse'),  emoji: '🐴' },
+                { value: 'autre',     label: t('contactNew.petTypeOther'),  emoji: '🐾' },
+              ] as const).map((pt) => (
                 <TouchableOpacity
-                  key={t.value}
-                  style={[styles.relationBtn, petType === t.value && styles.relationBtnActive]}
+                  key={pt.value}
+                  style={[styles.relationBtn, petType === pt.value && styles.relationBtnActive]}
                   onPress={() => {
-                    setPetType(t.value);
-                    playPetSound(t.value); // joue le son à chaque appui (mode replay inclus)
+                    setPetType(pt.value);
+                    playPetSound(pt.value); // joue le son à chaque appui (mode replay inclus)
                   }}
                 >
-                  <Text style={styles.relationEmoji}>{t.emoji}</Text>
-                  <Text style={[styles.relationLabel, petType === t.value && styles.relationLabelActive]}>
-                    {t.label}
+                  <Text style={styles.relationEmoji}>{pt.emoji}</Text>
+                  <Text style={[styles.relationLabel, petType === pt.value && styles.relationLabelActive]}>
+                    {pt.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -821,12 +842,12 @@ export default function NewContactScreen() {
 
             {/* Genre */}
             <View style={styles.labelWrap}>
-              <Text style={styles.label}>♂♀ Genre</Text>
+              <Text style={styles.label}>{t('contactNew.petGenderLabel')}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               {([
-                { value: 'male',   label: '♂ Mâle',   emoji: '🔵' },
-                { value: 'female', label: '♀ Femelle', emoji: '🟣' },
+                { value: 'male',   label: t('contactNew.male'),   emoji: '🔵' },
+                { value: 'female', label: t('contactNew.female'), emoji: '🟣' },
               ] as const).map((g) => (
                 <TouchableOpacity
                   key={g.value}
@@ -844,13 +865,13 @@ export default function NewContactScreen() {
             {(petType === 'chien' || petType === 'chat') && (
               <>
                 <View style={styles.labelWrap}>
-                  <Text style={styles.label}>{petType === 'chien' ? '🐶 Race' : '🐱 Race'}</Text>
+                  <Text style={styles.label}>{petType === 'chien' ? t('contactNew.breedLabelDog') : t('contactNew.breedLabelCat')}</Text>
                 </View>
                 <TextInput
                   style={styles.input}
                   value={petBreed}
                   onChangeText={setPetBreed}
-                  placeholder={petType === 'chien' ? 'Ex : Labrador, Berger allemand…' : 'Ex : Maine Coon, Siamois…'}
+                  placeholder={petType === 'chien' ? t('contactNew.breedPlaceholderDog') : t('contactNew.breedPlaceholderCat')}
                   placeholderTextColor={Colors.onSurfaceVariant}
                 />
               </>
@@ -861,7 +882,7 @@ export default function NewContactScreen() {
 
         {/* Personnalité / Caractère */}
         <View style={styles.labelWrap}>
-          <Text style={styles.label}>{relation === 'pet' ? 'Caractère' : 'Personnalité'}</Text>
+          <Text style={styles.label}>{relation === 'pet' ? t('contactNew.characterLabel') : t('contactNew.personalityLabel')}</Text>
         </View>
         <View style={styles.tagGrid}>
           {(relation === 'pet' ? PET_PERSONALITY_TAGS : PERSONALITY_TAGS).map((t) => {
@@ -883,12 +904,12 @@ export default function NewContactScreen() {
         </View>
 
         {/* Notes */}
-        <View style={styles.labelWrap}><Text style={styles.label}>Notes personnelles</Text></View>
+        <View style={styles.labelWrap}><Text style={styles.label}>{t('contacts.detail.notes')}</Text></View>
         <TextInput
           style={[styles.input, styles.textArea]}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Ex : supporter du PSG, allergique aux noix, adore les chats, déteste les surprises, fan de randonnée..."
+          placeholder={t('contactNew.notesPlaceholder')}
           placeholderTextColor={Colors.outlineVariant}
           multiline
           numberOfLines={3}
@@ -897,12 +918,12 @@ export default function NewContactScreen() {
         {/* Couleur préférée */}
         {relation !== 'pet' && (
           <>
-            <View style={styles.labelWrap}><Text style={styles.label}>🎨 Couleur préférée</Text></View>
+            <View style={styles.labelWrap}><Text style={styles.label}>{t('contactNew.favColorLabel')}</Text></View>
             <TextInput
               style={styles.input}
               value={favouriteColor}
               onChangeText={setFavouriteColor}
-              placeholder="Ex : bleu marine, rouge cerise, vert forêt... (optionnel)"
+              placeholder={t('contactNew.favColorPlaceholder')}
               placeholderTextColor={Colors.outlineVariant}
             />
           </>
@@ -912,12 +933,12 @@ export default function NewContactScreen() {
         {relation !== 'pet' && <>
 
         {/* Canal préféré */}
-        <View style={styles.labelWrap}><Text style={styles.label}>Son canal de communication préféré</Text></View>
+        <View style={styles.labelWrap}><Text style={styles.label}>{t('contactNew.channelLabel')}</Text></View>
         <Text style={styles.sublabel}>
-          Comment {firstName.trim() || 'ce contact'} préfère-t-il·elle être contacté·e ?
+          {t('contactNew.channelSublabel', { name: firstName.trim() || t('contactNew.defaultContact') })}
         </Text>
         <View style={styles.channelRow}>
-          {([{ value: 'sms', label: 'SMS', emoji: '📱' }, { value: 'email', label: 'Email', emoji: '📧' }] as const).map((c) => (
+          {([{ value: 'sms', label: t('contactNew.channelSms'), emoji: '📱' }, { value: 'email', label: t('contactNew.channelEmail'), emoji: '📧' }] as const).map((c) => (
             <TouchableOpacity
               key={c.value}
               style={[styles.channelBtn, preferredChannel === c.value && styles.channelBtnActive]}
@@ -930,18 +951,18 @@ export default function NewContactScreen() {
         </View>
 
         {/* Langue préférée du message IA */}
-        <View style={styles.labelWrap}><Text style={styles.label}>Langue du message IA</Text></View>
+        <View style={styles.labelWrap}><Text style={styles.label}>{t('contactNew.aiLanguageLabel')}</Text></View>
         <Text style={styles.sublabel}>
-          Si {firstName.trim() || 'ce contact'} est étranger·ère, l'IA rédigera le message dans sa langue.
+          {t('contactNew.aiLanguageSublabel', { name: firstName.trim() || t('contactNew.defaultContact') })}
         </Text>
         <View style={styles.channelRow}>
           {[
-            { code: 'fr', flag: '🇫🇷', label: 'Français' },
-            { code: 'en', flag: '🇬🇧', label: 'Anglais' },
-            { code: 'de', flag: '🇩🇪', label: 'Allemand' },
-            { code: 'es', flag: '🇪🇸', label: 'Espagnol' },
-            { code: 'it', flag: '🇮🇹', label: 'Italien' },
-            { code: 'pt', flag: '🇵🇹', label: 'Portugais' },
+            { code: 'fr', flag: '🇫🇷', label: t('contactNew.langFr') },
+            { code: 'en', flag: '🇬🇧', label: t('contactNew.langEn') },
+            { code: 'de', flag: '🇩🇪', label: t('contactNew.langDe') },
+            { code: 'es', flag: '🇪🇸', label: t('contactNew.langEs') },
+            { code: 'it', flag: '🇮🇹', label: t('contactNew.langIt') },
+            { code: 'pt', flag: '🇵🇹', label: t('contactNew.langPt') },
           ].map((l) => (
             <TouchableOpacity
               key={l.code}
@@ -955,9 +976,9 @@ export default function NewContactScreen() {
         </View>
 
         {/* Heure idéale d'envoi */}
-        <View style={styles.labelWrap}><Text style={styles.label}>Moment idéal d'envoi du message</Text></View>
+        <View style={styles.labelWrap}><Text style={styles.label}>{t('contactNew.sendTimeLabel')}</Text></View>
         <Text style={styles.sublabel}>
-          Quand {firstName.trim() || 'ce contact'} préférera t-il recevoir ton message ? <Text style={{ fontStyle: 'italic' }}>(optionnel)</Text>
+          {t('contactNew.sendTimeSublabel', { name: firstName.trim() || t('contactNew.defaultContact') })} <Text style={{ fontStyle: 'italic' }}>{t('contactNew.optional')}</Text>
         </Text>
         <View style={styles.channelRow}>
           {SEND_TIMES.map((t) => (
@@ -977,29 +998,29 @@ export default function NewContactScreen() {
         {relation !== 'pet' && (
           <>
             <View style={styles.labelWrap}>
-              <Text style={styles.label}>🐾 Animal de compagnie</Text>
+              <Text style={styles.label}>{t('contactNew.petSectionLabel')}</Text>
             </View>
             <View style={{ backgroundColor: '#FFF7ED', borderRadius: 12, padding: 14, gap: 8, borderLeftWidth: 4, borderLeftColor: '#D97706', marginBottom: 4 }}>
               <Text style={{ fontFamily: 'PlusJakartaSans_700Bold', fontSize: 13, color: '#92400E' }}>
-                {'Saviez-vous ? 🐾 Une fonction unique !'}
+                {t('contactNew.petInfoTitle')}
               </Text>
               <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#92400E', lineHeight: 18 }}>
-                {'Si ce contact a un animal, tu peux :'}
+                {t('contactNew.petInfoIntro')}
               </Text>
               <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#92400E', lineHeight: 18 }}>
                 {'📬 '}
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{'Écrire à l\'animal'}</Text>
-                {' — un message tendre ou drôle directement adressé à Rex, Minou ou Coco.'}
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{t('contactNew.petInfoWriteBold')}</Text>
+                {t('contactNew.petInfoWriteRest')}
               </Text>
               <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#92400E', lineHeight: 18 }}>
                 {'🐾 '}
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{'Faire écrire l\'animal à son maître'}</Text>
-                {' — l\'IA rédige un message comme si c\'était l\'animal qui prenait la plume ! Hilarant et attendrissant 💛'}
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{t('contactNew.petInfoFromPetBold')}</Text>
+                {t('contactNew.petInfoFromPetRest')}
               </Text>
               <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: '#92400E', lineHeight: 18 }}>
                 {'✍️ '}
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{'Faire écrire l\'animal à quelqu\'un d\'autre'}</Text>
-                {' — l\'animal peut aussi écrire à un ami de la famille ou un proche !'}
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{t('contactNew.petInfoToOtherBold')}</Text>
+                {t('contactNew.petInfoToOtherRest')}
               </Text>
             </View>
             {isEditing && linkedPets.length > 0 && (
@@ -1028,12 +1049,12 @@ export default function NewContactScreen() {
               activeOpacity={0.8}
             >
               <Text style={[styles.addPetBtnText, { color: C.primary }]}>
-                {isEditing && linkedPets.length > 0 ? '🐾 Ajouter un autre animal' : '🐾 Ajouter un animal'}
+                {isEditing && linkedPets.length > 0 ? t('contactNew.addAnotherPet') : t('contactNew.addPet')}
               </Text>
             </TouchableOpacity>
             {!isEditing && (
               <Text style={styles.petHintText}>
-                Le contact sera enregistré automatiquement avant d'ouvrir le formulaire animal.
+                {t('contactNew.petAutoSaveHint')}
               </Text>
             )}
           </>
@@ -1044,7 +1065,7 @@ export default function NewContactScreen() {
       {/* Bouton enregistrer — fixé en bas */}
       <View style={styles.submitBar}>
         <Button3D
-          label={isPending ? 'Enregistrement...' : isEditing ? '✓ Enregistrer les modifications' : '✓ Enregistrer le contact'}
+          label={isPending ? t('contactNew.saving') : isEditing ? t('contactNew.saveEditBtn') : t('contactNew.saveNewBtn')}
           onPress={handleSave}
           disabled={isPending}
           fullWidth
@@ -1066,10 +1087,10 @@ export default function NewContactScreen() {
         >
           <View style={compoundStyles.card}>
             <Text style={compoundStyles.title}>
-              {firstName.trim()} est un prénom composé ! 🌸
+              {t('contactNew.compoundTitle', { name: firstName.trim() })}
             </Text>
             <Text style={compoundStyles.sub}>
-              Plusieurs fêtes à célébrer — laquelle veux-tu retenir ?
+              {t('contactNew.compoundSub')}
             </Text>
 
             {compoundChoices.map((choice) => (
@@ -1098,7 +1119,7 @@ export default function NewContactScreen() {
                 setShowCompoundModal(false);
               }}
             >
-              <Text style={[compoundStyles.choiceName, { color: Colors.white }]}>Les deux !</Text>
+              <Text style={[compoundStyles.choiceName, { color: Colors.white }]}>{t('contactNew.compoundBoth')}</Text>
               <Text style={[compoundStyles.choiceDate, { color: Colors.white + 'CC' }]}>
                 {compoundChoices.map((c) => c.label).join(' & ')}
               </Text>
@@ -1109,7 +1130,7 @@ export default function NewContactScreen() {
               onPress={() => setShowCompoundModal(false)}
             >
               <Text style={[compoundStyles.skipText, { color: Colors.onSurfaceVariant }]}>
-                Ignorer — je choisirai manuellement
+                {t('contactNew.compoundSkip')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1121,15 +1142,15 @@ export default function NewContactScreen() {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: Colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '75%' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 0.5, borderBottomColor: Colors.surfaceContainerHighest }}>
-              <Text style={{ fontFamily: 'PlusJakartaSans_700Bold', fontSize: 16, color: Colors.onSurface }}>👶 Choisir le parent</Text>
+              <Text style={{ fontFamily: 'PlusJakartaSans_700Bold', fontSize: 16, color: Colors.onSurface }}>{t('contactNew.childParentPickerTitle')}</Text>
               <TouchableOpacity onPress={() => setShowChildParentPicker(false)}>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 15, color: Colors.primary }}>Fermer</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 15, color: Colors.primary }}>{t('contactNew.closeModal')}</Text>
               </TouchableOpacity>
             </View>
             <View style={{ padding: 12 }}>
               <TextInput
                 style={[styles.input, { marginBottom: 0 }]}
-                placeholder="Rechercher un contact…"
+                placeholder={t('contactNew.searchContactPlaceholder')}
                 placeholderTextColor={Colors.outlineVariant}
                 value={childParentSearch}
                 onChangeText={setChildParentSearch}
@@ -1153,12 +1174,12 @@ export default function NewContactScreen() {
                         activeOpacity={0.75}
                       >
                         <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 15, color: Colors.onSurface, flex: 1 }}>{c.name}</Text>
-                        <Text style={{ color: Colors.primary, fontSize: 13 }}>Choisir ›</Text>
+                        <Text style={{ color: Colors.primary, fontSize: 13 }}>{t('contactNew.chooseArrow')}</Text>
                       </TouchableOpacity>
                     ))}
                     {filtered.length === 0 && (
                       <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 14, color: Colors.onSurfaceVariant, textAlign: 'center', paddingVertical: 16, fontStyle: 'italic' }}>
-                        Aucun contact trouvé
+                        {t('contactNew.noContactFound')}
                       </Text>
                     )}
                     {/* Créer un nouveau contact parent */}
@@ -1173,10 +1194,10 @@ export default function NewContactScreen() {
                       <Text style={{ fontSize: 20 }}>➕</Text>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 14, color: Colors.primary }}>
-                          Créer un nouveau contact parent
+                          {t('contactNew.createParentContact')}
                         </Text>
                         <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant, marginTop: 2 }}>
-                          Reviens ensuite pour le sélectionner ici
+                          {t('contactNew.createParentContactHint')}
                         </Text>
                       </View>
                       <Text style={{ color: Colors.primary, fontSize: 16 }}>›</Text>
@@ -1194,23 +1215,23 @@ export default function NewContactScreen() {
         <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} activeOpacity={1} onPress={() => setShowAvatarPicker(false)}>
           <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 12, paddingBottom: 36 }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.outlineVariant, alignSelf: 'center', marginBottom: 4 }} />
-            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 18, color: Colors.onSurface, textAlign: 'center' }}>🖼️ Photo de profil</Text>
+            <Text style={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 18, color: Colors.onSurface, textAlign: 'center' }}>{t('contactNew.photoModalTitle')}</Text>
             <TouchableOpacity onPress={pickFromCamera} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: Colors.surfaceContainerHighest, borderRadius: 16, padding: 16 }}>
               <Text style={{ fontSize: 28 }}>📸</Text>
               <View>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 15, color: Colors.onSurface }}>Prendre une photo</Text>
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant }}>Utilise l'appareil photo</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 15, color: Colors.onSurface }}>{t('contactNew.takePhotoTitle')}</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant }}>{t('contactNew.takePhotoSub')}</Text>
               </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={pickFromGallery} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: Colors.surfaceContainerHighest, borderRadius: 16, padding: 16 }}>
               <Text style={{ fontSize: 28 }}>🖼️</Text>
               <View>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 15, color: Colors.onSurface }}>Choisir dans la galerie</Text>
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant }}>Depuis tes photos existantes</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 15, color: Colors.onSurface }}>{t('contactNew.pickGalleryTitle')}</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 12, color: Colors.onSurfaceVariant }}>{t('contactNew.pickGallerySub')}</Text>
               </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowAvatarPicker(false)} activeOpacity={0.8} style={{ alignItems: 'center', paddingVertical: 12, borderRadius: 16, borderWidth: 1.5, borderColor: Colors.outlineVariant }}>
-              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 15, color: Colors.onSurfaceVariant }}>Annuler</Text>
+              <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 15, color: Colors.onSurfaceVariant }}>{t('contactNew.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

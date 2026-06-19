@@ -8,10 +8,11 @@ import { COUNTRY_LABELS, type Country } from '../../src/constants/publicHolidays
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Linking } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import * as SecureStore from '../../src/utils/storage';
 import { useAuthStore } from '../../src/stores/authStore';
 import {
-  useNotifSchedule, NOTIF_PRESETS, CUSTOM_DAY_OPTIONS,
+  useNotifSchedule, CUSTOM_DAY_OPTIONS,
   type NotifPreset,
 } from '../../src/hooks/useNotifSchedule';
 import { useContacts } from '../../src/hooks/useContacts';
@@ -19,6 +20,7 @@ import { useMessages } from '../../src/hooks/useAIGenerate';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { supabase } from '../../src/services/supabase';
+import { SUPPORTED_LANGUAGES, LANGUAGE_STORAGE_KEY, setLanguage, type AppLanguageOrSystem } from '../../src/i18n';
 
 const LAST_BACKUP_KEY = 'cc_last_backup_at';
 const HOME_MODE_KEY      = 'cc_home_mode';
@@ -105,6 +107,7 @@ function Divider() {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function SettingsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
@@ -133,7 +136,7 @@ export default function SettingsScreen() {
       };
       await Share.share({
         message: JSON.stringify(exportData, null, 2),
-        title: 'Sauvegarde Confetticake',
+        title: t('settings.backup.shareTitle'),
       });
       const now = new Date().toLocaleString('fr-FR');
       await SecureStore.setItemAsync(LAST_BACKUP_KEY, now);
@@ -147,23 +150,36 @@ export default function SettingsScreen() {
 
   const handleExport = () => {
     Alert.alert(
-      '📥 Exporter mes données',
-      'Cette fonction est actuellement indisponible.',
-      [{ text: 'OK' }],
+      t('settings.backup.exportTitle'),
+      t('settings.backup.unavailableMessage'),
+      [{ text: t('common.ok') }],
     );
   };
 
   const handleImport = () => {
     Alert.alert(
-      '📤 Importer mes données',
-      'Cette fonction est actuellement indisponible.',
-      [{ text: 'OK' }],
+      t('settings.backup.importTitle'),
+      t('settings.backup.unavailableMessage'),
+      [{ text: t('common.ok') }],
     );
   };
 
   // ── Pays ────────────────────────────────────────────────────────────────────
   const { country, setCountry } = useCountry();
   const [countryModalVisible, setCountryModalVisible] = useState(false);
+
+  // ── Langue ──────────────────────────────────────────────────────────────────
+  const [currentLang, setCurrentLang] = useState<AppLanguageOrSystem>('system');
+  const [langExplainVisible, setLangExplainVisible] = useState(false);
+  useEffect(() => {
+    SecureStore.getItemAsync(LANGUAGE_STORAGE_KEY).then((v) => {
+      if (v) setCurrentLang(v as AppLanguageOrSystem);
+    });
+  }, []);
+  const handleLangSelect = async (choice: AppLanguageOrSystem) => {
+    setCurrentLang(choice);
+    await setLanguage(choice);
+  };
 
   // ── Suppression du compte ────────────────────────────────────────────────────
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0); // 0=hidden 1=warning 2=confirm
@@ -181,7 +197,7 @@ export default function SettingsScreen() {
       await signOut();
       router.replace('/(auth)/onboarding' as never);
     } catch {
-      Alert.alert('Erreur', 'Impossible de supprimer le compte. Contactez le support.');
+      Alert.alert(t('common.error'), t('settings.account.deleteAccountError'));
     } finally {
       setDeleteLoading(false);
     }
@@ -212,8 +228,8 @@ export default function SettingsScreen() {
   };
 
   const scheduleSubLabel = preset === 'custom'
-    ? activeDays.length === 0 ? 'Aucun rappel' : activeDays.map((d) => d === 0 ? 'Jour J' : `J-${d}`).join(', ')
-    : NOTIF_PRESETS[preset].sub;
+    ? activeDays.length === 0 ? t('settings.notifications.noReminder') : activeDays.map((d) => d === 0 ? t('settings.notifications.dayJ') : t('settings.notifications.dayMinus', { count: d })).join(', ')
+    : t(`settings.notifPresets.${preset}.sub`);
 
   const authMethod = user?.app_metadata?.provider === 'google'
     ? 'Google'
@@ -228,27 +244,25 @@ export default function SettingsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>⚙️ Paramètres</Text>
+        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
         {/* ── Sauvegarde ───────────────────────────────────── */}
-        <SectionCard title="💾 Sauvegarde">
+        <SectionCard title={t('settings.sections.backup')}>
           <View style={styles.backupInfo}>
-            <Text style={styles.backupInfoLabel}>Sauvegarde automatique</Text>
+            <Text style={styles.backupInfoLabel}>{t('settings.backup.autoLabel')}</Text>
             <Text style={styles.backupInfoValue}>
-              {authMethod === 'Google' ? '☁️ Google Drive'
-               : authMethod === 'Apple' ? '☁️ iCloud'
-               : '☁️ Serveurs Confetticake'}
+              {authMethod === 'Google' ? t('settings.backup.googleDrive')
+               : authMethod === 'Apple' ? t('settings.backup.icloud')
+               : t('settings.backup.serverStorage')}
             </Text>
           </View>
-          <Text style={styles.backupExplainText}>
-            Appuie sur le bouton ci-dessous pour exporter tes contacts, messages et profil en JSON. La feuille de partage s'ouvre : envoie-toi le fichier par email, enregistre-le dans Fichiers ou sauvegarde-le où tu veux.
-          </Text>
+          <Text style={styles.backupExplainText}>{t('settings.backup.explainText')}</Text>
           {lastBackup && (
-            <Text style={styles.lastBackupText}>Dernière sauvegarde : {lastBackup}</Text>
+            <Text style={styles.lastBackupText}>{t('settings.backup.lastBackup', { date: lastBackup })}</Text>
           )}
           <TouchableOpacity
             style={[styles.backupBtn, { backgroundColor: C.primary }, backupLoading && { opacity: 0.6 }]}
@@ -258,57 +272,57 @@ export default function SettingsScreen() {
           >
             {backupLoading
               ? <ActivityIndicator size="small" color={Colors.white} />
-              : <Text style={styles.backupBtnText}>💾 Sauvegarder maintenant</Text>}
+              : <Text style={styles.backupBtnText}>{t('settings.backup.backupNowBtn')}</Text>}
           </TouchableOpacity>
           <Divider />
-          <RowBtn emoji="📥" label="Exporter mes données" sub="Génère un fichier JSON / CSV" onPress={handleExport} />
+          <RowBtn emoji="📥" label={t('settings.backup.exportLabel')} sub={t('settings.backup.exportSub')} onPress={handleExport} />
           <Divider />
-          <RowBtn emoji="📤" label="Importer mes données" sub="Restaurer depuis un fichier" onPress={handleImport} />
+          <RowBtn emoji="📤" label={t('settings.backup.importLabel')} sub={t('settings.backup.importSub')} onPress={handleImport} />
         </SectionCard>
 
         {/* ── Notifications ────────────────────────────────── */}
-        <SectionCard title="🔔 Notifications">
+        <SectionCard title={t('settings.sections.notifications')}>
           <RowBtn
             emoji="🔔"
-            label="Activer les notifications"
-            sub="Rappels anniversaires & fêtes"
+            label={t('settings.notifications.enableLabel')}
+            sub={t('settings.notifications.enableSub')}
             onPress={handleNotifications}
           />
           <Divider />
           <RowBtn
             emoji="📅"
-            label="Fréquence des rappels"
+            label={t('settings.notifications.frequencyLabel')}
             sub={scheduleSubLabel}
             onPress={openScheduleModal}
           />
           <Divider />
           <RowBtn
             emoji="📱"
-            label="Vérifier les autorisations"
-            sub="Ouvre les réglages du téléphone"
+            label={t('settings.notifications.checkLabel')}
+            sub={t('settings.notifications.checkSub')}
             onPress={handleNotifications}
           />
         </SectionCard>
 
         {/* ── Mon compte ───────────────────────────────────── */}
-        <SectionCard title="👤 Mon compte">
+        <SectionCard title={t('settings.sections.account')}>
           <View style={styles.accountInfo}>
             <Text style={styles.accountEmail}>{user?.email ?? '—'}</Text>
-            <Text style={styles.accountProvider}>Connecté via {authMethod}</Text>
+            <Text style={styles.accountProvider}>{t('settings.account.connectedVia', { method: authMethod })}</Text>
           </View>
           <RowBtn
             emoji="👤"
-            label="Voir mon profil"
+            label={t('settings.account.viewProfile')}
             onPress={() => router.push('/(app)/profile' as never)}
           />
           <Divider />
           <RowBtn
             emoji="🚪"
-            label="Se déconnecter"
+            label={t('settings.account.signOut')}
             onPress={() => {
-              Alert.alert('Se déconnecter', 'Tu vas être déconnecté·e de Confetticake.', [
-                { text: 'Annuler', style: 'cancel' },
-                { text: 'Se déconnecter', style: 'destructive', onPress: signOut },
+              Alert.alert(t('settings.account.signOutTitle'), t('settings.account.signOutMessage'), [
+                { text: t('common.cancel'), style: 'cancel' },
+                { text: t('settings.account.signOut'), style: 'destructive', onPress: signOut },
               ]);
             }}
           />
@@ -319,26 +333,63 @@ export default function SettingsScreen() {
             activeOpacity={0.7}
           >
             <Text style={styles.deleteAccountEmoji}>🗑️</Text>
-            <Text style={styles.deleteAccountText}>Supprimer mon compte</Text>
+            <Text style={styles.deleteAccountText}>{t('settings.account.deleteAccount')}</Text>
           </TouchableOpacity>
         </SectionCard>
 
         {/* ── Mon pays ─────────────────────────────────────── */}
-        <SectionCard title="🌍 Mon pays">
+        <SectionCard title={t('settings.sections.country')}>
           <RowBtn
             emoji={COUNTRY_LABELS[country].flag}
             label={COUNTRY_LABELS[country].label}
-            sub="Jours fériés affichés dans le calendrier"
+            sub={t('settings.country.sub')}
             onPress={() => setCountryModalVisible(true)}
           />
         </SectionCard>
 
+        {/* ── Langue ───────────────────────────────────────── */}
+        <SectionCard title={t('settings.sections.language')}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {/* Bouton Système */}
+            <TouchableOpacity
+              onPress={() => handleLangSelect('system')}
+              style={[langStyles.btn, currentLang === 'system' && langStyles.btnActive]}
+            >
+              <Text style={[langStyles.btnText, currentLang === 'system' && langStyles.btnTextActive]}>
+                {t('settings.language.system')}
+              </Text>
+            </TouchableOpacity>
+            {/* Boutons langues */}
+            {SUPPORTED_LANGUAGES.map((l) => (
+              <TouchableOpacity
+                key={l.code}
+                onPress={() => handleLangSelect(l.code)}
+                style={[langStyles.btn, currentLang === l.code && langStyles.btnActive]}
+              >
+                <Text style={[langStyles.btnText, currentLang === l.code && langStyles.btnTextActive]}>
+                  {l.flag} {l.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity onPress={() => setLangExplainVisible((v) => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={{ fontSize: 13, color: Colors.primary, fontFamily: 'BeVietnamPro_600SemiBold' }}>
+              ℹ️ {langExplainVisible ? t('settings.language.hideExplain') : t('settings.language.showExplain')}
+            </Text>
+          </TouchableOpacity>
+          {langExplainVisible && (
+            <Text style={{ fontSize: 13, color: Colors.onSurfaceVariant, fontFamily: 'BeVietnamPro_400Regular', lineHeight: 20 }}>
+              {t('settings.language.explainText')}
+            </Text>
+          )}
+        </SectionCard>
+
         {/* ── Mode d'affichage ─────────────────────────────── */}
-        <SectionCard title="🎛️ Mode d'affichage">
+        <SectionCard title={t('settings.sections.displayMode')}>
           <RowBtn
             emoji="🔄"
-            label="Changer de mode"
-            sub="Passer de Mode Apprentissage à Mode Complet (ou inversement)"
+            label={t('settings.displayMode.changeLabel')}
+            sub={t('settings.displayMode.changeSub')}
             onPress={async () => {
               await SecureStore.deleteItemAsync(HOME_MODE_KEY);
               router.push('/(app)/features-intro' as never);
@@ -347,21 +398,21 @@ export default function SettingsScreen() {
         </SectionCard>
 
         {/* ── Parrainage ───────────────────────────────────── */}
-        <SectionCard title="🌟 Parrainage">
+        <SectionCard title={t('settings.sections.referral')}>
           <RowBtn
             emoji="🎁"
-            label="Parrainer des amis"
-            sub="Gagne des crédits en invitant"
+            label={t('settings.referral.label')}
+            sub={t('settings.referral.sub')}
             onPress={() => router.push('/(app)/referral' as never)}
           />
         </SectionCard>
 
         {/* ── Premium ──────────────────────────────────────── */}
-        <SectionCard title="⭐ Abonnement">
+        <SectionCard title={t('settings.sections.premium')}>
           <RowBtn
             emoji="⭐"
-            label="Passer à Premium"
-            sub="Débloque toutes les fonctionnalités"
+            label={t('settings.premium.label')}
+            sub={t('settings.premium.sub')}
             onPress={() => router.push('/(app)/profile/premium' as never)}
             color={C.primary}
           />
@@ -369,11 +420,11 @@ export default function SettingsScreen() {
 
         {/* ── Zone développeur (invisible en production) ── */}
         {__DEV__ && (
-          <SectionCard title="🛠️ Zone développeur">
+          <SectionCard title={t('settings.sections.dev')}>
             <RowBtn
               emoji="🔄"
-              label="Simuler premier lancement"
-              sub="Efface les préférences d'onboarding — tes données restent intactes"
+              label={t('settings.dev.simulateLabel')}
+              sub={t('settings.dev.simulateSub')}
               onPress={async () => {
                 await Promise.all([
                   SecureStore.deleteItemAsync(HOME_MODE_KEY),
@@ -385,18 +436,18 @@ export default function SettingsScreen() {
           </SectionCard>
         )}
 
-        <SectionCard title="⚖️ Légal">
+        <SectionCard title={t('settings.sections.legal')}>
           <RowBtn
             emoji="📄"
-            label="Conditions générales d'utilisation"
-            sub="Propriété intellectuelle, droits, règles d'usage"
+            label={t('settings.legal.cguLabel')}
+            sub={t('settings.legal.cguSub')}
             onPress={() => Linking.openURL('https://confetticake.fr/cgu')}
           />
           <Divider />
           <RowBtn
             emoji="🔒"
-            label="Politique de confidentialité"
-            sub="Données personnelles, RGPD"
+            label={t('settings.legal.privacyLabel')}
+            sub={t('settings.legal.privacySub')}
             onPress={() => Linking.openURL('https://confetticake.fr/confidentialite')}
           />
         </SectionCard>
@@ -406,13 +457,13 @@ export default function SettingsScreen() {
           style={styles.tipBox}
           activeOpacity={0.75}
           onPress={() => Alert.alert(
-            '🔄 L\'appli tourne en rond ?',
-            'Voici comment résoudre le problème :\n\n1. Ferme complètement l\'appli et rouvre-la.\n\n2. Si ça ne suffit pas :\nParamètres du téléphone\n→ Applications → ConfettiCake\n→ Vider le cache\n\n3. En dernier recours : désinstalle et réinstalle l\'appli (tes données sont sauvegardées sur le serveur).',
-            [{ text: 'OK', style: 'default' }]
+            t('settings.tip.title'),
+            t('settings.tip.alertMessage'),
+            [{ text: t('common.ok'), style: 'default' }]
           )}
         >
-          <Text style={styles.tipTitle}>🔄 L'appli tourne en rond ?</Text>
-          <Text style={styles.tipText}>Clique ici pour voir comment résoudre le problème →</Text>
+          <Text style={styles.tipTitle}>{t('settings.tip.title')}</Text>
+          <Text style={styles.tipText}>{t('settings.tip.cta')}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 32 }} />
@@ -422,10 +473,8 @@ export default function SettingsScreen() {
       <Modal visible={countryModalVisible} transparent animationType="slide" onRequestClose={() => setCountryModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>🌍 Choisir mon pays</Text>
-            <Text style={styles.modalBody}>
-              Les jours fériés de ton pays s'afficheront dans le calendrier.
-            </Text>
+            <Text style={styles.modalTitle}>{t('settings.country.modalTitle')}</Text>
+            <Text style={styles.modalBody}>{t('settings.country.modalBody')}</Text>
             {(Object.keys(COUNTRY_LABELS) as Country[]).map((c) => (
               <TouchableOpacity
                 key={c}
@@ -444,7 +493,7 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             ))}
             <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel, { marginTop: 4 }]} onPress={() => setCountryModalVisible(false)}>
-              <Text style={styles.modalBtnCancelText}>Fermer</Text>
+              <Text style={styles.modalBtnCancelText}>{t('settings.country.closeBtn')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -454,12 +503,10 @@ export default function SettingsScreen() {
       <Modal visible={scheduleModalVisible} transparent animationType="slide" onRequestClose={() => setScheduleModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>🔔 Fréquence des rappels</Text>
-            <Text style={styles.modalBody}>
-              Choisis quand recevoir tes notifications avant un anniversaire ou une fête.
-            </Text>
+            <Text style={styles.modalTitle}>{t('settings.scheduleModal.title')}</Text>
+            <Text style={styles.modalBody}>{t('settings.scheduleModal.body')}</Text>
 
-            {(Object.keys(NOTIF_PRESETS) as NotifPreset[]).map((p) => (
+            {(['max', 'moderate', 'minimal', 'custom'] as NotifPreset[]).map((p) => (
               <TouchableOpacity
                 key={p}
                 style={[
@@ -471,11 +518,11 @@ export default function SettingsScreen() {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.countryLabel, draftPreset === p && { color: C.primary }]}>
-                    {NOTIF_PRESETS[p].label}
+                    {t(`settings.notifPresets.${p}.label`)}
                   </Text>
                   {p !== 'custom' && (
                     <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant }}>
-                      {NOTIF_PRESETS[p].sub}
+                      {t(`settings.notifPresets.${p}.sub`)}
                     </Text>
                   )}
                 </View>
@@ -486,7 +533,7 @@ export default function SettingsScreen() {
             {draftPreset === 'custom' && (
               <View style={{ gap: 8, marginTop: 4 }}>
                 <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurface }}>
-                  Sélectionne tes jours de rappel :
+                  {t('settings.scheduleModal.selectDays')}
                 </Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {CUSTOM_DAY_OPTIONS.map((day) => {
@@ -504,7 +551,7 @@ export default function SettingsScreen() {
                         activeOpacity={0.8}
                       >
                         <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: active ? Colors.white : Colors.onSurface }}>
-                          {day === 0 ? 'Jour J' : `J-${day}`}
+                          {day === 0 ? t('settings.notifications.dayJ') : t('settings.notifications.dayMinus', { count: day })}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -515,10 +562,10 @@ export default function SettingsScreen() {
 
             <View style={styles.modalBtns}>
               <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setScheduleModalVisible(false)}>
-                <Text style={styles.modalBtnCancelText}>Annuler</Text>
+                <Text style={styles.modalBtnCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalBtn, { backgroundColor: C.primary, flex: 1 }]} onPress={confirmSchedule}>
-                <Text style={[styles.modalBtnDangerText, { color: Colors.white }]}>Confirmer</Text>
+                <Text style={[styles.modalBtnDangerText, { color: Colors.white }]}>{t('common.confirm')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -529,16 +576,14 @@ export default function SettingsScreen() {
       <Modal visible={deleteStep === 1} transparent animationType="slide" onRequestClose={() => setDeleteStep(0)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>⚠️ Attention — Cette action est irréversible</Text>
-            <Text style={styles.modalBody}>
-              {'La suppression de ton compte entraîne la perte définitive de :\n\n— Tous tes contacts et leurs fiches complètes\n— Tout l\'historique de tes messages envoyés\n— Toutes tes préférences et paramètres\n— Toutes tes listes de souhaits\n— Tous tes animaux de compagnie\n\nCette action ne peut pas être annulée.'}
-            </Text>
+            <Text style={styles.modalTitle}>{t('settings.deleteModal1.title')}</Text>
+            <Text style={styles.modalBody}>{t('settings.deleteModal1.body')}</Text>
             <View style={styles.modalBtns}>
               <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setDeleteStep(0)}>
-                <Text style={styles.modalBtnCancelText}>Annuler</Text>
+                <Text style={styles.modalBtnCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalBtn, styles.modalBtnDanger]} onPress={() => setDeleteStep(2)}>
-                <Text style={styles.modalBtnDangerText}>Je veux supprimer mon compte</Text>
+                <Text style={styles.modalBtnDangerText}>{t('settings.deleteModal1.confirmBtn')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -549,10 +594,8 @@ export default function SettingsScreen() {
       <Modal visible={deleteStep === 2} transparent animationType="slide" onRequestClose={() => setDeleteStep(0)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Confirmation de suppression</Text>
-            <Text style={styles.modalBody}>
-              {'Pour confirmer la suppression de ton compte, saisis ton adresse email ci-dessous :'}
-            </Text>
+            <Text style={styles.modalTitle}>{t('settings.deleteModal2.title')}</Text>
+            <Text style={styles.modalBody}>{t('settings.deleteModal2.body')}</Text>
             <TextInput
               style={styles.emailInput}
               value={deleteEmail}
@@ -568,7 +611,7 @@ export default function SettingsScreen() {
                 style={[styles.modalBtn, styles.modalBtnCancel]}
                 onPress={() => { setDeleteStep(0); setDeleteEmail(''); }}
               >
-                <Text style={styles.modalBtnCancelText}>Annuler</Text>
+                <Text style={styles.modalBtnCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnDanger, !emailMatches && { opacity: 0.4 }]}
@@ -577,7 +620,7 @@ export default function SettingsScreen() {
               >
                 {deleteLoading
                   ? <ActivityIndicator size="small" color={Colors.white} />
-                  : <Text style={styles.modalBtnDangerText}>🗑️ Confirmer la suppression</Text>}
+                  : <Text style={styles.modalBtnDangerText}>{t('settings.deleteModal2.confirmBtn')}</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -695,3 +738,26 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     },
   });
 }
+
+const langStyles = StyleSheet.create({
+  btn: {
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: Radii.full,
+    borderWidth: 1.5,
+    borderColor: Colors.outlineVariant,
+    backgroundColor: Colors.surfaceContainerHighest,
+  },
+  btnActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  btnText: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.sm,
+    color: Colors.onSurface,
+  },
+  btnTextActive: {
+    color: Colors.white,
+  },
+});

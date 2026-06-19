@@ -6,15 +6,13 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 
-const STEPS = [
-  { emoji: '1️⃣', text: 'Crée une cagnotte pour un cadeau groupé (anniversaire, mariage, départ...)' },
-  { emoji: '2️⃣', text: 'Partage le lien avec tes proches — ils contribuent directement en ligne' },
-  { emoji: '3️⃣', text: 'Suis les participations en temps réel et remercie chaque contributeur' },
-];
+const STEP_EMOJIS = ['1️⃣', '2️⃣', '3️⃣'] as const;
 
 export default function CagnotteGuideScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   return (
@@ -22,28 +20,26 @@ export default function CagnotteGuideScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
-          <Text style={[styles.backLinkText, { color: Colors.primary }]}>‹ Retour</Text>
+          <Text style={[styles.backLinkText, { color: Colors.primary }]}>‹ {t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Les cagnottes 🐷</Text>
+        <Text style={styles.headerTitle}>{t('cagnotteGuide.headerTitle')}</Text>
         <View style={{ minWidth: 70 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Carte intro */}
         <View style={styles.introCard}>
-          <Text style={styles.introTitle}>🐷 Offrir ensemble, c'est tellement plus simple</Text>
-          <Text style={styles.introText}>
-            {'Tu organises une collecte en ligne pour offrir un cadeau groupé à un proche. Chacun contribue à son rythme, depuis son téléphone.\nToi tu gères tout d\'ici : tu suis les participations en temps réel et tu ne rates plus jamais un départ, un mariage ou un anniversaire de collègue.'}
-          </Text>
+          <Text style={styles.introTitle}>{t('cagnotteGuide.introTitle')}</Text>
+          <Text style={styles.introText}>{t('cagnotteGuide.introText')}</Text>
         </View>
 
         {/* Comment ça marche */}
-        <Text style={styles.sectionTitle}>Comment ça marche ?</Text>
+        <Text style={styles.sectionTitle}>{t('cagnotteGuide.sectionTitle')}</Text>
         <View style={styles.stepsCard}>
-          {STEPS.map((s, i) => (
-            <View key={i} style={[styles.stepRow, i < STEPS.length - 1 && styles.stepBorder]}>
-              <Text style={styles.stepEmoji}>{s.emoji}</Text>
-              <Text style={styles.stepText}>{s.text}</Text>
+          {STEP_EMOJIS.map((emoji, i) => (
+            <View key={i} style={[styles.stepRow, i < STEP_EMOJIS.length - 1 && styles.stepBorder]}>
+              <Text style={styles.stepEmoji}>{emoji}</Text>
+              <Text style={styles.stepText}>{t(`cagnotteGuide.steps.${i}`)}</Text>
             </View>
           ))}
         </View>
@@ -54,7 +50,7 @@ export default function CagnotteGuideScreen() {
           onPress={() => router.push('/(app)/pot/new' as never)}
           activeOpacity={0.85}
         >
-          <Text style={styles.primaryBtnText}>🐷 Créer ma première cagnotte</Text>
+          <Text style={styles.primaryBtnText}>{t('cagnotteGuide.primaryBtn')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -62,7 +58,7 @@ export default function CagnotteGuideScreen() {
           onPress={() => router.push('/(app)/pot' as never)}
           activeOpacity={0.85}
         >
-          <Text style={styles.secondaryBtnText}>Voir mes cagnottes</Text>
+          <Text style={styles.secondaryBtnText}>{t('cagnotteGuide.secondaryBtn')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

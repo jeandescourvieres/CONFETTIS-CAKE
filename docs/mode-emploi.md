@@ -255,11 +255,30 @@ Partage ton code depuis Profil → Parrainage. Quand un ami s'inscrit avec ton c
 ### Lecture vocale (TTS) 🔊
 Dans l'aperçu du message, bouton "🔊 Écouter le message". L'IA génère un audio avec voix naturelle et musique de fond. Partageable directement.
 
+**Signature automatique** : si tu as choisi "Aucune signature" dans la section ✍️ Signature personnalisée, le vocal se termine par "…Ce message est envoyé de la part de [Prénom Nom]", repris automatiquement depuis ton profil (prénom + nom complet). Si tu as une signature (prénom, lien de famille, surnom...), cette mention finale n'est pas ajoutée. La formule de clôture ("Bisous", "Avec amour"...), elle, est toujours lue, indépendamment de la signature.
+
 ### Widget Android 📱
 Installe le widget ConfettiCake sur l'écran d'accueil Android pour voir les prochains événements sans ouvrir l'appli. Maintiens le doigt sur l'écran d'accueil → Widgets → ConfettiCake.
 
 ### Co-signer "De la part de nous tous" 👥
 Dans l'aperçu → "Inviter à co-signer". Un lien est généré, tes proches signent sans avoir l'appli. Tu copies la liste des co-signataires dans ton message avant d'envoyer.
+
+### 🌐 Langue de l'application
+**Paramètres → Langue de l'application**
+
+Choisis dans quelle langue s'affiche l'interface de l'appli (menus, boutons, textes des écrans) :
+
+| Bouton | Effet |
+|---|---|
+| 📱 **Système** | L'appli suit automatiquement la langue de ton téléphone |
+| 🇫🇷 Français | Interface en français |
+| 🇬🇧 English | Interface en anglais |
+| 🇩🇪 Deutsch | Interface en allemand |
+| 🇪🇸 Español | Interface en espagnol |
+| 🇮🇹 Italiano | Interface en italien |
+| 🇧🇷 Português | Interface en portugais |
+
+> 💡 Ce réglage change **uniquement l'interface** (menus, boutons, écrans). Les messages que tu crées restent dans la langue que tu choisis lors de la génération. Choisis « Système » pour que l'appli s'adapte automatiquement à la langue de ton téléphone.
 
 ### Personnaliser les couleurs 🎨
 Profil → "Couleur de l'appli". 9 ambiances : Rose 🌸, Corail 🧡, Soleil 🌅, Océan 🔵, Nature 🌿, Prune 🍇, Or 💛, Gris 🩶, Noir 🖤.
@@ -289,7 +308,7 @@ Il est dans **Créations** (home mode complet). Les non-envoyés sont des brouil
 Ton partenaire et toi utilisez l'appli et vous liez vos comptes. Vos contacts et rappels sont partagés.
 
 **Je peux changer la langue de l'appli ?**
-Oui, Profil → Paramètres → Langue. L'interface et les messages IA s'adaptent.
+Oui — Paramètres → 🌐 Langue de l'application. Choisis « Système » pour suivre la langue de ton téléphone, ou sélectionne manuellement parmi 6 langues (🇫🇷 🇬🇧 🇩🇪 🇪🇸 🇮🇹 🇧🇷). Ce réglage change l'interface ; la langue des messages IA se choisit au moment de la génération.
 
 **Le Mode Jeune, c'est quoi ?**
 Une bibliothèque de messages dans un style cash et fun, pour les contacts de 13 à 25 ans. Elle s'affiche automatiquement dans le générateur quand le contact est dans cette tranche d'âge.

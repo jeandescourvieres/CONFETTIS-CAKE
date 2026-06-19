@@ -90,7 +90,8 @@
       ],
       "./plugins/withAndroidWidget",
       "./plugins/withIOSWidget",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

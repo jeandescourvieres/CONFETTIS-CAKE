@@ -33,6 +33,7 @@ import { useContacts } from '../../src/hooks/useContacts';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 import { useThemeStore } from '../../src/stores/themeStore';
 import { useColors } from '../../src/hooks/useColors';
+import { useTablet } from '../../src/hooks/useTablet';
 import { useWeather } from '../../src/hooks/useWeather';
 import type { UpcomingEvent } from '../../src/types/models';
 
@@ -175,6 +176,7 @@ function EventRow({ event, onPress, onCreate }: {
   onPress: () => void;
   onCreate?: () => void;
 }) {
+  const { t } = useTranslation();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const urgent = isUrgent(event.daysUntil);
@@ -204,8 +206,8 @@ function EventRow({ event, onPress, onCreate }: {
         <Text style={styles.eventName} numberOfLines={1}>{event.contact.name}</Text>
         <Text style={[styles.eventDays, urgent && styles.eventDaysUrgent]}>
           {isBirthday && event.contact.birthday
-            ? `Né·e le ${formatDate(event.contact.birthday, 'd MMMM yyyy')} · ${humanDaysUntil(event.daysUntil)}`
-            : humanDaysUntil(event.daysUntil)}
+            ? `Né·e le ${formatDate(event.contact.birthday, 'd MMMM yyyy')} · ${humanDaysUntil(event.daysUntil, t)}`
+            : humanDaysUntil(event.daysUntil, t)}
         </Text>
       </View>
 
@@ -253,9 +255,11 @@ function QuickAction({ emoji, label, onPress, accent }: {
 }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const { width, gridColumns } = useTablet();
+  const quickActionWidth = (width - Spacing[4] * 2 - 8 * (gridColumns - 1)) / gridColumns;
   return (
     <TouchableOpacity
-      style={[styles.quickAction, accent && styles.quickActionAccent]}
+      style={[styles.quickAction, { width: quickActionWidth }, accent && styles.quickActionAccent]}
       onPress={onPress}
       activeOpacity={0.8}
     >
@@ -365,6 +369,7 @@ function IntroCardHint({ onShow }: { onShow: () => void }) {
 export default function HomeScreen() {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const { isTablet } = useTablet();
   const router = useRouter();
   const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
@@ -558,7 +563,7 @@ export default function HomeScreen() {
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, isTablet && styles.scrollTablet]}
         onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
         scrollEventThrottle={16}
       >
@@ -1728,7 +1733,7 @@ export default function HomeScreen() {
         onClose={() => setPremiumGateVisible(false)}
         emoji="🍭"
         title="Le mode complet est réservé au Premium"
-        description="Débloque toutes les fonctionnalités avancées de Confettis & Cake — horoscope, numérologie, animaux, cartes animées et bien plus — en passant en mode complet avec un abonnement Premium ⭐"
+        description="Passe en mode complet pour profiter de l'appli dans son intégralité : horoscope du jour, numérologie, coin animaux, cartes animées et bien plus — avec un abonnement Premium ⭐"
       />
     </SafeAreaView>
   );
@@ -1768,6 +1773,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { paddingBottom: 80 },
+  scrollTablet: { maxWidth: 720, width: '100%', alignSelf: 'center' },
 
   // Hero
   hero: {
@@ -2175,7 +2181,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     gap: 8,
   },
   quickAction: {
-    width: (SCREEN_WIDTH - Spacing[4] * 2 - 8 * 2) / 3,
     backgroundColor: Colors.white,
     borderRadius: Radii.xl,
     paddingVertical: Spacing[3],

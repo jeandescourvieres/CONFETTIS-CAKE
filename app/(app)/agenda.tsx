@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useUpcomingEvents } from '../../src/hooks/useContacts';
 import { useUpcomingCustomEvents } from '../../src/hooks/useCustomEvents';
 import { getUpcomingHolidays } from '../../src/utils/generalHolidays';
@@ -34,15 +35,13 @@ interface AgendaItem {
 }
 
 // ── Filtre ───────────────────────────────────────────────────────────────────
-const FILTERS: { key: FilterType; emoji: string; label: string }[] = [
-  { key: 'all',      emoji: '📋', label: 'Tous'             },
-  { key: 'birthday', emoji: '🎂', label: 'Anniversaires'    },
-  { key: 'nameday',  emoji: '🌸', label: 'Fêtes de prénoms' },
-  { key: 'holiday',  emoji: '🎊', label: 'Fêtes spéciales'  },
-  { key: 'custom',   emoji: '📅', label: 'Autres'           },
-];
+const FILTERS: FilterType[] = ['all', 'birthday', 'nameday', 'holiday', 'custom'];
+const FILTER_EMOJI: Record<FilterType, string> = {
+  all: '📋', birthday: '🎂', nameday: '🌸', holiday: '🎊', custom: '📅',
+};
 
 export default function AgendaScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
@@ -67,8 +66,8 @@ export default function AgendaScreen() {
         type: ev.eventType === 'birthday' ? 'birthday' : 'nameday',
         title: ev.contact.name,
         subtitle: ev.eventType === 'birthday'
-          ? (ev.age ? `${ev.age} ans` : 'Anniversaire')
-          : 'Fête du prénom',
+          ? (ev.age ? t('agenda.yearsOld', { count: ev.age }) : t('agenda.birthday'))
+          : t('agenda.namedaySub'),
         daysUntil: ev.daysUntil,
         date: ev.date,
         contactId: ev.contact.id,
@@ -132,7 +131,7 @@ export default function AgendaScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>📅 Mon Agenda</Text>
+        <Text style={styles.headerTitle}>{t('agenda.headerTitle')}</Text>
         <TouchableOpacity
           onPress={() => router.push('/(app)/calendar' as never)}
           style={styles.calBtn}
@@ -146,14 +145,14 @@ export default function AgendaScreen() {
         <View style={styles.filterRow}>
           {FILTERS.slice(0, 3).map((f) => (
             <TouchableOpacity
-              key={f.key}
-              style={[styles.filterChip, filter === f.key && styles.filterChipActive]}
-              onPress={() => setFilter(f.key)}
+              key={f}
+              style={[styles.filterChip, filter === f && styles.filterChipActive]}
+              onPress={() => setFilter(f)}
               activeOpacity={0.8}
             >
-              <Text style={styles.filterEmoji}>{f.emoji}</Text>
-              <Text style={[styles.filterLabel, filter === f.key && styles.filterLabelActive]}>
-                {f.label}
+              <Text style={styles.filterEmoji}>{FILTER_EMOJI[f]}</Text>
+              <Text style={[styles.filterLabel, filter === f && styles.filterLabelActive]}>
+                {t(`agenda.filters.${f}`)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -161,14 +160,14 @@ export default function AgendaScreen() {
         <View style={styles.filterRow}>
           {FILTERS.slice(3).map((f) => (
             <TouchableOpacity
-              key={f.key}
-              style={[styles.filterChip, styles.filterChipWide, filter === f.key && styles.filterChipActive]}
-              onPress={() => setFilter(f.key)}
+              key={f}
+              style={[styles.filterChip, styles.filterChipWide, filter === f && styles.filterChipActive]}
+              onPress={() => setFilter(f)}
               activeOpacity={0.8}
             >
-              <Text style={styles.filterEmoji}>{f.emoji}</Text>
-              <Text style={[styles.filterLabel, filter === f.key && styles.filterLabelActive]}>
-                {f.label}
+              <Text style={styles.filterEmoji}>{FILTER_EMOJI[f]}</Text>
+              <Text style={[styles.filterLabel, filter === f && styles.filterLabelActive]}>
+                {t(`agenda.filters.${f}`)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -177,10 +176,7 @@ export default function AgendaScreen() {
 
       {/* Intro */}
       <View style={styles.introBar}>
-        <Text style={styles.introText}>
-          Ton agenda personnel des célébrations 📅{'  '}
-          Tous les anniversaires et toutes les fêtes de prénoms de tes contacts réunis en un seul endroit — classés du plus proche au plus lointain — pour que tu sois toujours prêt à célébrer ceux qui comptent pour toi et ne plus jamais rater une occasion de faire plaisir 💛✨
-        </Text>
+        <Text style={styles.introText}>{t('agenda.introText')}</Text>
       </View>
 
       {/* Liste */}
@@ -192,7 +188,7 @@ export default function AgendaScreen() {
         {displayed.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>🎉</Text>
-            <Text style={styles.emptyText}>Aucun événement à venir pour cette catégorie.</Text>
+            <Text style={styles.emptyText}>{t('agenda.emptyText')}</Text>
           </View>
         ) : (
           displayed.map((item) => {
@@ -216,7 +212,7 @@ export default function AgendaScreen() {
                     <Text style={styles.cardSub} numberOfLines={1}>{item.subtitle}</Text>
                   ) : null}
                   <Text style={[styles.cardDate, urgent && styles.cardDateUrgent]}>
-                    {formatDate(item.date)} · {humanDaysUntil(item.daysUntil)}
+                    {formatDate(item.date)} · {humanDaysUntil(item.daysUntil, t)}
                   </Text>
                 </View>
                 {(item.contactId || item.holidayOccasion) && (

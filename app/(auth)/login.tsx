@@ -14,20 +14,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as SecureStore from '../../src/utils/storage';
 import { useAuthStore } from '@stores/authStore';
 import { useUIStore } from '@stores/uiStore';
 import { Colors, Typography, Spacing, Radii } from '@constants/theme';
 import { useThemeStore } from '../../src/stores/themeStore';
 
-// ── Clés de stockage local ───────────────────────────────────────────────────
 const KEY_EMAIL     = 'cc_last_email';
 const KEY_FIRSTNAME = 'cc_last_firstname';
 
-// ── Formules d'accueil alternées ─────────────────────────────────────────────
-const GREETINGS = ['Bon retour', 'Heureux de te revoir'];
-
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const router    = useRouter();
   const appTheme  = useThemeStore((s) => s.theme);
   const { signInWithPassword, signInWithGoogle, resetPassword, isLoading } = useAuthStore();
@@ -62,15 +60,15 @@ export default function LoginScreen() {
       ]);
       if (savedEmail) { setEmail(savedEmail); setForgotEmail(savedEmail); }
       if (savedName)  setFirstName(savedName);
-      // Formule aléatoire
-      setGreeting(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
+      const greetings = [t('auth.greetingBack'), t('auth.greetingAgain')];
+      setGreeting(greetings[Math.floor(Math.random() * greetings.length)]);
     })();
   }, []);
 
   // ── Connexion ──────────────────────────────────────────────────────────────
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      showToast('Remplis les deux champs', 'error');
+      showToast(t('auth.fillFields'), 'error');
       return;
     }
     try {
@@ -92,7 +90,7 @@ export default function LoginScreen() {
   const handleForgot = async () => {
     const target = forgotEmail.trim().toLowerCase();
     if (!target || !target.includes('@')) {
-      showToast('Saisis une adresse email valide', 'error');
+      showToast(t('auth.invalidEmail'), 'error');
       return;
     }
     try {
@@ -112,7 +110,7 @@ export default function LoginScreen() {
 
             <TouchableOpacity onPress={() => { setForgotMode(false); setForgotSent(false); }} style={styles.backRow}>
               <Text style={styles.backArrow}>‹</Text>
-              <Text style={styles.backText}>Retour</Text>
+              <Text style={styles.backText}>{t('common.back')}</Text>
             </TouchableOpacity>
 
             <Animated.View style={[styles.brandBlock, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
@@ -123,25 +121,25 @@ export default function LoginScreen() {
             {forgotSent ? (
               <View style={styles.sentBox}>
                 <Text style={styles.sentEmoji}>📬</Text>
-                <Text style={styles.sentTitle}>Email envoyé !</Text>
+                <Text style={styles.sentTitle}>{t('auth.emailSentTitle')}</Text>
                 <Text style={styles.sentSub}>
-                  Un lien de réinitialisation a été envoyé à{'\n'}
+                  {t('auth.emailSentSub')}{'\n'}
                   <Text style={{ color: Colors.primary, fontFamily: 'BeVietnamPro_700Bold' }}>{forgotEmail}</Text>
                 </Text>
                 <TouchableOpacity onPress={() => { setForgotMode(false); setForgotSent(false); }} style={styles.returnBtn}>
-                  <Text style={[styles.returnBtnText, { color: Colors.primary }]}>Retour à la connexion</Text>
+                  <Text style={[styles.returnBtnText, { color: Colors.primary }]}>{t('auth.backToLogin')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <>
-                <Text style={styles.forgotTitle}>Mot de passe oublié ?</Text>
-                <Text style={styles.forgotSub}>Saisis ton email — on t'envoie un lien pour en créer un nouveau.</Text>
+                <Text style={styles.forgotTitle}>{t('auth.forgotPasswordTitle')}</Text>
+                <Text style={styles.forgotSub}>{t('auth.forgotPasswordSub')}</Text>
 
                 <TextInput
                   style={styles.input}
                   value={forgotEmail}
                   onChangeText={setForgotEmail}
-                  placeholder="Ton adresse email"
+                  placeholder={t('auth.emailPlaceholder')}
                   placeholderTextColor={Colors.outlineVariant}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -153,7 +151,7 @@ export default function LoginScreen() {
                   onPress={handleForgot}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.mainBtnText}>Envoyer le lien</Text>
+                  <Text style={styles.mainBtnText}>{t('auth.sendResetLink')}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -187,24 +185,24 @@ export default function LoginScreen() {
             <Text style={styles.greetingTitle}>
               {greeting}{firstName ? ` ${firstName}` : ''} 👋
             </Text>
-            <Text style={styles.greetingSub}>Connecte-toi à ton compte</Text>
+            <Text style={styles.greetingSub}>{t('auth.signInSubtitle')}</Text>
           </Animated.View>
 
           {/* ── Google ────────────────────────────────── */}
           <TouchableOpacity style={styles.googleBtn} onPress={signInWithGoogle} activeOpacity={0.85} disabled={isLoading}>
             <Text style={styles.googleG}>G</Text>
-            <Text style={styles.googleLabel}>Continuer avec Google</Text>
+            <Text style={styles.googleLabel}>{t('auth.continueWithGoogle')}</Text>
           </TouchableOpacity>
 
           {/* ── Séparateur ────────────────────────────── */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>ou par email</Text>
+            <Text style={styles.dividerText}>{t('auth.orByEmail')}</Text>
             <View style={styles.dividerLine} />
           </View>
 
           {/* ── Email ─────────────────────────────────── */}
-          <Text style={styles.fieldLabel}>Email</Text>
+          <Text style={styles.fieldLabel}>{t('auth.email')}</Text>
           <TextInput
             style={styles.input}
             value={email}
@@ -218,7 +216,7 @@ export default function LoginScreen() {
           />
 
           {/* ── Mot de passe ───────────────────────────── */}
-          <Text style={styles.fieldLabel}>Mot de passe</Text>
+          <Text style={styles.fieldLabel}>{t('auth.password')}</Text>
           <View style={styles.passwordRow}>
             <TextInput
               style={[styles.input, styles.passwordInput]}
@@ -245,20 +243,19 @@ export default function LoginScreen() {
             disabled={isLoading}
           >
             <Text style={styles.mainBtnText}>
-              {isLoading ? 'Connexion...' : 'Se connecter'}
+              {isLoading ? t('auth.connecting') : t('auth.signIn')}
             </Text>
           </TouchableOpacity>
 
           {/* ── Mot de passe oublié ────────────────────── */}
           <TouchableOpacity onPress={() => setForgotMode(true)} style={styles.forgotLink}>
-            <Text style={styles.forgotLinkText}>Mot de passe oublié ?</Text>
+            <Text style={styles.forgotLinkText}>{t('auth.forgotPassword')}</Text>
           </TouchableOpacity>
 
-          {/* ── Pas encore de compte ──────────────────── */}
           <TouchableOpacity onPress={() => router.replace('/(auth)/onboarding' as never)} style={styles.signupLink}>
             <Text style={styles.signupText}>
-              Pas encore de compte ?{'  '}
-              <Text style={[styles.signupTextLink, { color: Colors.primary }]}>Je crée un compte</Text>
+              {t('auth.noAccountQuestion')}{'  '}
+              <Text style={[styles.signupTextLink, { color: Colors.primary }]}>{t('auth.createAccountLink')}</Text>
             </Text>
           </TouchableOpacity>
 

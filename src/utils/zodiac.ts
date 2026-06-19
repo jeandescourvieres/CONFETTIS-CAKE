@@ -17,7 +17,7 @@ export interface ZodiacSign {
   inRelationship: string; // comment il·elle aime
 }
 
-const SIGNS: ZodiacSign[] = [
+export const SIGNS: ZodiacSign[] = [
   {
     name: 'Bélier', emoji: '♈', dateRange: '21 mars – 19 avril',
     element: 'Feu', elementEmoji: '🔥',
@@ -128,6 +128,43 @@ const SIGNS: ZodiacSign[] = [
   },
 ];
 
+// ── Clés i18n stables (le nom français sert de clé interne, jamais affiché tel quel) ──
+export const ZODIAC_ELEMENT_SLUG: Record<string, string> = {
+  'Feu': 'fire', 'Terre': 'earth', 'Air': 'air', 'Eau': 'water',
+};
+
+export const ZODIAC_SLUG: Record<string, string> = {
+  'Bélier': 'aries', 'Taureau': 'taurus', 'Gémeaux': 'gemini', 'Cancer': 'cancer',
+  'Lion': 'leo', 'Vierge': 'virgo', 'Balance': 'libra', 'Scorpion': 'scorpio',
+  'Sagittaire': 'sagittarius', 'Capricorne': 'capricorn', 'Verseau': 'aquarius', 'Poissons': 'pisces',
+};
+
+type TFn = (key: string, options?: Record<string, unknown>) => string;
+
+export interface ZodiacSignText {
+  name: string;
+  dateRange: string;
+  trait: string;
+  description: string;
+  keywords: string[];
+  strengths: string;
+  inRelationship: string;
+}
+
+/** Retourne les textes d'un signe traduits via `t` (useTranslation). */
+export function getZodiacSignI18n(sign: ZodiacSign, t: TFn): ZodiacSignText {
+  const slug = ZODIAC_SLUG[sign.name];
+  return {
+    name: t(`zodiac.signs.${slug}.name`),
+    dateRange: t(`zodiac.signs.${slug}.dateRange`),
+    trait: t(`zodiac.signs.${slug}.trait`),
+    description: t(`zodiac.signs.${slug}.description`),
+    keywords: t(`zodiac.signs.${slug}.keywords`).split(', '),
+    strengths: t(`zodiac.signs.${slug}.strengths`),
+    inRelationship: t(`zodiac.signs.${slug}.inRelationship`),
+  };
+}
+
 /** Retourne le signe zodiacal pour une date de naissance "YYYY-MM-DD" ou "0000-MM-DD". */
 export function getZodiacSign(birthday: string): ZodiacSign | null {
   const parts = birthday.replace(/^0000-/, '2000-').split('-');
@@ -186,7 +223,7 @@ export interface ZodiacCompatibility {
 
 type ElementKey = 'fire' | 'earth' | 'air' | 'water';
 
-const SIGN_ELEMENT: ElementKey[] = [
+export const SIGN_ELEMENT: ElementKey[] = [
   'fire',  // 0  Bélier
   'earth', // 1  Taureau
   'air',   // 2  Gémeaux
@@ -202,7 +239,7 @@ const SIGN_ELEMENT: ElementKey[] = [
 ];
 
 // Descriptions par combinaison d'éléments (clé : "el1-el2" avec el1 <= el2 alphabétiquement)
-const ELEMENT_COMPAT: Record<string, { score: 1|2|3|4|5; label: string; emoji: string; description: string }> = {
+export const ELEMENT_COMPAT: Record<string, { score: 1|2|3|4|5; label: string; emoji: string; description: string }> = {
   'fire-fire': {
     score: 5, label: 'Flamme commune', emoji: '🔥',
     description: 'Même énergie, même passion, même envie de brûler la vie par les deux bouts. Vous vous comprenez instinctivement, sans avoir besoin de vous expliquer — l\'élan de l\'un emporte l\'autre naturellement. Vous vous poussez mutuellement à dépasser vos limites, à oser plus. Attention à l\'emballement quand deux feux se croisent — mais quelle chaleur, quelle intensité quand vous êtes ensemble !',
@@ -275,6 +312,44 @@ export function getZodiacCompatibility(signA: ZodiacSign, signB: ZodiacSign): Zo
   };
 }
 
+/** Version traduite de getZodiacCompatibility, via `t` (useTranslation). */
+export function getZodiacCompatibilityI18n(signA: ZodiacSign, signB: ZodiacSign, t: TFn): ZodiacCompatibility {
+  const indexA = SIGNS.findIndex((s) => s.name === signA.name);
+  const indexB = SIGNS.findIndex((s) => s.name === signB.name);
+  const nameA = t(`zodiac.signs.${ZODIAC_SLUG[signA.name]}.name`);
+  const nameB = t(`zodiac.signs.${ZODIAC_SLUG[signB.name]}.name`);
+
+  if (indexA === indexB) {
+    return {
+      score: 3, label: t('zodiac.compat.mirrorLabel'), emoji: '🪞',
+      description: t('zodiac.compat.mirrorDesc', { name: nameA }),
+    };
+  }
+
+  if (Math.abs(indexA - indexB) === 6) {
+    return {
+      score: 4, label: t('zodiac.compat.oppositeLabel'), emoji: '☯️',
+      description: t('zodiac.compat.oppositeDesc', { nameA, nameB }),
+    };
+  }
+
+  const elA = SIGN_ELEMENT[indexA];
+  const elB = SIGN_ELEMENT[indexB];
+  const key = [elA, elB].sort().join('-');
+  const entry = ELEMENT_COMPAT[key];
+  if (entry) {
+    return {
+      score: entry.score, emoji: entry.emoji,
+      label: t(`zodiac.elementCompat.${key}.label`),
+      description: t(`zodiac.elementCompat.${key}.description`),
+    };
+  }
+  return {
+    score: 3, label: t('zodiac.compat.defaultLabel'), emoji: '🌗',
+    description: t('zodiac.compat.defaultDesc'),
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  Zodiaque Chinois
 // ═══════════════════════════════════════════════════════════════════
@@ -289,7 +364,7 @@ export interface ChineseZodiacSign {
   description: string;
 }
 
-const CHINESE_SIGNS: ChineseZodiacSign[] = [
+export const CHINESE_SIGNS: ChineseZodiacSign[] = [
   {
     name: 'Rat', emoji: '🐭',
     element: 'Eau', elementEmoji: '💧',
@@ -375,6 +450,30 @@ const CHINESE_SIGNS: ChineseZodiacSign[] = [
     description: 'Le Cochon est le plus généreux et le plus bienveillant du zodiaque chinois. Sincère et sans malice, il voit le meilleur en chacun et offre son amitié avec une générosité sans égale. Sa joie de vivre est communicative et sa présence réchauffe les cœurs. Il fait partie de ces êtres rares qui embellissent véritablement la vie des autres.',
   },
 ];
+
+export const CHINESE_SLUG: Record<string, string> = {
+  'Rat': 'rat', 'Bœuf': 'ox', 'Tigre': 'tiger', 'Lapin': 'rabbit',
+  'Dragon': 'dragon', 'Serpent': 'snake', 'Cheval': 'horse', 'Chèvre': 'goat',
+  'Singe': 'monkey', 'Coq': 'rooster', 'Chien': 'dog', 'Cochon': 'pig',
+};
+
+export interface ChineseZodiacSignText {
+  name: string;
+  virtues: string;
+  traits: string[];
+  description: string;
+}
+
+/** Retourne les textes d'un signe du zodiaque chinois traduits via `t` (useTranslation). */
+export function getChineseZodiacI18n(sign: ChineseZodiacSign, t: TFn): ChineseZodiacSignText {
+  const slug = CHINESE_SLUG[sign.name];
+  return {
+    name: t(`zodiac.chinese.${slug}.name`),
+    virtues: t(`zodiac.chinese.${slug}.virtues`),
+    traits: t(`zodiac.chinese.${slug}.traits`).split(', '),
+    description: t(`zodiac.chinese.${slug}.description`),
+  };
+}
 
 /**
  * Retourne le signe du zodiaque chinois à partir d'une date de naissance ISO "YYYY-MM-DD".
@@ -462,6 +561,53 @@ export function getChineseZodiacCompatibility(a: ChineseZodiacSign, b: ChineseZo
   // Autres cas
   return { score: 3, label: 'Relation nuancée', emoji: '🌿',
     description: `${a.name} et ${b.name} partagent une relation complexe et nuancée. Ni parfaite harmonie ni incompatibilité — une relation qui mérite d\'être explorée en profondeur, car ses richesses cachées révèlent leur vrai potentiel avec le temps.`,
+  };
+}
+
+/** Version traduite de getChineseZodiacCompatibility, via `t` (useTranslation). */
+export function getChineseZodiacCompatibilityI18n(a: ChineseZodiacSign, b: ChineseZodiacSign, t: TFn): ChineseCompatibility {
+  const idxA = CHINESE_SIGNS.findIndex((s) => s.name === a.name);
+  const idxB = CHINESE_SIGNS.findIndex((s) => s.name === b.name);
+  const slugA = CHINESE_SLUG[a.name];
+  const slugB = CHINESE_SLUG[b.name];
+  const nameA = t(`zodiac.chinese.${slugA}.name`);
+  const nameB = t(`zodiac.chinese.${slugB}.name`);
+
+  if (idxA === idxB) {
+    return { score: 4, label: t('zodiac.chineseCompat.mirrorLabel'), emoji: '🪞',
+      description: t('zodiac.chineseCompat.mirrorDesc', { name: nameA }),
+    };
+  }
+
+  if (Math.abs(idxA - idxB) === 6) {
+    const key = [slugA, slugB].sort().join('-');
+    const desc = t(`zodiac.chineseCompat.oppositePairs.${key}`, { defaultValue: '' })
+      || t('zodiac.chineseCompat.oppositeDefaultDesc', { nameA, nameB });
+    return { score: 2, label: t('zodiac.chineseCompat.oppositeLabel'), emoji: '⚡', description: desc };
+  }
+
+  const triA = idxA % 4;
+  const triB = idxB % 4;
+  if (triA === triB) {
+    return { score: 5, label: t('zodiac.chineseCompat.triangleLabel'), emoji: '💫',
+      description: t('zodiac.chineseCompat.triangleDesc', { nameA, nameB, triNames: t(`zodiac.chineseCompat.triNames.${triA}`) }),
+    };
+  }
+
+  if (Math.abs(idxA - idxB) === 1 || Math.abs(idxA - idxB) === 11) {
+    return { score: 3, label: t('zodiac.chineseCompat.neighborLabel'), emoji: '☯️',
+      description: t('zodiac.chineseCompat.neighborDesc', { nameA, nameB }),
+    };
+  }
+
+  if (Math.abs(idxA - idxB) === 3 || Math.abs(idxA - idxB) === 9) {
+    return { score: 3, label: t('zodiac.chineseCompat.squareLabel'), emoji: '🌗',
+      description: t('zodiac.chineseCompat.squareDesc', { nameA, nameB }),
+    };
+  }
+
+  return { score: 3, label: t('zodiac.chineseCompat.defaultLabel'), emoji: '🌿',
+    description: t('zodiac.chineseCompat.defaultDesc', { nameA, nameB }),
   };
 }
 

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
   useGroupMessageByToken,
   useAddSignature,
@@ -21,6 +22,7 @@ import {
 import { Colors, Typography, Spacing, Radii } from '../../src/constants/theme';
 
 export default function GroupSignScreen() {
+  const { t } = useTranslation();
   const { token } = useLocalSearchParams<{ token: string }>();
   const { data: group, isLoading, isError } = useGroupMessageByToken(token ?? null);
   const { mutateAsync: addSignature, isPending } = useAddSignature();
@@ -59,10 +61,8 @@ export default function GroupSignScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <Text style={styles.errorEmoji}>😕</Text>
-          <Text style={styles.errorTitle}>Lien introuvable</Text>
-          <Text style={styles.errorDesc}>
-            Ce lien de co-signature est invalide ou a expiré.
-          </Text>
+          <Text style={styles.errorTitle}>{t('group.sign.errorTitle')}</Text>
+          <Text style={styles.errorDesc}>{t('group.sign.errorDesc')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -71,14 +71,16 @@ export default function GroupSignScreen() {
   // ── Succès ───────────────────────────────────────────────────────────────────
 
   if (success) {
+    const [successBefore, successAfter] = t('group.sign.successDesc', { contactName: '{{contactName}}' }).split('{{contactName}}');
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <Text style={styles.successEmoji}>🎉</Text>
-          <Text style={styles.successTitle}>Merci {name} !</Text>
+          <Text style={styles.successTitle}>{t('group.sign.successTitle', { name })}</Text>
           <Text style={styles.successDesc}>
-            Tu es bien co-signataire du message pour{' '}
-            <Text style={styles.bold}>{group.contact_name}</Text>.
+            {successBefore}
+            <Text style={styles.bold}>{group.contact_name}</Text>
+            {successAfter}
           </Text>
           {signers.length > 0 && (
             <View style={styles.signersPill}>
@@ -87,10 +89,7 @@ export default function GroupSignScreen() {
               </Text>
             </View>
           )}
-          <Text style={styles.footerNote}>
-            L'organisateur recevra la liste de tous les co-signataires
-            et les ajoutera au message.
-          </Text>
+          <Text style={styles.footerNote}>{t('group.sign.footerNote')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -119,20 +118,20 @@ export default function GroupSignScreen() {
             <Text style={styles.cardEmoji}>✍️</Text>
             <Text style={styles.cardTitle}>{group.label}</Text>
             <Text style={styles.cardSub}>
-              Pour <Text style={styles.bold}>{group.contact_name}</Text>
+              {t('group.sign.forContact')} <Text style={styles.bold}>{group.contact_name}</Text>
             </Text>
 
             {signers.length > 0 && (
               <View style={styles.alreadySigned}>
                 <Text style={styles.alreadySignedText}>
-                  {signers.length} co-signataire{signers.length > 1 ? 's' : ''} — {signersLabel}
+                  {t('group.sign.alreadySigned', { count: signers.length })} — {signersLabel}
                 </Text>
               </View>
             )}
           </View>
 
           {/* Formulaire */}
-          <Text style={styles.label}>Ton prénom *</Text>
+          <Text style={styles.label}>{t('group.sign.nameLabel')}</Text>
           <TextInput
             style={styles.input}
             placeholder="Marie"
@@ -145,11 +144,11 @@ export default function GroupSignScreen() {
           />
 
           <Text style={styles.label}>
-            Un petit mot <Text style={styles.optional}>(facultatif)</Text>
+            {t('group.sign.noteLabel')} <Text style={styles.optional}>({t('common.optional')})</Text>
           </Text>
           <TextInput
             style={[styles.input, styles.inputMulti]}
-            placeholder="Bisous ! 😘"
+            placeholder={t('group.sign.notePlaceholder')}
             placeholderTextColor="#aaa"
             value={note}
             onChangeText={setNote}
@@ -166,13 +165,11 @@ export default function GroupSignScreen() {
           >
             {isPending
               ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={styles.signBtnText}>✍️ Je co-signe</Text>
+              : <Text style={styles.signBtnText}>{t('group.sign.signBtn')}</Text>
             }
           </TouchableOpacity>
 
-          <Text style={styles.disclaimer}>
-            En co-signant, tu acceptes que ton prénom apparaisse dans le message final.
-          </Text>
+          <Text style={styles.disclaimer}>{t('group.sign.disclaimer')}</Text>
 
           <View style={{ height: 40 }} />
         </ScrollView>

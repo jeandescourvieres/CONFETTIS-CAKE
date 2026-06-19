@@ -8,15 +8,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { BackHeader } from '../../src/components/ui/BackHeader';
 import { useContacts } from '../../src/hooks/useContacts';
 import { useCreateStore } from '../../src/stores/createStore';
-import { getCurrentZodiacSign, getContactsInZodiacSeason, getZodiacPortrait } from '../../src/utils/zodiac';
+import { getCurrentZodiacSign, getContactsInZodiacSeason, getZodiacPortrait, getZodiacSignI18n, ZODIAC_ELEMENT_SLUG } from '../../src/utils/zodiac';
 
 export default function ZodiacSeasonScreen() {
+  const { t } = useTranslation();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const router = useRouter();
@@ -26,6 +28,7 @@ export default function ZodiacSeasonScreen() {
   useTabScrollToTop('zodiac-season', () => scrollRef.current?.scrollTo({ y: 0, animated: false }));
 
   const currentSign = getCurrentZodiacSign();
+  const signText = useMemo(() => getZodiacSignI18n(currentSign, t), [currentSign, t]);
   const seasonContacts = useMemo(() => getContactsInZodiacSeason(contacts), [contacts]);
 
   const handleCelebrate = useCallback((contact: typeof contacts[0]) => {
@@ -41,26 +44,24 @@ export default function ZodiacSeasonScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <BackHeader title="⭐ Zodiaque" />
+      <BackHeader title={t('zodiac.season.headerTitle')} />
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
         {/* ── Intro ────────────────────────────────── */}
         <View style={styles.introCard}>
-          <Text style={styles.introTitle}>✨ Le signe du moment</Text>
-          <Text style={styles.introText}>
-            {'Chaque mois, un nouveau signe est en saison. Retrouve ici ses grandes caractéristiques et découvre lesquels de tes contacts sont nés sous ce signe — pour leur envoyer un message personnalisé qui leur ressemble vraiment.'}
-          </Text>
+          <Text style={styles.introTitle}>{t('zodiac.season.introTitle')}</Text>
+          <Text style={styles.introText}>{t('zodiac.season.introText')}</Text>
         </View>
 
         {/* ── En-tête ──────────────────────────────── */}
         <View style={styles.header}>
-          <Text style={styles.headerEyebrow}>En saison ✨</Text>
+          <Text style={styles.headerEyebrow}>{t('zodiac.season.inSeason')}</Text>
           <View style={styles.headerPortraitRow}>
             <Text style={styles.headerSignEmoji}>{currentSign.emoji}</Text>
             <Text style={styles.headerPortrait}>{getZodiacPortrait(currentSign.name)}</Text>
           </View>
-          <Text style={styles.headerSign}>{currentSign.name}</Text>
-          <Text style={styles.headerDates}>{currentSign.dateRange}</Text>
+          <Text style={styles.headerSign}>{signText.name}</Text>
+          <Text style={styles.headerDates}>{signText.dateRange}</Text>
         </View>
 
         {/* ── Carte signe ─────────────────────────── */}
@@ -68,18 +69,18 @@ export default function ZodiacSeasonScreen() {
           <View style={styles.signCardTop}>
             <Text style={styles.signBigEmoji}>{currentSign.emoji}</Text>
             <View style={styles.signCardBody}>
-              <Text style={styles.signCardName}>{currentSign.name}</Text>
+              <Text style={styles.signCardName}>{signText.name}</Text>
               <Text style={styles.signCardElement}>
-                {currentSign.elementEmoji} {currentSign.element} · {currentSign.dateRange}
+                {currentSign.elementEmoji} {t(`zodiac.elements.${ZODIAC_ELEMENT_SLUG[currentSign.element]}`)} · {signText.dateRange}
               </Text>
             </View>
           </View>
-          <Text style={styles.signCardTrait}>{currentSign.trait}</Text>
-          <Text style={styles.signCardDesc}>{currentSign.description}</Text>
+          <Text style={styles.signCardTrait}>{signText.trait}</Text>
+          <Text style={styles.signCardDesc}>{signText.description}</Text>
 
           {/* Mots-clés */}
           <View style={styles.signKeywords}>
-            {currentSign.keywords.map((kw) => (
+            {signText.keywords.map((kw) => (
               <View key={kw} style={[styles.signKeyword, { backgroundColor: C.primaryContainer }]}>
                 <Text style={[styles.signKeywordText, { color: C.primary }]}>{kw}</Text>
               </View>
@@ -88,14 +89,14 @@ export default function ZodiacSeasonScreen() {
 
           {/* Points forts */}
           <View style={[styles.signBlock, { borderLeftColor: C.primary }]}>
-            <Text style={styles.signBlockLabel}>💪 Points forts</Text>
-            <Text style={styles.signBlockText}>{currentSign.strengths}</Text>
+            <Text style={styles.signBlockLabel}>{t('zodiac.season.strengthsLabel')}</Text>
+            <Text style={styles.signBlockText}>{signText.strengths}</Text>
           </View>
 
           {/* En relation */}
           <View style={[styles.signBlock, { borderLeftColor: '#E91E8C' }]}>
-            <Text style={styles.signBlockLabel}>💛 En relation</Text>
-            <Text style={styles.signBlockText}>{currentSign.inRelationship}</Text>
+            <Text style={styles.signBlockLabel}>{t('zodiac.season.inRelationshipLabel')}</Text>
+            <Text style={styles.signBlockText}>{signText.inRelationship}</Text>
           </View>
         </View>
 
@@ -103,18 +104,15 @@ export default function ZodiacSeasonScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
             {seasonContacts.length > 0
-              ? `${seasonContacts.length} contact${seasonContacts.length > 1 ? 's' : ''} en saison`
-              : 'Aucun contact en saison'}
+              ? t('zodiac.season.contactsInSeason', { count: seasonContacts.length })
+              : t('zodiac.season.noContactsInSeason')}
           </Text>
         </View>
 
         {seasonContacts.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyEmoji}>🌌</Text>
-            <Text style={styles.emptyText}>
-              Aucun de tes contacts n'est {currentSign.name} pour le moment.{'\n'}
-              Ajoute des contacts avec leur date de naissance pour les voir apparaître ici !
-            </Text>
+            <Text style={styles.emptyText}>{t('zodiac.season.emptyText', { signName: signText.name })}</Text>
           </View>
         ) : (
           <View style={styles.contactList}>
@@ -136,14 +134,14 @@ export default function ZodiacSeasonScreen() {
                     </View>
                     <View style={styles.contactInfo}>
                       <Text style={styles.contactName}>{contact.name}</Text>
-                      <Text style={styles.contactSign}>{currentSign.emoji} {currentSign.name}</Text>
+                      <Text style={styles.contactSign}>{currentSign.emoji} {signText.name}</Text>
                     </View>
                     <TouchableOpacity
                       style={[styles.celebrateBtn, { backgroundColor: C.primary }]}
                       onPress={() => handleCelebrate(contact)}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.celebrateBtnText}>🌟 Célébrer</Text>
+                      <Text style={styles.celebrateBtnText}>{t('zodiac.season.celebrateBtn')}</Text>
                     </TouchableOpacity>
                   </TouchableOpacity>
                   {i < seasonContacts.length - 1 && <View style={styles.divider} />}

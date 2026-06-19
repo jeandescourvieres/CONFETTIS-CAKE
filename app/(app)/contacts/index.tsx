@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useTabScrollToTop } from '../../../src/hooks/useTabScrollToTop';
 import {
   useContacts,
@@ -22,24 +23,13 @@ import {
 import { ContactRow } from '../../../src/components/ContactRow';
 import { Colors, Typography, Spacing, Radii } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
+import { useTablet } from '../../../src/hooks/useTablet';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { usePartnerContacts } from '../../../src/hooks/useCouple';
 import { useRelationBarometer } from '../../../src/hooks/useRelationBarometer';
 import { daysUntilBirthday, humanDaysUntil } from '../../../src/utils/dateHelpers';
 
 type FilterKey = 'all' | 'urgent' | 'best_friend' | 'friend' | 'family' | 'partner' | 'colleague' | 'other' | 'pets';
-
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: 'all',         label: 'Tous' },
-  { key: 'urgent',      label: '🎉 À fêter bientôt' },
-  { key: 'best_friend', label: '💛 Meilleur·e ami·e' },
-  { key: 'friend',      label: '👫 Ami.e' },
-  { key: 'family',      label: '👨‍👩‍👧 Famille' },
-  { key: 'partner',     label: '❤️ Partenaire' },
-  { key: 'colleague',   label: '💼 Collègues' },
-  { key: 'other',       label: '🙂 Autre' },
-  { key: 'pets',        label: 'Animal de compagnie 🐾' },
-];
 
 const PET_EMOJI: Record<string, string> = {
   chien: '🐶', chat: '🐱', lapin: '🐰', perroquet: '🦜',
@@ -48,7 +38,21 @@ const PET_EMOJI: Record<string, string> = {
 };
 
 export default function ContactsScreen() {
+  const { t } = useTranslation();
+  const { isTablet } = useTablet();
   const router = useRouter();
+
+  const FILTERS: { key: FilterKey; label: string }[] = [
+    { key: 'all',         label: t('contacts.filters.all') },
+    { key: 'urgent',      label: t('contacts.filters.urgent') },
+    { key: 'best_friend', label: t('contacts.relations.best_friend') },
+    { key: 'friend',      label: t('contacts.relations.friend') },
+    { key: 'family',      label: t('contacts.relations.family') },
+    { key: 'partner',     label: t('contacts.relations.partner') },
+    { key: 'colleague',   label: t('contacts.relations.colleague') },
+    { key: 'other',       label: t('contacts.relations.other') },
+    { key: 'pets',        label: t('contacts.filterPets') },
+  ];
   const { redirectTo } = useLocalSearchParams<{ redirectTo?: string }>();
   const goToContact = (contactId: string) => {
     if (redirectTo === 'numerologie') {
@@ -222,9 +226,9 @@ export default function ContactsScreen() {
           <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>Mes contacts</Text>
+          <Text style={styles.title}>{t('contacts.title')}</Text>
           <Text style={styles.subtitle}>
-            {contacts.length} personne{contacts.length !== 1 ? 's' : ''}
+            {t('contacts.personCount', { count: contacts.length })}
           </Text>
         </View>
         <TouchableOpacity
@@ -242,7 +246,7 @@ export default function ContactsScreen() {
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
-          placeholder="Rechercher un contact..."
+          placeholder={t('contacts.search')}
           placeholderTextColor={Colors.outlineVariant}
           returnKeyType="search"
         />
@@ -259,7 +263,7 @@ export default function ContactsScreen() {
         sections={allSections}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, isTablet && styles.listContentTablet]}
         stickySectionHeadersEnabled={false}
         style={styles.list}
         ListHeaderComponent={
@@ -280,10 +284,10 @@ export default function ContactsScreen() {
                 </Text>
                 <View style={[styles.actionCol, { paddingHorizontal: 0, marginTop: Spacing[3] }]}>
                   <TouchableOpacity style={styles.importBtn} onPress={handleImportPhone}>
-                    <Text style={styles.importBtnText}>📱 J'importe mes contacts</Text>
+                    <Text style={styles.importBtnText}>{t('contacts.import')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.addBtn} onPress={() => router.push({ pathname: '/(app)/contacts/new', params: { resetKey: Date.now().toString() } } as never)}>
-                    <Text style={styles.addBtnText}>Je crée un contact</Text>
+                    <Text style={styles.addBtnText}>{t('contacts.addContact')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -295,7 +299,7 @@ export default function ContactsScreen() {
               onPress={() => toggleAccordion(setShareContactsOpen)}
               activeOpacity={0.8}
             >
-              <Text style={styles.accordionTitle}>🔗 Comment partager des contacts :</Text>
+              <Text style={styles.accordionTitle}>{t('contacts.shareAccordionTitle')}</Text>
               <Text style={styles.accordionChevron}>{shareContactsOpen ? '▾' : '▸'}</Text>
             </TouchableOpacity>
             {shareContactsOpen && (
@@ -307,9 +311,9 @@ export default function ContactsScreen() {
                 <View style={styles.shareCardLeft}>
                   <Text style={styles.shareCardIcon}>🔗</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.shareCardTitle}>Partager mes contacts</Text>
+                    <Text style={styles.shareCardTitle}>{t('contacts.shareCardTitle')}</Text>
                     <Text style={styles.accordionDesc}>
-                      Envoie une liste de tes contacts à un proche via un lien valable 24h. Pratique pour organiser un événement en groupe ou aider quelqu'un à démarrer sur ConfettiCake.
+                      {t('contacts.shareCardDesc')}
                     </Text>
                   </View>
                 </View>
@@ -323,12 +327,12 @@ export default function ContactsScreen() {
               onPress={() => toggleAccordion(setFindContactsOpen)}
               activeOpacity={0.8}
             >
-              <Text style={styles.accordionTitle}>🔍 Comment retrouver des contacts :</Text>
+              <Text style={styles.accordionTitle}>{t('contacts.findAccordionTitle')}</Text>
               <Text style={styles.accordionChevron}>{findContactsOpen ? '▾' : '▸'}</Text>
             </TouchableOpacity>
             {findContactsOpen && (
               <View style={styles.accordionContent}>
-                <Text style={styles.accordionDesc}>Grâce aux filtres, retrouve tes contacts et ceux à fêter prochainement 🎉</Text>
+                <Text style={styles.accordionDesc}>{t('contacts.findAccordionDesc')}</Text>
                 <View style={[styles.filtersList, { paddingHorizontal: 0, marginTop: Spacing[3] }]}>
                   {FILTERS.map((item) => (
                     <TouchableOpacity
@@ -346,7 +350,7 @@ export default function ContactsScreen() {
             )}
 
             <TouchableOpacity style={[styles.accordionHeader, { borderWidth: 2, borderColor: '#F43F5E' }]} onPress={() => toggleAccordion(setBarometerOpen)} activeOpacity={0.8}>
-              <Text style={styles.accordionTitle}>❤️ Les contacts à ne pas oublier :</Text>
+              <Text style={styles.accordionTitle}>{t('contacts.barometerAccordionTitle')}</Text>
               <Text style={styles.accordionChevron}>{barometerOpen ? '▾' : '▸'}</Text>
             </TouchableOpacity>
             {barometerOpen && (
@@ -356,8 +360,8 @@ export default function ContactsScreen() {
                     {barometerContacts.map((c) => {
                       const firstName = c.name.trim().split(/\s+/).find((w: string) => w !== w.toUpperCase()) ?? c.name.split(' ')[0];
                       const msg = c.daysSinceLastMessage === null
-                        ? `Tu n'as encore jamais écrit à ${firstName}.`
-                        : `Cela fait ${c.daysSinceLastMessage} jours que tu n'as pas écrit à ${firstName}.`;
+                        ? t('contacts.barometerNeverWritten', { name: firstName })
+                        : t('contacts.barometerDaysSince', { count: c.daysSinceLastMessage, name: firstName });
                       return (
                         <TouchableOpacity
                           key={c.id}
@@ -370,13 +374,13 @@ export default function ContactsScreen() {
                             <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: C.onSurface }}>{firstName}</Text>
                             <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: C.onSurfaceVariant, lineHeight: 16 }}>{msg}</Text>
                           </View>
-                          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: C.primary }}>Écrire →</Text>
+                          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.xs, color: C.primary }}>{t('contacts.writeLink')}</Text>
                         </TouchableOpacity>
                       );
                     })}
                   </View>
                 ) : (
-                  <Text style={styles.accordionDesc}>Pour l'instant, tu n'as aucun contact oublié 🎉</Text>
+                  <Text style={styles.accordionDesc}>{t('contacts.barometerEmpty')}</Text>
                 )}
               </View>
             )}
@@ -384,19 +388,19 @@ export default function ContactsScreen() {
             {/* Titre section liste + toggle tri */}
             {filter !== 'pets' && (
               <>
-                <Text style={styles.listSectionTitle}>Mes contacts</Text>
+                <Text style={styles.listSectionTitle}>{t('contacts.title')}</Text>
                 <View style={styles.sortToggleRow}>
                   <TouchableOpacity
                     style={[styles.sortToggleBtn, sortMode === 'alpha' && styles.sortToggleBtnActive]}
                     onPress={() => switchSortMode('alpha')}
                   >
-                    <Text style={[styles.sortToggleText, sortMode === 'alpha' && styles.sortToggleTextActive]}>A → Z</Text>
+                    <Text style={[styles.sortToggleText, sortMode === 'alpha' && styles.sortToggleTextActive]}>{t('contacts.sortAlpha')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.sortToggleBtn, sortMode === 'affinite' && styles.sortToggleBtnActive]}
                     onPress={() => switchSortMode('affinite')}
                   >
-                    <Text style={[styles.sortToggleText, sortMode === 'affinite' && styles.sortToggleTextActive]}>⭐ Par affinité</Text>
+                    <Text style={[styles.sortToggleText, sortMode === 'affinite' && styles.sortToggleTextActive]}>{t('contacts.sortAffinity')}</Text>
                   </TouchableOpacity>
                 </View>
                 {sortMode === 'affinite' && (
@@ -500,7 +504,7 @@ export default function ContactsScreen() {
         renderSectionHeader={({ section: { letter } }) =>
           letter === '__affinite__' ? (
             <View style={styles.allContactsHeader}>
-              <Text style={styles.allContactsLabel}>⭐ Mes contacts — par affinité</Text>
+              <Text style={styles.allContactsLabel}>{t('contacts.allContactsAffinity')}</Text>
             </View>
           ) : letter === '__urgent_birthday__' ? (
             <TouchableOpacity
@@ -508,7 +512,7 @@ export default function ContactsScreen() {
               onPress={() => setUrgentBirthdaysOpen((o) => !o)}
               activeOpacity={0.7}
             >
-              <Text style={styles.urgentLabel}>🎁 Leurs anniversaires à venir :{!urgentBirthdaysOpen ? ` (${urgentBirthdays.length})` : ''}</Text>
+              <Text style={styles.urgentLabel}>{t('contacts.urgentBirthdays')}{!urgentBirthdaysOpen ? ` (${urgentBirthdays.length})` : ''} :</Text>
               <Text style={styles.urgentLabel}>{urgentBirthdaysOpen ? '−' : '+'}</Text>
             </TouchableOpacity>
           ) : letter === '__urgent_nameday__' ? (
@@ -517,12 +521,12 @@ export default function ContactsScreen() {
               onPress={() => setUrgentNameDaysOpen((o) => !o)}
               activeOpacity={0.7}
             >
-              <Text style={styles.urgentLabel}>🌸 Leurs fêtes à venir :{!urgentNameDaysOpen ? ` (${urgentNameDays.length})` : ''}</Text>
+              <Text style={styles.urgentLabel}>{t('contacts.urgentNameDays')}{!urgentNameDaysOpen ? ` (${urgentNameDays.length})` : ''} :</Text>
               <Text style={styles.urgentLabel}>{urgentNameDaysOpen ? '−' : '+'}</Text>
             </TouchableOpacity>
           ) : letter === '__all_contacts__' ? (
             <View style={styles.allContactsHeader}>
-              <Text style={styles.allContactsLabel}>{'👥  Ma liste de contacts  '}<Text style={{ fontSize: Typography.xl, fontFamily: 'PlusJakartaSans_800ExtraBold', color: Colors.onSurface }}>(A → Z)</Text></Text>
+              <Text style={styles.allContactsLabel}>{t('contacts.allContactsAlpha')}{'  '}<Text style={{ fontSize: Typography.xl, fontFamily: 'PlusJakartaSans_800ExtraBold', color: Colors.onSurface }}>({t('contacts.sortAlpha')})</Text></Text>
             </View>
           ) : (
             <View style={styles.sectionHeader}>
@@ -546,10 +550,8 @@ export default function ContactsScreen() {
           filter !== 'pets' ? (
             <View style={styles.emptyWrap}>
               <Text style={styles.emptyEmoji}>👥</Text>
-              <Text style={styles.emptyTitle}>Aucun contact</Text>
-              <Text style={styles.emptySub}>
-                Ajoute tes proches pour ne plus manquer leurs anniversaires.
-              </Text>
+              <Text style={styles.emptyTitle}>{t('contacts.emptyTitle')}</Text>
+              <Text style={styles.emptySub}>{t('contacts.addFirst')}</Text>
             </View>
           ) : null
         }
@@ -559,18 +561,18 @@ export default function ContactsScreen() {
         <TouchableOpacity style={styles.petHelpOverlay} activeOpacity={1} onPress={() => setPetHelpVisible(false)}>
           <View style={styles.petHelpCard}>
             <View style={styles.petHelpHeader}>
-              <Text style={styles.petHelpTitle}>Comment fonctionne le filtre Animal de compagnie ? 🐾</Text>
+              <Text style={styles.petHelpTitle}>{t('contacts.petHelpTitle')}</Text>
               <TouchableOpacity onPress={() => setPetHelpVisible(false)}>
-                <Text style={styles.petHelpClose}>Fermer ✕</Text>
+                <Text style={styles.petHelpClose}>{t('contacts.close')}</Text>
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {[
-                { title: "Ta liste d'animaux", body: "Tous les animaux de compagnie renseignés dans tes fiches contacts apparaissent automatiquement ici — avec leur nom, leur type, le contact auquel ils sont affiliés et leur date de naissance si renseignée." },
-                { title: "Les anniversaires", body: "Un compte à rebours s'affiche automatiquement si l'anniversaire d'un animal approche 🎂" },
-                { title: "Envoyer un message", body: "Deux boutons sont disponibles pour chaque animal :\n📬 Message à [nom de l'animal] — pour lui envoyer directement une attention\n🐾 De la part de [nom de l'animal] — pour écrire comme si c'était lui qui parlait" },
-                { title: "Accéder à la fiche contact", body: "Un tap sur le nom du contact affilié ouvre directement sa fiche contact." },
-                { title: "Bon à savoir 💡", body: "Pour ajouter un animal, rends-toi dans la fiche d'un contact, section Nature de ta relation puis Animal de compagnie !" },
+                { title: t('contacts.petHelp1Title'), body: t('contacts.petHelp1Body') },
+                { title: t('contacts.petHelp2Title'), body: t('contacts.petHelp2Body') },
+                { title: t('contacts.petHelp3Title'), body: t('contacts.petHelp3Body') },
+                { title: t('contacts.petHelp4Title'), body: t('contacts.petHelp4Body') },
+                { title: t('contacts.petHelp5Title'), body: t('contacts.petHelp5Body') },
               ].map((s) => (
                 <View key={s.title} style={styles.petHelpSection}>
                   <Text style={styles.petHelpSectionTitle}>{s.title}</Text>
@@ -587,18 +589,18 @@ export default function ContactsScreen() {
         <TouchableOpacity style={styles.petHelpOverlay} activeOpacity={1} onPress={() => setAffiniteHelpVisible(false)}>
           <View style={styles.petHelpCard}>
             <View style={styles.petHelpHeader}>
-              <Text style={styles.petHelpTitle}>Comment fonctionne le classement par affinité ? ⭐</Text>
+              <Text style={styles.petHelpTitle}>{t('contacts.affiniteHelpTitle')}</Text>
               <TouchableOpacity onPress={() => setAffiniteHelpVisible(false)}>
-                <Text style={styles.petHelpClose}>Fermer ✕</Text>
+                <Text style={styles.petHelpClose}>{t('contacts.close')}</Text>
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {[
-                { title: "Le classement automatique", body: "Chaque contact reçoit un score calculé automatiquement — plus le score est élevé, plus il apparaît en haut de ta liste. Aucune action de ta part n'est nécessaire : le classement évolue en temps réel." },
-                { title: "Le type de relation", body: "Tes meilleurs amis, ta famille et ton partenaire ont un score de base plus élevé que tes collègues ou connaissances. Le type de relation que tu renseignes dans la fiche contact compte !" },
-                { title: "Les événements à venir", body: "Un anniversaire ou une fête qui approche booste automatiquement le score. J-3 avant un anniversaire ? Ce contact monte en tête de liste pour que tu ne l'oublies pas 🎂" },
-                { title: "Vos interactions", body: "Chaque fois que tu ouvres la fiche d'un contact ou que tu lui génères un message, son score augmente. Plus vous êtes en contact, plus il remonte naturellement dans ta liste." },
-                { title: "Bon à savoir 💡", body: "Le classement se met à jour automatiquement. Repasse en mode A→Z à tout moment pour retrouver ta liste alphabétique classique !" },
+                { title: t('contacts.affiniteHelp1Title'), body: t('contacts.affiniteHelp1Body') },
+                { title: t('contacts.affiniteHelp2Title'), body: t('contacts.affiniteHelp2Body') },
+                { title: t('contacts.affiniteHelp3Title'), body: t('contacts.affiniteHelp3Body') },
+                { title: t('contacts.affiniteHelp4Title'), body: t('contacts.affiniteHelp4Body') },
+                { title: t('contacts.affiniteHelp5Title'), body: t('contacts.affiniteHelp5Body') },
               ].map((s) => (
                 <View key={s.title} style={styles.petHelpSection}>
                   <Text style={styles.petHelpSectionTitle}>{s.title}</Text>
@@ -806,6 +808,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
 
   list: { flex: 1 },
   listContent: { paddingBottom: 100 },
+  listContentTablet: { maxWidth: 720, width: '100%', alignSelf: 'center' },
 
   urgentHeader: {
     paddingVertical: 6,

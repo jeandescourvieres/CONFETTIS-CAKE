@@ -4,6 +4,7 @@ import {
   StyleSheet, Dimensions, ActivityIndicator, Share, Alert, Image,
 } from 'react-native';
 import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../src/services/supabase';
@@ -17,6 +18,7 @@ import { CardComposer } from '../../../src/components/cards/CardComposer';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useCreateStore } from '../../../src/stores/createStore';
 import { useColors } from '../../../src/hooks/useColors';
+import { extractFirstName } from '../../../src/utils/nameHelpers';
 
 const { width: W } = Dimensions.get('window');
 
@@ -77,6 +79,19 @@ export default function CardPreviewScreen() {
   });
   const generatedMessage = useCreateStore((s) => s.generatedContent);
   const [personalMessage, setPersonalMessage] = useState(() => generatedMessage?.trim() ?? '');
+
+  // Resynchronise destinataire/expéditeur si on revient sur cet écran (même template) pour un autre contact
+  React.useEffect(() => {
+    setRecipientName(paramName ?? '');
+    setSenderName(paramSender ?? '');
+  }, [contactId, paramName, paramSender]);
+
+  // Pré-remplit le prénom depuis le contact si le param URL était vide
+  React.useEffect(() => {
+    if (!recipientName && contactData?.name) {
+      setRecipientName(extractFirstName(contactData.name));
+    }
+  }, [contactData]);
 
   // Calcule l'âge depuis la date de naissance du contact
   React.useEffect(() => {
@@ -240,6 +255,15 @@ export default function CardPreviewScreen() {
       <SafeAreaView style={styles.cardContainer} edges={['top']}>
         <LinearGradient
           colors={(() => {
+            if (cardBg === 'violet')    return ['#4A148C','#7B1FA2'];
+            if (cardBg === 'bleu')      return ['#0D47A1','#1976D2'];
+            if (cardBg === 'rose')      return ['#880E4F','#E91E63'];
+            if (cardBg === 'rouge')     return ['#B71C1C','#E53935'];
+            if (cardBg === 'vert')      return ['#1B5E20','#388E3C'];
+            if (cardBg === 'or')        return ['#E65100','#F9A825'];
+            if (cardBg === 'turquoise') return ['#00695C','#00897B'];
+            if (cardBg === 'ardoise')   return ['#37474F','#546E7A'];
+            if (cardBg === 'noir')      return ['#1A1A1A','#2D2D2D'];
             const occ = template.occasion;
             if (occ === 'christmas')  return ['#1B5E20','#388E3C'];
             if (occ === 'valentines' || occ === 'wedding' || occ === 'mothersday') return ['#880E4F','#E91E63'];
@@ -275,7 +299,7 @@ export default function CardPreviewScreen() {
             </Text>
             {/* Message personnel en direct */}
             {!!personalMessage.trim() && (
-              <View style={{ backgroundColor: ({ violet:'rgba(60,0,80,0.75)', rouge:'rgba(120,0,30,0.78)', rose:'rgba(120,0,80,0.75)', bleu:'rgba(0,20,100,0.78)', vert:'rgba(0,65,30,0.78)', or:'rgba(85,55,0,0.80)', noir:'rgba(12,12,12,0.82)' } as Record<string,string>)[cardMsgBg] ?? 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 8, marginTop: 2, maxWidth: '100%' }}>
+              <View style={{ backgroundColor: ({ violet:'rgba(74,20,140,0.78)', bleu:'rgba(13,71,161,0.78)', rose:'rgba(136,14,79,0.78)', rouge:'rgba(183,28,28,0.78)', vert:'rgba(27,94,32,0.78)', or:'rgba(230,81,0,0.78)', turquoise:'rgba(0,105,92,0.78)', ardoise:'rgba(55,71,79,0.78)', noir:'rgba(26,26,26,0.82)' } as Record<string,string>)[cardMsgBg] ?? 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 8, marginTop: 2, maxWidth: '100%' }}>
                 <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.9)', textAlign: 'center', lineHeight: 16 }} numberOfLines={3}>
                   {personalMessage.trim()}
                 </Text>
@@ -460,14 +484,16 @@ export default function CardPreviewScreen() {
             <Text style={styles.nameSub}>Choisis la couleur de l'encadré — "Auto" l'adapte au thème d'animation (rouge pour cœurs, bleu nuit pour étoiles, etc.)</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {([
-                { key: '',       color: '#555',    label: 'Auto'   },
-                { key: 'violet', color: '#4a0060', label: 'Violet' },
-                { key: 'rouge',  color: '#780018', label: 'Rouge'  },
-                { key: 'rose',   color: '#780050', label: 'Rose'   },
-                { key: 'bleu',   color: '#001464', label: 'Bleu'   },
-                { key: 'vert',   color: '#00411e', label: 'Vert'   },
-                { key: 'or',     color: '#553700', label: 'Or'     },
-                { key: 'noir',   color: '#0c0c0c', label: 'Noir'   },
+                { key: '',          color: '#9b59ff', label: 'Auto'      },
+                { key: 'violet',    color: '#9b59ff', label: 'Violet'    },
+                { key: 'bleu',      color: '#1976d2', label: 'Bleu'      },
+                { key: 'rose',      color: '#e91e8c', label: 'Rose'      },
+                { key: 'rouge',     color: '#e53935', label: 'Rouge'     },
+                { key: 'vert',      color: '#388e3c', label: 'Forêt'     },
+                { key: 'or',        color: '#f9a825', label: 'Or'        },
+                { key: 'turquoise', color: '#00897b', label: 'Turquoise' },
+                { key: 'ardoise',   color: '#546e7a', label: 'Ardoise'   },
+                { key: 'noir',      color: '#2d2d2d', label: 'Noir'      },
               ] as const).map((c) => (
                 <TouchableOpacity
                   key={c.key}
@@ -665,7 +691,7 @@ export default function CardPreviewScreen() {
                 if (cardTitle.trim()) urlParams.set('title', cardTitle.trim());
                 if (morseMode) urlParams.set('morse', '1');
                 if (cardBg) urlParams.set('card_bg', cardBg);
-                Linking.openURL(`https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?${urlParams.toString()}`);
+                WebBrowser.openBrowserAsync(`https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?${urlParams.toString()}`);
               }}
               activeOpacity={0.85}
             >

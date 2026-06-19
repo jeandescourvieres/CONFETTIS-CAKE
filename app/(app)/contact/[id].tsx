@@ -918,7 +918,7 @@ export default function ContactDetailScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Hero */}
-        <LinearGradient colors={[...Gradients.primary]} style={styles.hero}>
+        <LinearGradient colors={['#D44F82', '#E0722A']} style={styles.hero}>
           <View style={styles.heroPattern} />
           <View style={styles.heroContent}>
             <TouchableOpacity onPress={() => { setAiAvatarError(null); setAiAvatarVisible(true); }} activeOpacity={0.8} style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: Radii.full, paddingVertical: 4, paddingHorizontal: 12, marginBottom: 8 }}>
@@ -935,7 +935,7 @@ export default function ContactDetailScreen() {
                     <Text style={{ fontSize: 16 }}>📤</Text>
                   </View>
                 )}
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 9, color: 'rgba(255,255,255,0.7)' }}>Partager</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 11, color: '#fff' }}>Partager</Text>
               </View>
               <View style={{ alignItems: 'center', gap: 4 }}>
                 <View style={styles.avatarWrap}>
@@ -946,7 +946,7 @@ export default function ContactDetailScreen() {
                 <TouchableOpacity style={styles.editAvatarBtn} onPress={handleChangeAvatar} disabled={isUploadingAvatar}>
                   <Text style={{ fontSize: 16 }}>{isUploadingAvatar ? '⏳' : '📷'}</Text>
                 </TouchableOpacity>
-                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 9, color: 'rgba(255,255,255,0.7)' }}>Ma photo</Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 11, color: '#fff' }}>Ma photo</Text>
               </View>
             </View>
             <Text style={styles.heroName}>
@@ -980,14 +980,20 @@ export default function ContactDetailScreen() {
                     : RELATION_LABELS[contact.relation]}
                 </Text>
               </View>
-              {age && (
-                <View style={[styles.heroBadge, styles.heroBadgeYellow]}>
-                  <Text style={[styles.heroBadgeText, { color: Colors.secondaryContainer }]}>
-                    {age} ans
-                  </Text>
-                </View>
-              )}
             </View>
+            {partnerContact && (
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: partnerContact.id } } as never)}
+                activeOpacity={0.8}
+                style={{ marginTop: -2, marginBottom: 14, backgroundColor: 'rgba(255,255,255,0.22)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)', borderRadius: 999, paddingVertical: 7, paddingHorizontal: 18 }}
+              >
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: 14, color: Colors.white, textShadowColor: 'rgba(0,0,0,0.25)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}>
+                  {'💑 '}
+                  {(contact as any).civilite === 'Mme' ? 'Liée' : (contact as any).civilite === 'M.' ? 'Lié' : 'Lié·e'}
+                  {` à ${extractFirstName(partnerContact.name)} ${extractLastName(partnerContact.name)}`.trimEnd()}
+                </Text>
+              </TouchableOpacity>
+            )}
             {contact.relation === 'pet' && contact.pet_owner_name ? (
               <Text style={{ fontFamily: 'BeVietnamPro_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 0 }}>
                 {`🏠 de ${(contact.pet_owner_name.trim().split(/\s+/).find((p: string) => p !== p.toUpperCase()) ?? contact.pet_owner_name.trim().split(/\s+/)[0]) || contact.pet_owner_name}`}
@@ -1036,6 +1042,58 @@ export default function ContactDetailScreen() {
                       activeOpacity={0.8}
                     >
                       <Text style={styles.heroPetChipText}>{petEmoji} {pet.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* ── Parents (enfant de) ── */}
+            {contact.relation === 'child_of' && (() => {
+              const parentContact = allContacts.find((c) => c.id === (contact as any).child_parent_contact_id);
+              const partnerOfParent = parentContact ? allContacts.find((c) => c.id === (parentContact as any).partner_contact_id) : null;
+              const parents = [parentContact, partnerOfParent].filter(Boolean) as typeof allContacts;
+              if (!parents.length && !(contact as any).child_parent_name) return null;
+              return (
+                <View style={styles.heroPetsRow}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: 'rgba(255,255,255,0.85)', textAlign: 'center', width: '100%' }}>
+                    {(contact as any).child_gender === 'female' ? 'Fille de :' : (contact as any).child_gender === 'male' ? 'Fils de :' : 'Enfant de :'}
+                  </Text>
+                  {parents.length > 0 ? parents.map((p) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={styles.heroPetChip}
+                      onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: p.id } } as never)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.heroPetChipText}>👤 {`${extractFirstName(p.name)} ${extractLastName(p.name)}`.trim() || p.name}</Text>
+                    </TouchableOpacity>
+                  )) : (
+                    <View style={styles.heroPetChip}>
+                      <Text style={styles.heroPetChipText}>👤 {(contact as any).child_parent_name}</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
+
+            {/* ── Enfants ── */}
+            {contact.relation !== 'pet' && contact.relation !== 'child_of' && children.length > 0 && (
+              <View style={styles.heroPetsRow}>
+                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: 'rgba(255,255,255,0.85)', textAlign: 'center', width: '100%' }}>
+                  {children.length > 1 ? 'Ses enfants :' : 'Son enfant :'}
+                </Text>
+                {children.map((child) => {
+                  const emoji = (child as any).child_gender === 'female' ? '👧' : (child as any).child_gender === 'male' ? '👦' : '👶';
+                  const childDisplayName = `${extractFirstName(child.name)} ${extractLastName(child.name)}`.trim() || child.name;
+                  return (
+                    <TouchableOpacity
+                      key={child.id}
+                      style={styles.heroPetChip}
+                      onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: child.id } } as never)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.heroPetChipText}>{emoji} {childDisplayName}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -1202,14 +1260,23 @@ export default function ContactDetailScreen() {
         ) : (
           <View style={{ gap: 8 }}>
             {/* Carte intro photo/avatar */}
-            <View style={{ marginHorizontal: Spacing[4], backgroundColor: '#F0F9FF', borderRadius: Radii.lg, borderWidth: 1.5, borderColor: '#BAE6FD', padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-              <Text style={{ fontSize: 22 }}>🖼️</Text>
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#0369A1' }}>Personnalise la fiche de {contactFirstName}</Text>
+            <View style={{ marginHorizontal: Spacing[4], backgroundColor: '#F0F9FF', borderRadius: Radii.lg, borderWidth: 1.5, borderColor: '#BAE6FD', padding: 12, gap: 8 }}>
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#0369A1' }}>🖼️ Personnalise la fiche de {contactFirstName}</Text>
+              <View style={{ gap: 6 }}>
                 <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#0284C7', lineHeight: 18 }}>
-                  {'📷 Charge une vraie photo depuis ton téléphone — ou laisse l\'IA créer un '}
-                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>portrait illustré unique</Text>
-                  {' ✨ en appuyant sur les boutons de la photo ci-dessus.'}
+                  {'• Charge une vraie photo depuis ton téléphone en appuyant sur le bouton '}
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>📷 Ma photo</Text>
+                  {'.'}
+                </Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#0284C7', lineHeight: 18 }}>
+                  {'• Laisse l\'IA créer un portrait illustré unique en appuyant sur '}
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>🎨 Générer un portrait IA unique</Text>
+                  {'.'}
+                </Text>
+                <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: '#0284C7', lineHeight: 18 }}>
+                  {'• Une fois le portrait généré, partage-le via le bouton '}
+                  <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>📤 Partager</Text>
+                  {'.'}
                 </Text>
               </View>
             </View>
@@ -1346,7 +1413,7 @@ export default function ContactDetailScreen() {
                       <Text style={{ fontSize: 22 }}>{emoji}</Text>
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={styles.ownerPetName}>{child.name}</Text>
+                      <Text style={styles.ownerPetName}>{`${extractFirstName(child.name)} ${extractLastName(child.name)}`.trim() || child.name}</Text>
                       {bday && <Text style={styles.ownerPetSub}>Né{(child as any).child_gender === 'female' ? 'e' : ''} le {bday}</Text>}
                     </View>
                     <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -1468,12 +1535,16 @@ export default function ContactDetailScreen() {
                   <Text style={{ fontSize: 22 }}>💑</Text>
                 </View>
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.ownerPetName}>{partnerContact.name}</Text>
+                  <Text style={styles.ownerPetName}>{`${extractFirstName(partnerContact.name)} ${extractLastName(partnerContact.name)}`.trim() || partnerContact.name}</Text>
                   <Text style={styles.ownerPetSub}>Voir sa fiche →</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.petEditBtn}
-                  onPress={async () => { await updateContact({ id: contact.id, updates: { partner_contact_id: null } as any }); }}
+                  onPress={async () => {
+                    const oldPartnerId = (contact as any).partner_contact_id;
+                    await updateContact({ id: contact.id, updates: { partner_contact_id: null } as any });
+                    if (oldPartnerId) await updateContact({ id: oldPartnerId, updates: { partner_contact_id: null } as any });
+                  }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   activeOpacity={0.75}
                 >
@@ -3165,6 +3236,7 @@ export default function ContactDetailScreen() {
                     style={{ paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: Colors.surfaceContainerHighest, flexDirection: 'row', alignItems: 'center', gap: 12 }}
                     onPress={async () => {
                       await updateContact({ id: contact!.id, updates: { partner_contact_id: c.id } as any });
+                      await updateContact({ id: c.id, updates: { partner_contact_id: contact!.id } as any });
                       setPartnerPickerVisible(false);
                     }}
                     activeOpacity={0.75}
@@ -4077,11 +4149,17 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: Colors.white,
     marginBottom: 8,
     textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.35)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   heroNameAge: {
     fontFamily: 'BeVietnamPro_400Regular',
     fontSize: Typography.xl,
     color: 'rgba(255,255,255,0.75)',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   heroBirthday: {
     fontFamily: 'BeVietnamPro_700Bold',
@@ -4089,19 +4167,28 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: 'rgba(255,255,255,0.95)',
     marginBottom: 10,
     marginTop: -4,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   heroBirthdayEmpty: {
     fontFamily: 'BeVietnamPro_600SemiBold',
     fontSize: Typography.md,
     color: 'rgba(255,255,255,0.65)',
     fontStyle: 'italic',
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   heroNameDay: {
     fontFamily: 'BeVietnamPro_600SemiBold',
     fontSize: Typography.sm,
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255,255,255,0.9)',
     marginTop: 2,
     marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   heroBadges: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   heroBadge: {

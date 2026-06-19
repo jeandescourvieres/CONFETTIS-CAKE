@@ -47,6 +47,7 @@ import * as SecureStore from '../../../src/utils/storage';
 import { FeatureIntroCard } from '../../../src/components/ui/FeatureIntroCard';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
+import { useTablet } from '../../../src/hooks/useTablet';
 import { supabase } from '../../../src/services/supabase';
 import { MANUAL_STARTERS, pickRandom } from '../../../src/constants/manualStarters';
 import { FESTIVE_IMAGES, FESTIVE_OVERLAY, getFestiveImageUrl, hasFestiveImages } from '../../../src/utils/festiveImageUrl';
@@ -401,6 +402,7 @@ function FloatingParticle({ emoji, delay, x }: { emoji: string; delay: number; x
 export default function PreviewScreen() {
   const router = useRouter();
   const C = useColors();
+  const { isTablet } = useTablet();
   const { autoGen, prefillMessage, petImageUrl, noEdit, petDirection, petName, petType, petBreed, petGender, petOwnerName, petId, petOwnerId, petThirdId, petThirdName, petPersonalityTags, fromTemplate, manualMode } = useLocalSearchParams<{ autoGen?: string; prefillMessage?: string; petImageUrl?: string; noEdit?: string; petDirection?: string; petName?: string; petType?: string; petBreed?: string; petGender?: string; petOwnerName?: string; petId?: string; petOwnerId?: string; petThirdId?: string; petThirdName?: string; petPersonalityTags?: string; fromTemplate?: string; manualMode?: string }>();
   const isNoEdit = noEdit === '1';
   const isManualEntry = manualMode === '1';
@@ -913,6 +915,22 @@ export default function PreviewScreen() {
   const [ttsHelpVisible, setTtsHelpVisible] = useState(false);
   const tts = useTTSGeneration();
 
+  // Changer la formule de clôture invalide le vocal déjà généré (le texte lu changerait)
+  const handleClosingFormulaChange = (value: string | null) => {
+    if (value !== closingFormula && (tts.isReady || tts.isFailed)) {
+      tts.reset();
+    }
+    setClosingFormula(value);
+  };
+
+  // Changer la signature invalide le vocal déjà généré (la mention finale "de la part de..." en dépend)
+  const handleSigTypeChange = (value: SigType) => {
+    if (value !== sigType && (tts.isReady || tts.isFailed)) {
+      tts.reset();
+    }
+    setSigType(value);
+  };
+
   const TTS_BG_MUSIC_ALL: { key: string; emoji: string; label: string }[] = [
     { key: 'aucune',     emoji: '🔇', label: 'Aucune'      },
     { key: 'piano',      emoji: '🎹', label: 'Piano'       },
@@ -1126,6 +1144,10 @@ export default function PreviewScreen() {
     Keyboard.dismiss();
     const trimmed = localContent.trim();
     if (!trimmed) return;
+    // Le texte a changé : le vocal généré ne correspond plus, on le réinitialise pour forcer une regénération
+    if (trimmed !== generatedContent && (tts.isReady || tts.isFailed)) {
+      tts.reset();
+    }
     setGeneratedContent(trimmed);
     if (savedMessageId) {
       try { await updateMessageContent(savedMessageId, trimmed); } catch { /* non-bloquant */ }
@@ -1477,10 +1499,19 @@ export default function PreviewScreen() {
               <Text style={styles.topbarBtnText}>{isPending ? '...' : '↺'}</Text>
             </TouchableOpacity>
           )}
+          {isEditing && !isNoEdit && (
+            <TouchableOpacity
+              style={[styles.topbarValidateBtn, !localContent.trim() && { opacity: 0.5 }]}
+              onPress={handleSaveEdit}
+              disabled={!localContent.trim()}
+            >
+              <Text style={styles.topbarValidateBtnText}>✅ Valider</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={[styles.content, isTablet && styles.contentTablet]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {/* ── Album cover ───────────────────────────────── */}
         <LinearGradient
@@ -2522,7 +2553,7 @@ export default function PreviewScreen() {
                   </Text>
                 </View>
                 <TouchableOpacity
-                  onPress={() => setClosingFormula(null)}
+                  onPress={() => handleClosingFormulaChange(null)}
                   activeOpacity={0.8}
                   style={[styles.sigChip, !closingFormula && styles.sigChipActive, { marginBottom: 10 }]}
                 >
@@ -2535,7 +2566,7 @@ export default function PreviewScreen() {
                       {CLOSING_FORMULAS.filter((f) => f.group === group).map((f) => (
                         <TouchableOpacity
                           key={f.value}
-                          onPress={() => setClosingFormula(f.value)}
+                          onPress={() => handleClosingFormulaChange(f.value)}
                           activeOpacity={0.8}
                           style={[
                             styles.sigChip,
@@ -2610,7 +2641,7 @@ export default function PreviewScreen() {
                 <View style={styles.sigChipsRow}>
                   <TouchableOpacity
                     style={[styles.sigChip, sigType === 'none' && styles.sigChipActive]}
-                    onPress={() => setSigType('none')}
+                    onPress={() => handleSigTypeChange('none')}
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.sigChipLabel, sigType === 'none' && styles.sigChipLabelActive]}>Aucune signature</Text>
@@ -2632,7 +2663,7 @@ export default function PreviewScreen() {
                     <TouchableOpacity
                       key={opt.type}
                       style={[styles.sigChip, sigType === opt.type && styles.sigChipActive]}
-                      onPress={() => setSigType(opt.type)}
+                      onPress={() => handleSigTypeChange(opt.type)}
                       activeOpacity={0.8}
                     >
                       <Text style={[styles.sigChipLabel, sigType === opt.type && styles.sigChipLabelActive]} numberOfLines={1}>
@@ -3149,20 +3180,17 @@ export default function PreviewScreen() {
                       const ttsFullName = senderFirst
                         ? (senderLast && senderLast !== senderFirst ? `${senderFirst} ${senderLast}` : senderFirst)
                         : null;
-                      const ttsAttribution = ttsFullName || senderFirstName || null;
-                      // Formule + nom fusionnés ("Bisous, Jean.") ou formule seule
-                      const formuleLine = closingFormula && ttsAttribution
-                        ? `\n\n${closingFormula}, ${ttsAttribution}.`
-                        : closingFormula ? `\n\n${closingFormula}.` : '';
-                      // Pas de closingLine séparé — intégré dans formuleLine ou attributionLine
+                      // Formule de clôture ("Bisous", "Gros bisous"...), indépendante de la signature
+                      const formuleLine = closingFormula ? `\n\n${closingFormula}.` : '';
                       const psLine = showLatePS ? `\n\n${activePSText}` : '';
-                      // Attribution uniquement si pas de formule (sinon le nom est déjà dans formuleLine)
+                      // Attribution finale : message du compagnon, ou — si "Ta signature" est désactivée ("Aucune signature") —
+                      // mention automatique du prénom et nom de l'expéditeur
                       const isPetFrom = (petDirection === 'from' || petDirection === 'from_to_third') && !!petName;
-                      const attributionLine = (!closingFormula && ttsAttribution)
-                        ? isPetFrom
-                          ? `\n\n…\n\nCe message t'est envoyé par ${petName}, mais ${ttsFullName || senderFirst} l'a un peu aidé !`
-                          : `\n\n…\n\nCe message est envoyé de la part de ${ttsAttribution}.`
-                        : '';
+                      const attributionLine = isPetFrom
+                        ? `\n\n…\n\nCe message t'est envoyé par ${petName}, mais ${ttsFullName || senderFirst} l'a un peu aidé !`
+                        : (sigType === 'none' && ttsFullName)
+                          ? `\n\n…\n\nCe message est envoyé de la part de ${ttsFullName}.`
+                          : '';
                       const rawTts = `${openingLine}${content}${formuleLine}${psLine}${attributionLine}`.trim();
                       const ttsText = resolveGender(rawTts, senderGender);
                       let msgId = savedMessageId;
@@ -3243,6 +3271,7 @@ export default function PreviewScreen() {
                           ? `🎙️ Un message vocal pour toi, ${shareRecipient} !`
                           : `🎙️ Un message vocal pour toi !`;
                         await Share.share({ message: `${shareHeader}\n\nPour l'écouter, clique sur ce lien :\n${url}` });
+                        try { await markMessageSent(savedMessageId, 'vocal'); } catch { /* non-bloquant */ }
                       }}
                       activeOpacity={0.85}
                     >
@@ -3569,6 +3598,7 @@ export default function PreviewScreen() {
               { title: 'Transformer ton message en voix', body: "Appuie sur Transformer en vocal. Ton message est converti en audio en quelques secondes grâce à ElevenLabs — l'une des meilleures IA voix au monde !" },
               { title: 'Les voix classiques 🎙️', body: "4 voix naturelles et chaleureuses pour un rendu élégant et émouvant :\n👨 Homme neutre · 👨 Homme chaleureux · 👩 Femme douce · 👩 Femme joyeuse" },
               { title: 'Les voix fun 🎭', body: "6 voix décalées pour une attention mémorable et surprenante :\n🎅 Père Noël — chaleureux et ho-ho-ho !\n🏴‍☠️ Pirate — arr, c'est pour toi !\n🤖 Robot — bip bop, message transmis\n📻 Présentateur radio — jingle et micro tendu\n🧒 Enfant — spontané et adorable\n👑 Roi/Reine — majestueux et solennel" },
+              { title: 'Signature automatique 🖋️', body: "Si tu choisis \"Aucune signature\" dans la section ✍️ Signature personnalisée, le vocal se termine automatiquement par : \"…Ce message est envoyé de la part de [ton prénom et nom]\", repris depuis ton profil.\n\nSi tu as choisi une signature (prénom, lien de famille, surnom...), cette mention finale n'est pas ajoutée.\n\nLa formule de clôture (\"Bisous\", \"Avec amour\"...) reste lue normalement dans tous les cas, indépendamment de la signature." },
               { title: 'Écouter avant d\'envoyer', body: "Écoute le résultat directement dans l'appli avant d'envoyer — et change de voix si le résultat ne te convient pas !" },
               { title: 'Partager', body: "Via WhatsApp, SMS, email ou toute autre appli en un tap. Ton proche reçoit un lien audio qu'il peut écouter immédiatement depuis n'importe où 🎧" },
               { title: 'Bon à savoir 💡', body: "Plus ton message est bien rédigé, plus le résultat vocal sera naturel ! Les voix fun sont particulièrement efficaces pour des occasions légères — anniversaires, blagues, surprises... Le français est parfaitement supporté 🇫🇷" },
@@ -3685,8 +3715,22 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   topbarBtnTextActive: {
     color: Colors.white,
   },
+  topbarValidateBtn: {
+    backgroundColor: C.primary,
+    borderRadius: Radii.full,
+    paddingHorizontal: Spacing[3],
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topbarValidateBtnText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 13,
+    color: Colors.white,
+  },
 
   content: { paddingBottom: 80 },
+  contentTablet: { maxWidth: 720, width: '100%', alignSelf: 'center' },
 
   albumCover: {
     margin: Spacing[4],

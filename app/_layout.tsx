@@ -4,7 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StripeProviderGate } from '../src/components/StripeProviderGate';
 import { StatusBar } from 'expo-status-bar';
 import '../src/i18n'; // initialise i18next (doit être importé tôt)
-import i18n from '../src/i18n';
+import i18n, { initLanguage } from '../src/i18n';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   useFonts,
@@ -42,6 +42,8 @@ import { ToastRenderer } from '../src/components/ui/Toast';
 import { useNavigationLogger } from '../src/hooks/useNavigationLogger';
 
 SplashScreen.preventAutoHideAsync();
+// Charge la langue sauvegardée dès que possible (avant le premier rendu)
+initLanguage().catch(() => {/* silent */});
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -413,19 +413,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ── Langue ───────────────────────────────── */}
-        <Text style={styles.sectionTitle}>Choisis ta langue</Text>
-        <View style={styles.settingsCard}>
-          <TouchableOpacity style={styles.langRow} onPress={() => setShowLangPicker(true)} activeOpacity={0.7}>
-            <Text style={styles.langFlag}>{currentLang.flag}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.langLabel}>{currentLang.label}</Text>
-              <Text style={styles.langSub}>{t('profile.language.subtitle')}</Text>
-            </View>
-            <Text style={styles.settingChevron}>›</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* ── Notifications ────────────────────────── */}
         <Text style={styles.sectionTitle}>{t('profile.sections.notifications')}</Text>
         <View style={styles.settingsCard}>
@@ -633,41 +620,6 @@ export default function ProfileScreen() {
           </KeyboardAvoidingView>
         </Modal>
 
-        {/* ── Modal sélecteur de langue ────────────── */}
-        <Modal
-          visible={showLangPicker}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowLangPicker(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowLangPicker(false)}
-          >
-            <View style={styles.modalSheet}>
-              <Text style={styles.modalTitle}>{t('profile.language.title')}</Text>
-              <Text style={styles.modalSub}>{t('profile.language.subtitle')}</Text>
-              {SUPPORTED_LANGUAGES.map((lang) => {
-                const isActive = lang.code === i18n.language;
-                return (
-                  <TouchableOpacity
-                    key={lang.code}
-                    style={[styles.langOption, isActive && styles.langOptionActive]}
-                    onPress={() => handleSelectLanguage(lang.code)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.langOptionFlag}>{lang.flag}</Text>
-                    <Text style={[styles.langOptionLabel, isActive && styles.langOptionLabelActive]}>
-                      {lang.label}
-                    </Text>
-                    {isActive && <Text style={styles.langOptionCheck}>✓</Text>}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </TouchableOpacity>
-        </Modal>
 
       </ScrollView>
     </SafeAreaView>

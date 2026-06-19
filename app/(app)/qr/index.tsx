@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 import { BackHeader } from '../../../src/components/ui/BackHeader';
@@ -24,11 +25,8 @@ const FORMAT_EMOJI: Record<string, string> = {
   song: '🎵', poem: '✍️', message: '💬', joke: '😄',
 };
 
-const FORMAT_LABEL: Record<string, string> = {
-  song: 'Chanson', poem: 'Poème', message: 'Message', joke: 'Humour',
-};
-
 export default function QrIndexScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
@@ -51,7 +49,7 @@ export default function QrIndexScreen() {
         <Text style={styles.cardEmoji}>{FORMAT_EMOJI[item.format] ?? '💬'}</Text>
         <View style={{ flex: 1 }}>
           <Text style={styles.cardName}>{item.contact_name}</Text>
-          <Text style={styles.cardFormat}>{FORMAT_LABEL[item.format] ?? item.format}</Text>
+          <Text style={styles.cardFormat}>{t(`create.formats.${item.format}`, { defaultValue: item.format })}</Text>
           <Text style={styles.cardPreview} numberOfLines={2}>
             {item.content}
           </Text>
@@ -65,13 +63,11 @@ export default function QrIndexScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <BackHeader title="QR Codes" />
+      <BackHeader title={t('qr.index.title')} />
 
       {/* Intro */}
       <View style={[styles.intro, { backgroundColor: C.primaryContainer }]}>
-        <Text style={styles.introText}>
-          📲 Chaque message peut être partagé via QR Code — ton proche n'a qu'à scanner pour lire ton message, sans application requise.
-        </Text>
+        <Text style={styles.introText}>{t('qr.index.introText')}</Text>
       </View>
 
       {isLoading && (
@@ -83,15 +79,13 @@ export default function QrIndexScreen() {
       {!isLoading && eligible.length === 0 && (
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyEmoji}>📭</Text>
-          <Text style={styles.emptyTitle}>Aucun message pour l'instant</Text>
-          <Text style={styles.emptySub}>
-            Génère un message IA et reviens ici pour le partager via QR Code 💛
-          </Text>
+          <Text style={styles.emptyTitle}>{t('qr.index.emptyTitle')}</Text>
+          <Text style={styles.emptySub}>{t('qr.index.emptySub')}</Text>
           <TouchableOpacity
             style={[styles.createBtn, { backgroundColor: C.primary }]}
             onPress={() => router.push('/(app)/create' as never)}
           >
-            <Text style={styles.createBtnText}>✨ Créer un message</Text>
+            <Text style={styles.createBtnText}>{t('creations.createFirst')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -104,9 +98,7 @@ export default function QrIndexScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            <Text style={styles.listHeader}>
-              {eligible.length} message{eligible.length > 1 ? 's' : ''} disponible{eligible.length > 1 ? 's' : ''}
-            </Text>
+            <Text style={styles.listHeader}>{t('qr.index.availableCount', { count: eligible.length })}</Text>
           }
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         />
