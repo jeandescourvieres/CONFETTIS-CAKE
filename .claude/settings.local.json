@@ -79,7 +79,17 @@
       "Bash(git stash *)",
       "Bash(git checkout *)",
       "Bash(awk -F: '$1>970')",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "Bash(git diff *)",
+      "Bash(netstat -ano)",
+      "PowerShell(Get-CimInstance *)",
+      "PowerShell(Get-Process *)",
+      "Bash(\"/c/Program Files/Google/Chrome/Application/chrome.exe\" --headless=new --disable-gpu --hide-scrollbars --window-size=*)",
+      "Bash(/c/Users/HYDROFOLLIES/AppData/Local/Android/Sdk/platform-tools/adb.exe devices *)",
+      "Bash(/c/Users/HYDROFOLLIES/AppData/Local/Android/Sdk/platform-tools/adb.exe reverse *)",
+      "Bash(/c/Users/HYDROFOLLIES/AppData/Local/Android/Sdk/platform-tools/adb.exe shell *)",
+      "Bash(/c/Users/HYDROFOLLIES/AppData/Local/Android/Sdk/platform-tools/adb.exe logcat *)",
+      "Bash(npx expo run:android)"
     ]
   }
 }
