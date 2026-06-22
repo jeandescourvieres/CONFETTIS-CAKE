@@ -25,6 +25,7 @@ import { useColors } from '../../../src/hooks/useColors';
 import { HelpModal } from '../../../src/components/ui/HelpModal';
 import { Button3D } from '../../../src/components/ui/Button3D';
 import type { Relation } from '../../../src/types/models';
+import { DOG_BREEDS, CAT_BREEDS } from '../../../src/constants/petData';
 
 const PET_TYPE_EMOJIS: Record<string, string> = {
   chien: '🐶', chat: '🐱', lapin: '🐰', perroquet: '🦜',
@@ -319,6 +320,7 @@ export default function NewContactScreen() {
       if (relation === 'child_of' && !childGender)          missing.push(t('contactNew.missingChildGender'));
       if (!birthday)                   missing.push(t('contactNew.missingBirthday'));
       if (relation === 'family' && !familyLink.trim()) missing.push(t('contactNew.missingFamilyLink'));
+      if (relation !== 'child_of' && !phone.trim() && !email.trim()) missing.push(t('contactNew.missingPhoneOrEmail'));
     }
     if (missing.length > 0) {
       Alert.alert(
@@ -677,6 +679,9 @@ export default function NewContactScreen() {
 
         {/* Téléphone — masqué pour les animaux */}
         {relation !== 'pet' && <>
+        {relation !== 'child_of' && (
+          <Text style={styles.sublabel}>{t('contactNew.phoneOrEmailHint')}</Text>
+        )}
         <View style={styles.labelWrap}><Text style={styles.label}>{t('contacts.phone')}</Text></View>
         <TextInput
           style={styles.input}
@@ -867,13 +872,18 @@ export default function NewContactScreen() {
                 <View style={styles.labelWrap}>
                   <Text style={styles.label}>{petType === 'chien' ? t('contactNew.breedLabelDog') : t('contactNew.breedLabelCat')}</Text>
                 </View>
-                <TextInput
-                  style={styles.input}
-                  value={petBreed}
-                  onChangeText={setPetBreed}
-                  placeholder={petType === 'chien' ? t('contactNew.breedPlaceholderDog') : t('contactNew.breedPlaceholderCat')}
-                  placeholderTextColor={Colors.onSurfaceVariant}
-                />
+                <View style={styles.relationGrid}>
+                  {(petType === 'chien' ? DOG_BREEDS : CAT_BREEDS).map((b) => (
+                    <TouchableOpacity
+                      key={b}
+                      style={[styles.relationBtn, petBreed === b && styles.relationBtnActive]}
+                      onPress={() => setPetBreed(b)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.relationLabel, petBreed === b && styles.relationLabelActive]}>{b}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </>
             )}
 

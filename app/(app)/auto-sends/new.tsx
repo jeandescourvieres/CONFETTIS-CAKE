@@ -4,7 +4,7 @@ import {
   StyleSheet, TextInput, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 import { Button3D } from '../../../src/components/ui/Button3D';
@@ -13,8 +13,12 @@ import { useContacts } from '../../../src/hooks/useContacts';
 import type { CardTemplate } from '../../../src/services/autoSends.service';
 
 type Step = 1 | 2 | 3;
+type TplSubStep = 'occasion' | 'ton' | 'longueur' | 'style' | 'list';
 type TriggerEvent = 'birthday' | 'nameday';
 type Channel = 'sms' | 'email';
+type Ton = 'tu' | 'vous';
+type Longueur = 'moyen' | 'long';
+type BirthdayStyle = 'chaleureux' | 'elegant' | 'drole' | 'poetique' | 'famille' | 'collegue';
 
 const TRIGGER_OPTIONS: { value: TriggerEvent; label: string; emoji: string }[] = [
   { value: 'birthday', label: 'Anniversaire', emoji: '🎁' },
@@ -26,10 +30,30 @@ const CHANNEL_OPTIONS: { value: Channel; label: string; emoji: string }[] = [
   { value: 'email', label: 'Email', emoji: '📧' },
 ];
 
+const TON_OPTIONS: { value: Ton; label: string; emoji: string }[] = [
+  { value: 'tu',   label: 'Tu',   emoji: '😊' },
+  { value: 'vous', label: 'Vous', emoji: '🤝' },
+];
+
+const LONGUEUR_OPTIONS: { value: Longueur; label: string; emoji: string }[] = [
+  { value: 'moyen', label: 'Moyen', emoji: '📝' },
+  { value: 'long',  label: 'Long',  emoji: '📜' },
+];
+
+const STYLE_OPTIONS: { value: BirthdayStyle; label: string; emoji: string }[] = [
+  { value: 'chaleureux', label: 'Chaleureux', emoji: '🤗' },
+  { value: 'elegant',    label: 'Élégant',    emoji: '🎩' },
+  { value: 'drole',      label: 'Drôle',       emoji: '😄' },
+  { value: 'poetique',   label: 'Poétique',    emoji: '🌸' },
+  { value: 'famille',    label: 'Famille',     emoji: '👨‍👩‍👧' },
+  { value: 'collegue',   label: 'Collègue',    emoji: '💼' },
+];
+
 export default function NewAutoSendScreen() {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const router = useRouter();
+  const { contactId: prefillContactId } = useLocalSearchParams<{ contactId?: string }>();
 
   // Data
   const { data: templates = [], isLoading: tplLoading } = useTemplates();
@@ -39,13 +63,48 @@ export default function NewAutoSendScreen() {
 
   // Wizard state
   const [step, setStep] = useState<Step>(1);
+  const [tplSubStep, setTplSubStep] = useState<TplSubStep>('occasion');
   const [selectedTemplate, setSelectedTemplate] = useState<CardTemplate | null>(null);
   const [customMode, setCustomMode] = useState(false);
   const [customTitle, setCustomTitle] = useState('');
   const [customContent, setCustomContent] = useState('');
-  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(
+    () => new Set(prefillContactId ? [prefillContactId] : []),
+  );
   const [trigger, setTrigger] = useState<TriggerEvent>('birthday');
   const [channel, setChannel] = useState<Channel>('sms');
+  const [ton, setTon] = useState<Ton | null>(null);
+  const [longueur, setLongueur] = useState<Longueur | null>(null);
+  const [birthdayStyle, setBirthdayStyle] = useState<BirthdayStyle | null>(null);
+  const [expandedTplId, setExpandedTplId] = useState<string | null>(null);
+
+  const filteredTemplates = useMemo(() => {
+    return templates.filter((t) => {
+      if (!t.is_system) return false;
+      if (t.occasion !== trigger) return false;
+      if (t.ton !== ton) return false;
+      if (t.longueur !== longueur) return false;
+      if (trigger === 'birthday' && t.style !== birthdayStyle) return false;
+      return true;
+    });
+  }, [templates, trigger, ton, longueur, birthdayStyle]);
+
+  const customTemplates = useMemo(() => templates.filter((t) => !t.is_system), [templates]);
+
+  const goToTplSubStep = (next: TplSubStep) => {
+    setSelectedTemplate(null);
+    setTplSubStep(next);
+  };
+
+  const tplBackStep = (): TplSubStep | null => {
+    switch (tplSubStep) {
+      case 'ton': return 'occasion';
+      case 'longueur': return 'ton';
+      case 'style': return 'longueur';
+      case 'list': return trigger === 'birthday' ? 'style' : 'longueur';
+      default: return null;
+    }
+  };
 
   const [contactSearch, setContactSearch] = useState('');
 
@@ -118,7 +177,17 @@ export default function NewAutoSendScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => (step > 1 ? setStep((s) => (s - 1) as Step) : router.back())} style={styles.backLink}>
+        <TouchableOpacity
+          onPress={() => {
+            if (step === 1) {
+              const prev = tplBackStep();
+              if (prev) { setTplSubStep(prev); return; }
+            }
+            if (step > 1) { setStep((s) => (s - 1) as Step); return; }
+            router.back();
+          }}
+          style={styles.backLink}
+        >
           <Text style={[styles.backLinkText, { color: C.primary }]}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>
@@ -134,83 +203,184 @@ export default function NewAutoSendScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-        {/* ── STEP 1 : Template picker ── */}
+        {/* ── STEP 1 : Template picker (entonnoir occasion → ton → longueur → style → liste) ── */}
         {step === 1 && (
           <>
-            <Text style={styles.stepHint}>Choisis un modèle ou compose ton propre message ✍️</Text>
-
-            {tplLoading ? (
-              <ActivityIndicator color={C.primary} style={{ marginTop: 40 }} />
-            ) : (
-              <View style={styles.tplGrid}>
-                {/* Modèles système */}
-                {templates.filter((t) => t.is_system).map((tpl) => (
-                  <TouchableOpacity
-                    key={tpl.id}
-                    style={[
-                      styles.tplCard,
-                      !customMode && selectedTemplate?.id === tpl.id && styles.tplCardSelected,
-                    ]}
-                    onPress={() => { setSelectedTemplate(tpl); setCustomMode(false); }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.tplTitle}>{tpl.title}</Text>
-                    <Text style={styles.tplPreview} numberOfLines={3}>{tpl.content}</Text>
-                  </TouchableOpacity>
-                ))}
-
-                {/* Mes modèles personnalisés */}
-                {templates.filter((t) => !t.is_system).map((tpl) => (
-                  <TouchableOpacity
-                    key={tpl.id}
-                    style={[
-                      styles.tplCard,
-                      styles.tplCardCustom,
-                      !customMode && selectedTemplate?.id === tpl.id && styles.tplCardSelected,
-                    ]}
-                    onPress={() => { setSelectedTemplate(tpl); setCustomMode(false); }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.tplTitle}>{tpl.title}</Text>
-                    <Text style={styles.tplPreview} numberOfLines={3}>{tpl.content}</Text>
-                  </TouchableOpacity>
-                ))}
-
-                {/* Option : À ma façon */}
-                <TouchableOpacity
-                  style={[styles.tplCard, styles.tplCardOwn, customMode && styles.tplCardSelected]}
-                  onPress={() => { setCustomMode(true); setSelectedTemplate(null); }}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.tplTitle}>✍️ À ma façon</Text>
-                  <Text style={styles.tplPreview}>Compose ton propre message personnalisé</Text>
-                </TouchableOpacity>
-              </View>
+            {tplSubStep === 'occasion' && (
+              <>
+                <Text style={styles.stepHint}>Pour quelle occasion ?</Text>
+                <View style={styles.optionRow}>
+                  {TRIGGER_OPTIONS.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={styles.optionChip}
+                      onPress={() => { setTrigger(opt.value); goToTplSubStep('ton'); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.optionEmoji}>{opt.emoji}</Text>
+                      <Text style={styles.optionLabel}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
             )}
 
-            {/* Custom message editor */}
-            {customMode && (
-              <View style={styles.customEditor}>
-                <TextInput
-                  style={styles.customTitleInput}
-                  value={customTitle}
-                  onChangeText={setCustomTitle}
-                  placeholder="Titre du modèle (ex: Mon message chaleureux)"
-                  placeholderTextColor={Colors.onSurfaceVariant}
-                />
-                <TextInput
-                  style={styles.customContentInput}
-                  value={customContent}
-                  onChangeText={setCustomContent}
-                  placeholder={"Ton message... utilise {prenom} pour insérer le prénom automatiquement.\n\nEx: Coucou {prenom}, joyeux anniversaire ! 🎉"}
-                  placeholderTextColor={Colors.onSurfaceVariant}
-                  multiline
-                  textAlignVertical="top"
-                />
-                <Text style={styles.customHint}>
-                  💡 Utilise <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{'{prenom}'}</Text> pour insérer le prénom du contact automatiquement.
-                </Text>
-              </View>
+            {tplSubStep === 'ton' && (
+              <>
+                <Text style={styles.stepHint}>Tu ou vous ?</Text>
+                <View style={styles.optionRow}>
+                  {TON_OPTIONS.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={styles.optionChip}
+                      onPress={() => { setTon(opt.value); goToTplSubStep('longueur'); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.optionEmoji}>{opt.emoji}</Text>
+                      <Text style={styles.optionLabel}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {tplSubStep === 'longueur' && (
+              <>
+                <Text style={styles.stepHint}>Message court ou long ?</Text>
+                <View style={styles.optionRow}>
+                  {LONGUEUR_OPTIONS.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={styles.optionChip}
+                      onPress={() => { setLongueur(opt.value); goToTplSubStep(trigger === 'birthday' ? 'style' : 'list'); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.optionEmoji}>{opt.emoji}</Text>
+                      <Text style={styles.optionLabel}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {tplSubStep === 'style' && (
+              <>
+                <Text style={styles.stepHint}>Quel style ?</Text>
+                <View style={styles.styleGrid}>
+                  {STYLE_OPTIONS.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={styles.styleChip}
+                      onPress={() => { setBirthdayStyle(opt.value); goToTplSubStep('list'); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.optionEmoji}>{opt.emoji}</Text>
+                      <Text style={styles.optionLabel}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {tplSubStep === 'list' && (
+              <>
+                <Text style={styles.stepHint}>Choisis un modèle ou compose ton propre message ✍️</Text>
+
+                {tplLoading ? (
+                  <ActivityIndicator color={C.primary} style={{ marginTop: 40 }} />
+                ) : (
+                  <View style={styles.tplGrid}>
+                    {/* Modèles filtrés par occasion / ton / longueur / style */}
+                    {filteredTemplates.map((tpl) => {
+                      const expanded = expandedTplId === tpl.id;
+                      const isSelected = !customMode && selectedTemplate?.id === tpl.id;
+                      return (
+                        <TouchableOpacity
+                          key={tpl.id}
+                          style={[styles.tplCard, isSelected && styles.tplCardSelected]}
+                          onPress={() => {
+                            setSelectedTemplate(tpl);
+                            setCustomMode(false);
+                            setExpandedTplId((cur) => (cur === tpl.id ? null : tpl.id));
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.tplTitle}>{tpl.title}</Text>
+                          <Text style={styles.tplPreview} numberOfLines={expanded ? undefined : 3}>{tpl.content}</Text>
+                          <Text style={styles.tplExpandHint}>{expanded ? '▴ Réduire' : '▾ Lire le message complet'}</Text>
+                          {isSelected && (
+                            <TouchableOpacity style={styles.tplConfirmBtn} onPress={() => setStep(2)} activeOpacity={0.85}>
+                              <Text style={styles.tplConfirmBtnText}>✓ Utiliser ce modèle — Étape suivante ›</Text>
+                            </TouchableOpacity>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+
+                    {/* Mes modèles personnalisés */}
+                    {customTemplates.map((tpl) => {
+                      const expanded = expandedTplId === tpl.id;
+                      const isSelected = !customMode && selectedTemplate?.id === tpl.id;
+                      return (
+                        <TouchableOpacity
+                          key={tpl.id}
+                          style={[styles.tplCard, styles.tplCardCustom, isSelected && styles.tplCardSelected]}
+                          onPress={() => {
+                            setSelectedTemplate(tpl);
+                            setCustomMode(false);
+                            setExpandedTplId((cur) => (cur === tpl.id ? null : tpl.id));
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.tplTitle}>{tpl.title}</Text>
+                          <Text style={styles.tplPreview} numberOfLines={expanded ? undefined : 3}>{tpl.content}</Text>
+                          <Text style={styles.tplExpandHint}>{expanded ? '▴ Réduire' : '▾ Lire le message complet'}</Text>
+                          {isSelected && (
+                            <TouchableOpacity style={styles.tplConfirmBtn} onPress={() => setStep(2)} activeOpacity={0.85}>
+                              <Text style={styles.tplConfirmBtnText}>✓ Utiliser ce modèle — Étape suivante ›</Text>
+                            </TouchableOpacity>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+
+                    {/* Option : À ma façon */}
+                    <TouchableOpacity
+                      style={[styles.tplCard, styles.tplCardOwn, customMode && styles.tplCardSelected]}
+                      onPress={() => { setCustomMode(true); setSelectedTemplate(null); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.tplTitle}>✍️ À ma façon</Text>
+                      <Text style={styles.tplPreview}>Compose ton propre message personnalisé</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Custom message editor */}
+                {customMode && (
+                  <View style={styles.customEditor}>
+                    <TextInput
+                      style={styles.customTitleInput}
+                      value={customTitle}
+                      onChangeText={setCustomTitle}
+                      placeholder="Titre du modèle (ex: Mon message chaleureux)"
+                      placeholderTextColor={Colors.onSurfaceVariant}
+                    />
+                    <TextInput
+                      style={styles.customContentInput}
+                      value={customContent}
+                      onChangeText={setCustomContent}
+                      placeholder={"Ton message... utilise {prenom} pour insérer le prénom automatiquement.\n\nEx: Coucou {prenom}, joyeux anniversaire ! 🎉"}
+                      placeholderTextColor={Colors.onSurfaceVariant}
+                      multiline
+                      textAlignVertical="top"
+                    />
+                    <Text style={styles.customHint}>
+                      💡 Utilise <Text style={{ fontFamily: 'BeVietnamPro_700Bold' }}>{'{prenom}'}</Text> pour insérer le prénom du contact automatiquement.
+                    </Text>
+                  </View>
+                )}
+              </>
             )}
           </>
         )}
@@ -270,9 +440,9 @@ export default function NewAutoSendScreen() {
             )}
 
             {selectedContactIds.size > 0 && (
-              <View style={styles.selectionBadge}>
-                <Text style={styles.selectionBadgeText}>
-                  {selectedContactIds.size} contact{selectedContactIds.size > 1 ? 's' : ''} sélectionné{selectedContactIds.size > 1 ? 's' : ''}
+              <View style={[styles.tplConfirmBtn, { backgroundColor: C.primaryContainer }]}>
+                <Text style={[styles.tplConfirmBtnText, { color: C.primary }]}>
+                  ✓ {selectedContactIds.size} contact{selectedContactIds.size > 1 ? 's' : ''} sélectionné{selectedContactIds.size > 1 ? 's' : ''}
                 </Text>
               </View>
             )}
@@ -282,24 +452,7 @@ export default function NewAutoSendScreen() {
         {/* ── STEP 3 : Trigger + Channel ── */}
         {step === 3 && (
           <>
-            <Text style={styles.stepHint}>Quand et comment envoyer ce message ?</Text>
-
-            <Text style={styles.sectionLabel}>Occasion</Text>
-            <View style={styles.optionRow}>
-              {TRIGGER_OPTIONS.map((opt) => (
-                <TouchableOpacity
-                  key={opt.value}
-                  style={[styles.optionChip, trigger === opt.value && styles.optionChipSelected]}
-                  onPress={() => setTrigger(opt.value)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.optionEmoji}>{opt.emoji}</Text>
-                  <Text style={[styles.optionLabel, trigger === opt.value && styles.optionLabelSelected]}>
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Text style={styles.stepHint}>Comment envoyer ce message ?</Text>
 
             <Text style={styles.sectionLabel}>Canal d'envoi</Text>
             <View style={styles.optionRow}>
@@ -343,30 +496,34 @@ export default function NewAutoSendScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Bottom CTA */}
-      <View style={styles.bottomBar}>
-        {step < 3 ? (
-          <Button3D
-            label="Continuer"
-            onPress={() => {
-              if (step === 1 && !canProceed1) return;
-              if (step === 2 && !canProceed2) return;
-              setStep((s) => (s + 1) as Step);
-            }}
-            fullWidth
-            size="lg"
-            disabled={(step === 1 && !canProceed1) || (step === 2 && !canProceed2)}
-          />
-        ) : (
-          <Button3D
-            label={saving || savingTpl ? 'Enregistrement...' : "Programmer l'envoi"}
-            onPress={handleConfirm}
-            fullWidth
-            size="lg"
-            disabled={saving || savingTpl}
-          />
-        )}
-      </View>
+      {/* Bottom CTA — masquée pendant les sous-étapes de filtre (occasion/ton/longueur/style) */}
+      {(step !== 1 || tplSubStep === 'list') && (
+        <View style={styles.bottomBar}>
+          {step < 3 ? (
+            <Button3D
+              label={step === 2 && selectedContactIds.size > 0
+                ? `Continuer — ${selectedContactIds.size} contact${selectedContactIds.size > 1 ? 's' : ''} ›`
+                : 'Continuer'}
+              onPress={() => {
+                if (step === 1 && !canProceed1) return;
+                if (step === 2 && !canProceed2) return;
+                setStep((s) => (s + 1) as Step);
+              }}
+              fullWidth
+              size="lg"
+              disabled={(step === 1 && !canProceed1) || (step === 2 && !canProceed2)}
+            />
+          ) : (
+            <Button3D
+              label={saving || savingTpl ? 'Enregistrement...' : "Programmer l'envoi"}
+              onPress={handleConfirm}
+              fullWidth
+              size="lg"
+              disabled={saving || savingTpl}
+            />
+          )}
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -421,6 +578,24 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       color: Colors.onSurfaceVariant,
       lineHeight: 16,
       fontStyle: 'italic',
+    },
+    tplExpandHint: {
+      fontFamily: 'BeVietnamPro_600SemiBold',
+      fontSize: Typography.xs,
+      color: C.primary,
+      marginTop: 6,
+    },
+    tplConfirmBtn: {
+      marginTop: 10,
+      backgroundColor: C.primary,
+      borderRadius: Radii.full,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    tplConfirmBtnText: {
+      fontFamily: 'PlusJakartaSans_800ExtraBold',
+      fontSize: Typography.sm,
+      color: Colors.white,
     },
 
     // ── Custom editor
@@ -507,20 +682,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     checkboxSelected: { backgroundColor: C.primary, borderColor: C.primary },
     checkmark: { fontSize: 13, color: Colors.white, lineHeight: 16 },
 
-    selectionBadge: {
-      marginTop: Spacing[4],
-      alignSelf: 'center',
-      backgroundColor: C.primary,
-      borderRadius: Radii.full,
-      paddingVertical: 6,
-      paddingHorizontal: 20,
-    },
-    selectionBadgeText: {
-      fontFamily: 'PlusJakartaSans_700Bold',
-      fontSize: Typography.sm,
-      color: Colors.white,
-    },
-
     // ── Step 3
     sectionLabel: {
       borderLeftWidth: 3,
@@ -555,6 +716,20 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       textAlign: 'center',
     },
     optionLabelSelected: { color: C.primary },
+
+    styleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing[3] },
+    styleChip: {
+      flexBasis: '47%',
+      flexGrow: 1,
+      backgroundColor: Colors.white,
+      borderRadius: Radii.xl,
+      padding: Spacing[4],
+      alignItems: 'center',
+      gap: 8,
+      borderWidth: 2,
+      borderColor: 'transparent',
+      ...Shadows.sm,
+    },
 
     summary: {
       marginTop: Spacing[5],

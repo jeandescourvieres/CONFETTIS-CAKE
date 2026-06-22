@@ -8,6 +8,10 @@ export interface CardTemplate {
   tone: string;
   is_system: boolean;
   created_at: string;
+  occasion: 'birthday' | 'nameday' | string;
+  ton: 'tu' | 'vous' | null;
+  longueur: 'moyen' | 'long' | null;
+  style: string | null;
 }
 
 export interface ScheduledSend {
@@ -32,6 +36,7 @@ export async function fetchTemplates(userId: string): Promise<CardTemplate[]> {
     .from('message_templates')
     .select('*')
     .or(`user_id.is.null,user_id.eq.${userId}`)
+    .or('is_system.eq.false,and(occasion.in.(birthday,nameday),is_manual_only.eq.false,animal_type.is.null)')
     .order('is_system', { ascending: false })
     .order('created_at', { ascending: true });
   if (error) throw error;

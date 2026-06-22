@@ -41,7 +41,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: data.session?.user ?? null,
       });
       if (data.session) {
-        await get().fetchProfile();
+        // Ne bloque pas le démarrage : le profil arrive en arrière-plan une fois l'app affichée
+        get().fetchProfile().catch(() => {});
       }
       // Écoute les changements de session
       supabase.auth.onAuthStateChange(async (_event, session) => {

@@ -1287,6 +1287,13 @@ export default function ContactDetailScreen() {
             >
               <Text style={styles.sendMessageBtnText}>✨ J'écris un message à {contactFirstName}</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.sendMessageBtn, { backgroundColor: '#16A34A', marginBottom: 0 }]}
+              onPress={() => router.push({ pathname: '/(app)/auto-sends/new', params: { contactId: id } } as never)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.sendMessageBtnText}>🤖 Activer l'envoi automatique pour {contactFirstName}</Text>
+            </TouchableOpacity>
             {pets.length > 0 && (
               <>
                 <TouchableOpacity

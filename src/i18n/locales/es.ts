@@ -380,6 +380,8 @@ const es = {
     missingChildGender: '• Sexo (niña o niño)',
     missingBirthday: '• Fecha de nacimiento',
     missingFamilyLink: '• Parentesco (ej: Tío, Nuera…)',
+    missingPhoneOrEmail: '• Teléfono o email (al menos uno de los dos)',
+    phoneOrEmailHint: '📞 o ✉️ — indica al menos uno de los dos para poder activar el envío automático para este contacto.',
     missingFieldsTitle: 'Faltan campos obligatorios',
     missingFieldsMsg: 'No se puede guardar hasta que se completen los siguientes campos:\n\n',
     ok: 'OK',

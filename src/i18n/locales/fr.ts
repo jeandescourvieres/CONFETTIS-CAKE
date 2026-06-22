@@ -380,6 +380,8 @@ const fr = {
     missingChildGender: '• Genre (fille ou garçon)',
     missingBirthday: '• Date de naissance',
     missingFamilyLink: '• Lien de parenté (ex : Oncle, Belle-fille…)',
+    missingPhoneOrEmail: '• Téléphone ou email (au moins l\'un des deux)',
+    phoneOrEmailHint: '📞 ou ✉️ — renseigne au moins l\'un des deux pour pouvoir activer l\'envoi automatique pour ce contact.',
     missingFieldsTitle: 'Champs obligatoires manquants',
     missingFieldsMsg: "L'enregistrement n'est pas possible tant que les champs suivants ne sont pas renseignés :\n\n",
     ok: 'OK',

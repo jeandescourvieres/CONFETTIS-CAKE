@@ -91,7 +91,12 @@
       "Bash(/c/Users/HYDROFOLLIES/AppData/Local/Android/Sdk/platform-tools/adb.exe logcat *)",
       "Bash(npx expo run:android)",
       "Bash(npx eas *)",
-      "mcp__plugin_supabase_supabase__list_projects"
+      "mcp__plugin_supabase_supabase__list_projects",
+      "Bash(adb reverse *)",
+      "Bash(adb logcat *)",
+      "Bash(adb devices *)",
+      "Bash(tasklist *)",
+      "Bash(taskkill *)"
     ]
   }
 }

@@ -9,6 +9,7 @@ import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/consta
 import { useColors } from '../../../src/hooks/useColors';
 import { useScheduledSends, useToggleScheduledSend, useDeleteScheduledSend } from '../../../src/hooks/useAutoSends';
 import { renderTemplate } from '../../../src/services/autoSends.service';
+import { FeatureIntroCard } from '../../../src/components/ui/FeatureIntroCard';
 
 const TRIGGER_LABEL: Record<string, string> = {
   birthday: '🎁 Anniversaire',
@@ -63,12 +64,21 @@ export default function AutoSendsScreen() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
           {/* Explication */}
-          <View style={styles.infoBanner}>
-            <Text style={styles.infoText}>
-              🤖 Configure une fois, l'application envoie automatiquement le jour J.{'\n'}
-              Tu recevras une notification à chaque envoi !
-            </Text>
-          </View>
+          <FeatureIntroCard
+            introText={"Et si tu ne pouvais plus jamais rater un anniversaire ? 🎉 Configure un envoi automatique une seule fois, et l'application s'occupe de tout chaque année, sans que tu aies à y penser — un message qui part pile le jour J, même si tu oublies de regarder ton calendrier 💛"}
+            modeEmploiLines={[
+              "🤖 Appuie sur « ＋ » pour programmer ton premier envoi automatique",
+              "📝 Choisis un modèle classé par occasion, tu/vous, longueur et style — ou écris ton propre message « à ma façon »",
+              "👥 Sélectionne un ou plusieurs contacts qui recevront ce message",
+              "📱 Choisis le canal : SMS (via Twilio) ou Email (via Resend)",
+              "📅 Le message part automatiquement le jour J exact de l'anniversaire ou de la fête du prénom de chaque contact, avec son prénom inséré automatiquement",
+              "✉️ Pour un email, le sujet est généré automatiquement (« Joyeux anniversaire » ou « Bonne fête »)",
+              "⚠️ C'est un simple message texte : pas de WhatsApp, de carte animée, de musique, de photo ni de message vocal — pour ça, utilise le mode création classique",
+              "✅ Active, désactive ou supprime chaque envoi à tout moment depuis cette liste",
+              "🔔 Tu reçois une notification à chaque envoi effectué",
+            ]}
+            containerStyle={{ marginBottom: Spacing[4] }}
+          />
 
           {sends.length === 0 ? (
             <View style={styles.emptyWrap}>
@@ -171,21 +181,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     addBtnText: { fontSize: 22, color: Colors.white, lineHeight: 28 },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     content: { padding: Spacing[4], paddingBottom: 80 },
-
-    infoBanner: {
-      backgroundColor: C.primaryContainer,
-      borderRadius: Radii.xl,
-      padding: Spacing[4],
-      marginBottom: Spacing[4],
-      borderLeftWidth: 3,
-      borderLeftColor: C.primary,
-    },
-    infoText: {
-      fontFamily: 'BeVietnamPro_400Regular',
-      fontSize: Typography.sm,
-      color: C.primary,
-      lineHeight: 20,
-    },
 
     sectionTitle: {
       fontFamily: 'PlusJakartaSans_700Bold',

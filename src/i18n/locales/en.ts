@@ -380,6 +380,8 @@ const en = {
     missingChildGender: '• Gender (girl or boy)',
     missingBirthday: '• Date of birth',
     missingFamilyLink: '• Family link (e.g.: Uncle, Daughter-in-law…)',
+    missingPhoneOrEmail: '• Phone or email (at least one of the two)',
+    phoneOrEmailHint: '📞 or ✉️ — fill in at least one of the two to enable automatic sending for this contact.',
     missingFieldsTitle: 'Missing required fields',
     missingFieldsMsg: "Saving isn't possible until the following fields are filled in:\n\n",
     ok: 'OK',
