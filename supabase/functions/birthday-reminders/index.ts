@@ -25,7 +25,7 @@ function mmddIn(days: number): string {
 // ── Messages de notification ───────────────────────────────────────────────────
 
 function birthdayNotif(name: string, days: number): { title: string; body: string } {
-  const first = name.split(' ')[0];
+  const first = name.split(' ').slice(1).join(' ') || name.split(' ')[0];
   if (days === 0) return {
     title: `🎉 C'est l'anniversaire de ${first} aujourd'hui !`,
     body: `Envoyez-lui un message ou une chanson pour lui faire plaisir 🎂`,
@@ -45,7 +45,7 @@ function birthdayNotif(name: string, days: number): { title: string; body: strin
 }
 
 function nameDayNotif(name: string, days: number): { title: string; body: string } {
-  const first = name.split(' ')[0];
+  const first = name.split(' ').slice(1).join(' ') || name.split(' ')[0];
   if (days === 0) return {
     title: `🌸 Bonne fête à ${first} aujourd'hui !`,
     body: `Envoyez-lui un petit message pour marquer l'occasion 💜`,

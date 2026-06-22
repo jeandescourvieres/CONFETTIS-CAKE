@@ -792,6 +792,8 @@ const en = {
     value2Text: "An app designed and built in France, multilingual, to celebrate your loved ones anywhere in the world.",
     value3Title: 'Designed for you',
     value3Text: "Every feature is designed to make your thoughtful gestures easier to organize.",
+    value4Title: 'No spelling mistakes',
+    value4Text: "Every AI-generated message is automatically proofread and corrected — no more typos ruining a thoughtful gesture.",
     potTitle: 'A gift from everyone? Start a pot',
     potText: "Create a group gift pool, invite family or colleagues, and track contributions together until the big day — directly from the app.",
     potCta: 'Discover the app',

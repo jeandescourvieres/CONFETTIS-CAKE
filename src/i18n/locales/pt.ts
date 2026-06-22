@@ -793,6 +793,8 @@ const pt = {
     value2Text: "Um app pensado e desenvolvido na França, multilíngue, para celebrar seus familiares e amigos em qualquer lugar do mundo.",
     value3Title: 'Pensado para você',
     value3Text: "Cada funcionalidade é pensada para tornar suas atenções mais fáceis de organizar.",
+    value4Title: 'Sem erros de ortografia',
+    value4Text: "Cada mensagem gerada pela IA é revista e corrigida automaticamente — acabaram-se os erros que estragam um gesto bonito.",
     potTitle: 'Um presente em grupo? Crie uma coleta',
     potText: "Crie uma coleta em grupo, convide a família ou os colegas, e acompanhem juntos as contribuições até o grande dia — diretamente do app.",
     potCta: 'Descobrir o app',

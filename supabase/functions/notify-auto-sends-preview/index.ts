@@ -103,7 +103,7 @@ Deno.serve(async (req: Request) => {
       if (!pushToken) continue;
 
       const contact = send.contact;
-      const contactFirstName = contact.name.split(' ')[0];
+      const contactFirstName = contact.name.split(' ').slice(1).join(' ') || contact.name.split(' ')[0];
       const isNameday = send.trigger_event === 'nameday';
       const channelLabel = send.channel === 'sms' ? 'SMS' : 'email';
       const occasionLabel = isNameday ? 'fête' : 'anniversaire';

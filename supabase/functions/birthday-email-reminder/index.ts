@@ -183,7 +183,7 @@ Deno.serve(async (req: Request) => {
       if (!userEmail) continue;
 
       const userName = nameByUser[contact.user_id] ?? 'toi';
-      const contactFirstName = contact.name.split(' ')[0];
+      const contactFirstName = contact.name.split(' ').slice(1).join(' ') || contact.name.split(' ')[0];
 
       // ── Anniversaire ──
       if (contact.birthday) {

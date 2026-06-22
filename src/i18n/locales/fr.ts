@@ -806,6 +806,8 @@ Télécharge l'app et entre ce code à l'inscription !
     value2Text: "Une application pensée et développée en France, multilingue, pour célébrer tes proches partout dans le monde.",
     value3Title: 'Pensé pour vous',
     value3Text: "Chaque fonctionnalité est pensée pour rendre tes attentions plus simples à organiser.",
+    value4Title: 'Sans faute d\'orthographe',
+    value4Text: "Chaque message généré par l'IA est relu et corrigé automatiquement — fini les fautes qui gâchent une belle attention.",
     potTitle: 'Un cadeau à plusieurs ? Lancez une cagnotte',
     potText: "Crée une cagnotte collective, invite la famille ou les collègues, et suivez ensemble les contributions jusqu'au jour J — directement depuis l'application.",
     potCta: "Découvrir l'application",

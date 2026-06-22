@@ -792,6 +792,8 @@ const es = {
     value2Text: "Una app diseñada y desarrollada en Francia, multilingüe, para celebrar a tus seres queridos en todo el mundo.",
     value3Title: 'Pensado para ti',
     value3Text: "Cada función está pensada para hacer tus atenciones más fáciles de organizar.",
+    value4Title: 'Sin faltas de ortografía',
+    value4Text: "Cada mensaje generado por la IA se revisa y corrige automáticamente — se acabaron las faltas que estropean un bonito detalle.",
     potTitle: '¿Un regalo entre todos? Lanza una colecta',
     potText: "Crea una colecta grupal, invita a la familia o colegas, y seguid las contribuciones juntos hasta el gran día.",
     potCta: 'Descubrir la app',

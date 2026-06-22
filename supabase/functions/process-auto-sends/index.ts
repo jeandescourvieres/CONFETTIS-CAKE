@@ -16,10 +16,20 @@ function toMmdd(date: string): string {
   return `${parts[1]}-${parts[2]}`;
 }
 
+/** Extrait le prénom d'un nom stocké au format "NOM Prénom" */
+function extractFirstName(name: string): string {
+  return name.split(' ').slice(1).join(' ') || name.split(' ')[0];
+}
+
+/** Reformate "NOM Prénom" en "Prénom NOM" pour l'affichage */
+function toDisplayName(name: string): string {
+  const parts = name.split(' ');
+  return parts.length > 1 ? `${parts.slice(1).join(' ')} ${parts[0]}` : name;
+}
+
 /** Remplace {prenom} par le prénom du contact */
 function renderTemplate(content: string, contactName: string): string {
-  const firstName = contactName.split(' ').slice(1).join(' ') || contactName.split(' ')[0];
-  return content.replace(/\{prenom\}/gi, firstName);
+  return content.replace(/\{prenom\}/gi, extractFirstName(contactName));
 }
 
 /** Envoie une notification push via Expo */
@@ -133,7 +143,7 @@ Deno.serve(async (req: Request) => {
       if (!contact || !template) continue;
 
       const message = renderTemplate(template.content, contact.name);
-      const contactFirstName = contact.name.split(' ')[0];
+      const contactFirstName = extractFirstName(contact.name);
       let sent = false;
 
       // ── Envoi SMS ou Email
@@ -176,7 +186,7 @@ Deno.serve(async (req: Request) => {
         await sendPush(
           pushToken,
           `${emoji} Message envoyé à ${contactFirstName} !`,
-          `Ton message d'${occasion} a bien été envoyé par ${channelLabel} à ${contact.name}. 💜`,
+          `Ton message d'${occasion} a bien été envoyé par ${channelLabel} à ${toDisplayName(contact.name)}. 💜`,
           { type: 'auto_send', contactId: contact.id, screen: 'auto-sends' },
         );
       }

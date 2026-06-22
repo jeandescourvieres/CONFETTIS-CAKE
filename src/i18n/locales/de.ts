@@ -792,6 +792,8 @@ const de = {
     value2Text: "Eine in Frankreich entwickelte mehrsprachige App, um deine Lieben weltweit zu feiern.",
     value3Title: 'Für dich gedacht',
     value3Text: "Jede Funktion ist darauf ausgelegt, deine Aufmerksamkeiten einfacher zu organisieren.",
+    value4Title: 'Fehlerfrei geschrieben',
+    value4Text: "Jede von der KI erstellte Nachricht wird automatisch korrekturgelesen und korrigiert — keine Rechtschreibfehler mehr, die eine schöne Geste verderben.",
     potTitle: 'Ein Geschenk von allen? Starte eine Sammlung',
     potText: "Erstelle eine Gruppensammlung, lade Familie oder Kollegen ein und verfolgt die Beiträge gemeinsam bis zum großen Tag.",
     potCta: 'App entdecken',

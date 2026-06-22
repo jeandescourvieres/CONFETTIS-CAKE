@@ -56,6 +56,7 @@ const VALUE_VISUALS = [
   { emoji: '🔒', color: VIOLET },
   { emoji: '🇫🇷', color: '#F97316' },
   { emoji: '💜', color: '#EC4899' },
+  { emoji: '✓', color: '#10B981' },
 ];
 
 const CATEGORY_VISUALS = [
