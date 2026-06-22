@@ -509,6 +509,14 @@ const pt = {
       title: '✨ Tornar-se Premium',
       sub: 'Criações de IA ilimitadas, todas as ocasiões, QR codes sem limite e muito mais',
     },
+    trial: {
+      badge: '⭐ Teste · D-{{count}}',
+      bannerTitle: '🎁 Teste Premium ativo',
+      bannerSub_one: 'Falta {{count}} dia para aproveitar o modo completo de graça',
+      bannerSub_other: 'Faltam {{count}} dias para aproveitar o modo completo de graça',
+      endedTitle: 'O teu teste gratuito terminou',
+      endedSub: 'Passa para Premium para recuperar o modo completo',
+    },
     referral: {
       title: '🌟 Código de indicação',
       sub: 'Compartilhe e ganhe créditos IA',
@@ -986,6 +994,8 @@ const pt = {
     topbarTitle: 'Assinaturas ⭐',
     heroSubPremium: 'Você já tem o plano Premium 🎉',
     heroSubDefault: 'Escolha o plano que combina com você',
+    heroSubTrial_one: '🎁 Teste gratuito ativo — falta {{count}} dia',
+    heroSubTrial_other: '🎁 Teste gratuito ativo — faltam {{count}} dias',
     chooseYourPlan: 'Escolha seu plano',
     compareTitle: 'Comparação de planos',
     free: 'Gratuito',

@@ -509,6 +509,14 @@ const fr = {
       title: '✨ Passer à Premium',
       sub: 'Créations IA illimitées, toutes les occasions, QR codes sans limite et bien plus',
     },
+    trial: {
+      badge: '⭐ Essai · J-{{count}}',
+      bannerTitle: '🎁 Essai Premium en cours',
+      bannerSub_one: 'Encore {{count}} jour pour profiter du mode complet gratuitement',
+      bannerSub_other: 'Encore {{count}} jours pour profiter du mode complet gratuitement',
+      endedTitle: 'Ton essai gratuit est terminé',
+      endedSub: 'Passe en Premium pour retrouver le mode complet',
+    },
     referral: {
       title: '🌟 Ton code parrainage',
       sub: 'Partage ce code pour gagner des crédits IA !',
@@ -999,6 +1007,8 @@ Télécharge l'app et entre ce code à l'inscription !
     topbarTitle: 'Abonnements ⭐',
     heroSubPremium: 'Tu bénéficies déjà du plan Premium 🎉',
     heroSubDefault: 'Choisis le plan qui te correspond',
+    heroSubTrial_one: '🎁 Essai gratuit en cours — encore {{count}} jour',
+    heroSubTrial_other: '🎁 Essai gratuit en cours — encore {{count}} jours',
     chooseYourPlan: 'Choisis ton plan',
     compareTitle: 'Comparatif des plans',
     free: 'Gratuit',

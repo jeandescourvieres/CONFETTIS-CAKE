@@ -32,6 +32,7 @@ import { useColors } from '../../src/hooks/useColors';
 import { schedulePetBirthdayReminders } from '../../src/services/notifications.service';
 import Constants from 'expo-constants';
 import { Button3D } from '../../src/components/ui/Button3D';
+import { getTrialDaysLeft, isTrialEnded } from '../../src/utils/trial';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 // settingsCard : marginH=16×2, themeGrid : padding=16×2, gap=12×2 (entre 3 colonnes)
@@ -146,6 +147,8 @@ export default function ProfileScreen() {
     ?? SUPPORTED_LANGUAGES[0];
 
   const isPremium = profile?.plan === 'premium';
+  const trialDaysLeft = getTrialDaysLeft(profile);
+  const trialEnded = isTrialEnded(profile);
   const initials = profile?.full_name
     ?.split(' ')
     .slice(0, 2)
@@ -245,7 +248,9 @@ export default function ProfileScreen() {
           <Text style={styles.heroSelfie}>C'est moi ! 🙋‍♂️✨😎</Text>
           <View style={styles.planBadge}>
             <Text style={styles.planBadgeText}>
-              {isPremium ? t('profile.premium') : t('profile.free')}
+              {trialDaysLeft != null
+                ? t('profile.trial.badge', { count: trialDaysLeft })
+                : isPremium ? t('profile.premium') : t('profile.free')}
             </Text>
           </View>
           {profile?.credits != null && profile.credits > 0 && (
@@ -261,6 +266,21 @@ export default function ProfileScreen() {
           <StatCard value={activePots} label={t('profile.stats.pots')} emoji="🎁" />
         </View>
 
+        {/* ── Bannière essai actif ──────────────────── */}
+        {trialDaysLeft != null && (
+          <TouchableOpacity
+            style={styles.upgradeBanner}
+            onPress={() => router.push('/(app)/profile/premium' as never)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.upgradeBannerLeft}>
+              <Text style={styles.upgradeBannerTitle}>{t('profile.trial.bannerTitle')}</Text>
+              <Text style={styles.upgradeBannerSub}>{t('profile.trial.bannerSub', { count: trialDaysLeft })}</Text>
+            </View>
+            <Text style={styles.upgradeBannerArrow}>›</Text>
+          </TouchableOpacity>
+        )}
+
         {/* ── Upgrade banner (si free) ─────────────── */}
         {!isPremium && (
           <TouchableOpacity
@@ -269,8 +289,12 @@ export default function ProfileScreen() {
             activeOpacity={0.85}
           >
             <View style={styles.upgradeBannerLeft}>
-              <Text style={styles.upgradeBannerTitle}>{t('profile.upgrade.title')}</Text>
-              <Text style={styles.upgradeBannerSub}>{t('profile.upgrade.sub')}</Text>
+              <Text style={styles.upgradeBannerTitle}>
+                {trialEnded ? t('profile.trial.endedTitle') : t('profile.upgrade.title')}
+              </Text>
+              <Text style={styles.upgradeBannerSub}>
+                {trialEnded ? t('profile.trial.endedSub') : t('profile.upgrade.sub')}
+              </Text>
             </View>
             <Text style={styles.upgradeBannerArrow}>›</Text>
           </TouchableOpacity>

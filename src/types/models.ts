@@ -10,6 +10,7 @@ export interface Profile {
   full_name: string | null;
   avatar_url: string | null;
   plan: Plan;
+  trial_ends_at: string | null;
   referral_code: string;
   credits: number;
   language: AppLanguage;

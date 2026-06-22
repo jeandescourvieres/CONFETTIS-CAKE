@@ -509,6 +509,14 @@ const en = {
       title: '✨ Go Premium',
       sub: 'Unlimited AI creations, all occasions, unlimited QR codes and more',
     },
+    trial: {
+      badge: '⭐ Trial · D-{{count}}',
+      bannerTitle: '🎁 Premium trial active',
+      bannerSub_one: '{{count}} day left to enjoy full mode for free',
+      bannerSub_other: '{{count}} days left to enjoy full mode for free',
+      endedTitle: 'Your free trial has ended',
+      endedSub: 'Upgrade to Premium to get full mode back',
+    },
     referral: {
       title: '🌟 Referral code',
       sub: 'Share and earn AI credits',
@@ -985,6 +993,8 @@ const en = {
     topbarTitle: 'Subscriptions ⭐',
     heroSubPremium: "You're already on the Premium plan 🎉",
     heroSubDefault: 'Choose the plan that suits you',
+    heroSubTrial_one: '🎁 Free trial active — {{count}} day left',
+    heroSubTrial_other: '🎁 Free trial active — {{count}} days left',
     chooseYourPlan: 'Choose your plan',
     compareTitle: 'Plan comparison',
     free: 'Free',

@@ -509,6 +509,14 @@ const de = {
       title: '✨ Premium werden',
       sub: 'Unbegrenzte KI-Kreationen, alle Anlässe, unbegrenzte QR-Codes und mehr',
     },
+    trial: {
+      badge: '⭐ Test · T-{{count}}',
+      bannerTitle: '🎁 Premium-Testphase aktiv',
+      bannerSub_one: 'Noch {{count}} Tag, um den Vollmodus kostenlos zu genießen',
+      bannerSub_other: 'Noch {{count}} Tage, um den Vollmodus kostenlos zu genießen',
+      endedTitle: 'Deine kostenlose Testphase ist beendet',
+      endedSub: 'Wechsle zu Premium, um den Vollmodus zurückzubekommen',
+    },
     referral: {
       title: '🌟 Empfehlungscode',
       sub: 'Teilen und KI-Kredite verdienen',
@@ -985,6 +993,8 @@ const de = {
     topbarTitle: 'Abonnements ⭐',
     heroSubPremium: 'Du hast bereits den Premium-Plan 🎉',
     heroSubDefault: 'Wähle den Plan, der zu dir passt',
+    heroSubTrial_one: '🎁 Kostenlose Testphase aktiv — noch {{count}} Tag',
+    heroSubTrial_other: '🎁 Kostenlose Testphase aktiv — noch {{count}} Tage',
     chooseYourPlan: 'Wähle deinen Plan',
     compareTitle: 'Plan-Vergleich',
     free: 'Kostenlos',

@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
+import { getTrialDaysLeft } from '../../../src/utils/trial';
 
 // ── Feature comparison ─────────────────────────────────────────────────────────
 function getFeatures(t: TFunction): { label: string; free: string | boolean; premium: string | boolean }[] {
@@ -81,6 +82,7 @@ export default function PremiumScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const isPremium = profile?.plan === 'premium';
+  const trialDaysLeft = getTrialDaysLeft(profile);
 
   const FEATURES = useMemo(() => getFeatures(t), [t]);
   const PLANS = useMemo(() => getPlans(t), [t]);
@@ -122,7 +124,9 @@ export default function PremiumScreen() {
           <Text style={styles.heroEmoji}>{isPremium ? '⭐' : '🚀'}</Text>
           <Text style={styles.heroTitle}>Confettis & Cake</Text>
           <Text style={styles.heroSub}>
-            {isPremium ? t('premium.heroSubPremium') : t('premium.heroSubDefault')}
+            {trialDaysLeft != null
+              ? t('premium.heroSubTrial', { count: trialDaysLeft })
+              : isPremium ? t('premium.heroSubPremium') : t('premium.heroSubDefault')}
           </Text>
         </LinearGradient>
 
