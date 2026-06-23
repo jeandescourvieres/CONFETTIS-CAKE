@@ -227,6 +227,9 @@ export default function AppLayout() {
         <Tabs.Screen name="upcoming-events"        options={{ href: null }} />
         <Tabs.Screen name="auto-sends/index"       options={{ href: null }} />
         <Tabs.Screen name="auto-sends/new"         options={{ href: null }} />
+        <Tabs.Screen name="broadcast/new"          options={{ href: null }} />
+        <Tabs.Screen name="group-reminders/index"  options={{ href: null }} />
+        <Tabs.Screen name="group-reminders/new"    options={{ href: null }} />
         <Tabs.Screen name="contact-timeline/[id]"  options={{ href: null }} />
         <Tabs.Screen name="reminders/index"        options={{ href: null }} />
         <Tabs.Screen name="reminders/new"          options={{ href: null }} />

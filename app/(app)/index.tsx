@@ -1276,6 +1276,8 @@ export default function HomeScreen() {
               <QuickAction emoji="📋"   label="Mes cagnottes"        onPress={() => router.push('/(app)/pot' as never)} />
               <QuickAction emoji="🌟"   label="Parrainage"           onPress={() => router.push('/(app)/referral/' as never)} />
               <QuickAction emoji="🤖"   label="Envois automatiques"  onPress={() => router.push('/(app)/auto-sends/' as never)} />
+              <QuickAction emoji="📢"   label="Diffusion groupée"    onPress={() => router.push('/(app)/broadcast/new' as never)} />
+              <QuickAction emoji="🔔"   label="Rappels collectifs"   onPress={() => router.push('/(app)/group-reminders/' as never)} />
               <QuickAction emoji="⏰"   label="Rappels personnalisés" onPress={() => router.push('/(app)/reminders/' as never)} />
               <QuickAction emoji="🔢"   label="Numérologie"          onPress={() => router.push('/(app)/numerologie' as never)} />
               <QuickAction emoji="⭐"   label="Zodiaque"              onPress={() => router.push('/(app)/zodiac-season' as never)} />
@@ -1554,6 +1556,16 @@ export default function HomeScreen() {
             emoji="🤖"
             label="Envois automatiques"
             onPress={() => router.push('/(app)/auto-sends/' as never)}
+          />
+          <QuickAction
+            emoji="📢"
+            label="Diffusion groupée"
+            onPress={() => router.push('/(app)/broadcast/new' as never)}
+          />
+          <QuickAction
+            emoji="🔔"
+            label="Rappels collectifs"
+            onPress={() => router.push('/(app)/group-reminders/' as never)}
           />
           <QuickAction
             emoji="⏰"

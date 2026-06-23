@@ -28,9 +28,9 @@ function parseObjectKeys(text, prefix, result) {
       i = eol === -1 ? n : eol + 1;
       continue;
     }
-    const keyMatch = /^([a-zA-Z0-9_]+)\s*:/.exec(text.slice(i));
+    const keyMatch = /^(?:'([^']+)'|"([^"]+)"|([a-zA-Z0-9_]+))\s*:/.exec(text.slice(i));
     if (!keyMatch) { i++; continue; }
-    const key = keyMatch[1];
+    const key = keyMatch[1] ?? keyMatch[2] ?? keyMatch[3];
     i += keyMatch[0].length;
     while (i < n && /\s/.test(text[i])) i++;
 

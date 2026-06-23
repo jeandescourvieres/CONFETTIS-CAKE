@@ -9,14 +9,13 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
-import { useScheduledSends, useToggleScheduledSend, useDeleteScheduledSend } from '../../../src/hooks/useAutoSends';
-import { renderTemplate } from '../../../src/services/autoSends.service';
+import { useGroupReminders, useToggleGroupReminder, useDeleteGroupReminder } from '../../../src/hooks/useGroupReminders';
 import { FeatureIntroCard } from '../../../src/components/ui/FeatureIntroCard';
 
 function getTriggerLabel(t: TFunction): Record<string, string> {
   return {
-    birthday: t('autoSends.trigger.birthday'),
-    nameday: t('autoSends.trigger.nameday'),
+    birthday: t('groupReminders.trigger.birthday'),
+    nameday: t('groupReminders.trigger.nameday'),
   };
 }
 function getChannelLabel(t: TFunction): Record<string, string> {
@@ -26,44 +25,43 @@ function getChannelLabel(t: TFunction): Record<string, string> {
   };
 }
 
-export default function AutoSendsScreen() {
+export default function GroupRemindersScreen() {
   const { t } = useTranslation();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const router = useRouter();
-  const { data: sends = [], isLoading } = useScheduledSends();
-  const { mutate: toggle } = useToggleScheduledSend();
-  const { mutate: remove } = useDeleteScheduledSend();
+  const { data: reminders = [], isLoading } = useGroupReminders();
+  const { mutate: toggle } = useToggleGroupReminder();
+  const { mutate: remove } = useDeleteGroupReminder();
 
   const TRIGGER_LABEL = useMemo(() => getTriggerLabel(t), [t]);
   const CHANNEL_LABEL = useMemo(() => getChannelLabel(t), [t]);
   const MODE_EMPLOI_LINES = useMemo(
-    () => Array.from({ length: 9 }, (_, i) => t(`autoSends.modeEmploi.${i}`)),
+    () => Array.from({ length: 10 }, (_, i) => t(`groupReminders.modeEmploi.${i}`)),
     [t],
   );
 
   const handleDelete = (id: string, contactName: string) => {
     Alert.alert(
-      t('autoSends.deleteConfirmTitle'),
-      t('autoSends.deleteConfirmMsg', { name: contactName }),
+      t('groupReminders.deleteConfirmTitle'),
+      t('groupReminders.deleteConfirmMsg', { name: contactName }),
       [
-        { text: t('autoSends.cancel'), style: 'cancel' },
-        { text: t('autoSends.delete'), style: 'destructive', onPress: () => remove(id) },
+        { text: t('groupReminders.cancel'), style: 'cancel' },
+        { text: t('groupReminders.delete'), style: 'destructive', onPress: () => remove(id) },
       ],
     );
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
       <View style={styles.topbar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.topbarTitle}>{t('autoSends.headerTitle')}</Text>
+        <Text style={styles.topbarTitle}>{t('groupReminders.headerTitle')}</Text>
         <TouchableOpacity
           style={styles.addBtn}
-          onPress={() => router.push('/(app)/auto-sends/new' as never)}
+          onPress={() => router.push('/(app)/group-reminders/new' as never)}
           activeOpacity={0.8}
         >
           <Text style={styles.addBtnText}>＋</Text>
@@ -77,84 +75,81 @@ export default function AutoSendsScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-          {/* Explication */}
           <FeatureIntroCard
-            introText={t('autoSends.introText')}
+            introText={t('groupReminders.introText')}
             modeEmploiLines={MODE_EMPLOI_LINES}
             containerStyle={{ marginBottom: Spacing[4] }}
           />
 
-          {sends.length === 0 ? (
+          {reminders.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={styles.emptyTitle}>{t('autoSends.emptyTitle')}</Text>
+              <Text style={styles.emptyTitle}>{t('groupReminders.emptyTitle')}</Text>
               <Text style={styles.emptySub}>
-                {t('autoSends.emptySub')}
+                {t('groupReminders.emptySub')}
               </Text>
               <TouchableOpacity
                 style={styles.emptyBtn}
-                onPress={() => router.push('/(app)/auto-sends/new' as never)}
+                onPress={() => router.push('/(app)/group-reminders/new' as never)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.emptyBtnText}>{t('autoSends.scheduleBtn')}</Text>
+                <Text style={styles.emptyBtnText}>{t('groupReminders.createBtn')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
-              <Text style={styles.sectionTitle}>{t('autoSends.countSends', { count: sends.length })}</Text>
+              <Text style={styles.sectionTitle}>{t('groupReminders.countReminders', { count: reminders.length })}</Text>
               <View style={styles.list}>
-                {sends.map((send) => {
-                  const preview = send.template
-                    ? renderTemplate(send.template.content, send.contact?.name ?? t('autoSends.defaultFirstNamePlaceholder'))
-                    : '';
-                  return (
-                    <View key={send.id} style={[styles.card, !send.is_active && styles.cardInactive]}>
-                      {/* En-tête contact */}
-                      <View style={styles.cardHeader}>
-                        <View style={[styles.avatar, { backgroundColor: send.is_active ? C.primary : Colors.outlineVariant }]}>
-                          <Text style={styles.avatarText}>
-                            {(send.contact?.name ?? '?')[0].toUpperCase()}
-                          </Text>
+                {reminders.map((reminder) => (
+                  <View key={reminder.id} style={[styles.card, !reminder.is_active && styles.cardInactive]}>
+                    <View style={styles.cardHeader}>
+                      <View style={[styles.avatar, { backgroundColor: reminder.is_active ? C.primary : Colors.outlineVariant }]}>
+                        <Text style={styles.avatarText}>
+                          {(reminder.contact?.name ?? '?')[0].toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.cardInfo}>
+                        <Text style={styles.cardName}>{reminder.contact?.name ?? '—'}</Text>
+                        <View style={styles.cardMeta}>
+                          <Text style={styles.cardMetaText}>{TRIGGER_LABEL[reminder.trigger_event]}</Text>
+                          <Text style={styles.cardMetaDot}>·</Text>
+                          <Text style={styles.cardMetaText}>{t('groupReminders.daysBefore', { count: reminder.days_before })}</Text>
+                          <Text style={styles.cardMetaDot}>·</Text>
+                          <Text style={styles.cardMetaText}>{CHANNEL_LABEL[reminder.channel]}</Text>
                         </View>
-                        <View style={styles.cardInfo}>
-                          <Text style={styles.cardName}>{send.contact?.name ?? '—'}</Text>
-                          <View style={styles.cardMeta}>
-                            <Text style={styles.cardMetaText}>{TRIGGER_LABEL[send.trigger_event]}</Text>
-                            <Text style={styles.cardMetaDot}>·</Text>
-                            <Text style={styles.cardMetaText}>{CHANNEL_LABEL[send.channel]}</Text>
-                          </View>
-                        </View>
-                        <Switch
-                          value={send.is_active}
-                          onValueChange={(v) => toggle({ id: send.id, is_active: v })}
-                          trackColor={{ false: Colors.surfaceContainerHighest, true: C.primaryContainer }}
-                          thumbColor={send.is_active ? C.primary : Colors.outlineVariant}
-                        />
                       </View>
-
-                      {/* Aperçu message */}
-                      <View style={styles.previewBox}>
-                        <Text style={styles.previewLabel}>{send.template?.title ?? t('autoSends.defaultTemplateLabel')}</Text>
-                        <Text style={styles.previewText} numberOfLines={2}>{preview}</Text>
-                      </View>
-
-                      {/* Actions */}
-                      <View style={styles.cardActions}>
-                        {send.last_sent_at && (
-                          <Text style={styles.lastSent}>
-                            {t('autoSends.lastSent', { date: new Date(send.last_sent_at).toLocaleDateString() })}
-                          </Text>
-                        )}
-                        <TouchableOpacity
-                          onPress={() => handleDelete(send.id, send.contact?.name ?? '')}
-                          style={styles.deleteBtn}
-                        >
-                          <Text style={styles.deleteBtnText}>{t('autoSends.deleteBtnLabel')}</Text>
-                        </TouchableOpacity>
-                      </View>
+                      <Switch
+                        value={reminder.is_active}
+                        onValueChange={(v) => toggle({ id: reminder.id, is_active: v })}
+                        trackColor={{ false: Colors.surfaceContainerHighest, true: C.primaryContainer }}
+                        thumbColor={reminder.is_active ? C.primary : Colors.outlineVariant}
+                      />
                     </View>
-                  );
-                })}
+
+                    <View style={styles.previewBox}>
+                      <Text style={styles.previewLabel}>
+                        {reminder.content ? t('groupReminders.customMessageLabel') : t('groupReminders.autoMessageLabel')}
+                      </Text>
+                      <Text style={styles.previewText} numberOfLines={2}>
+                        {t('groupReminders.recipientsCount', { count: reminder.recipient_contact_ids.length })}
+                      </Text>
+                    </View>
+
+                    <View style={styles.cardActions}>
+                      {reminder.last_sent_at && (
+                        <Text style={styles.lastSent}>
+                          {t('groupReminders.lastSent', { date: new Date(reminder.last_sent_at).toLocaleDateString() })}
+                        </Text>
+                      )}
+                      <TouchableOpacity
+                        onPress={() => handleDelete(reminder.id, reminder.contact?.name ?? '')}
+                        style={styles.deleteBtn}
+                      >
+                        <Text style={styles.deleteBtnText}>{t('groupReminders.deleteBtnLabel')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
               </View>
             </>
           )}
@@ -216,7 +211,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     avatarText: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.md, color: Colors.white },
     cardInfo: { flex: 1 },
     cardName: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.md, color: Colors.onSurface },
-    cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+    cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' },
     cardMetaText: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant },
     cardMetaDot: { fontSize: Typography.xs, color: Colors.outlineVariant },
 
@@ -236,7 +231,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       fontSize: Typography.sm,
       color: Colors.onSurfaceVariant,
       lineHeight: 18,
-      fontStyle: 'italic',
     },
 
     cardActions: {

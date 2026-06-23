@@ -1,38 +1,44 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput, ActivityIndicator,
+  StyleSheet, TextInput, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
 import { useColors } from '../../../src/hooks/useColors';
 import { Button3D } from '../../../src/components/ui/Button3D';
-import { useTemplates, useCreateScheduledSend, useCreateCustomTemplate } from '../../../src/hooks/useAutoSends';
+import { useBroadcastTemplates, useSendBroadcast } from '../../../src/hooks/useBroadcast';
 import { useContacts } from '../../../src/hooks/useContacts';
 import type { CardTemplate } from '../../../src/services/autoSends.service';
+import { FeatureIntroCard } from '../../../src/components/ui/FeatureIntroCard';
 
 type Step = 1 | 2 | 3;
-type TplSubStep = 'occasion' | 'ton' | 'longueur' | 'style' | 'list';
-type TriggerEvent = 'birthday' | 'nameday';
+type TplSubStep = 'occasion' | 'ton' | 'longueur' | 'list';
+type Occasion = 'newyear' | 'christmas' | 'easter' | 'greetings' | 'valentines' | 'mothersday' | 'fathersday' | 'halloween';
 type Channel = 'sms' | 'email';
 type Ton = 'tu' | 'vous';
-type Longueur = 'moyen' | 'long';
-type BirthdayStyle = 'chaleureux' | 'elegant' | 'drole' | 'poetique' | 'famille' | 'collegue';
+type Longueur = 'court' | 'moyen' | 'long';
 
-function getTriggerOptions(t: TFunction): { value: TriggerEvent; label: string; emoji: string }[] {
+function getOccasionOptions(t: TFunction): { value: Occasion; label: string; emoji: string }[] {
   return [
-    { value: 'birthday', label: t('autoSends.occasionBirthday'), emoji: '🎁' },
-    { value: 'nameday',  label: t('autoSends.occasionNameday'),  emoji: '🌸' },
+    { value: 'newyear',    label: t('broadcast.occasionNewyear'),    emoji: '🎆' },
+    { value: 'christmas',  label: t('broadcast.occasionChristmas'),  emoji: '🎄' },
+    { value: 'easter',     label: t('broadcast.occasionEaster'),     emoji: '🐣' },
+    { value: 'greetings',  label: t('broadcast.occasionGreetings'),  emoji: '👋' },
+    { value: 'valentines', label: t('broadcast.occasionValentines'), emoji: '💝' },
+    { value: 'mothersday', label: t('broadcast.occasionMothersday'), emoji: '👩' },
+    { value: 'fathersday', label: t('broadcast.occasionFathersday'), emoji: '👨' },
+    { value: 'halloween',  label: t('broadcast.occasionHalloween'),  emoji: '🎃' },
   ];
 }
 
 function getChannelOptions(t: TFunction): { value: Channel; label: string; emoji: string }[] {
   return [
-    { value: 'sms',   label: t('autoSends.channelSms'),   emoji: '📱' },
-    { value: 'email', label: t('autoSends.channelEmail'), emoji: '📧' },
+    { value: 'sms',   label: t('broadcast.channelSms'),   emoji: '📱' },
+    { value: 'email', label: t('broadcast.channelEmail'), emoji: '📧' },
   ];
 }
 
@@ -45,70 +51,54 @@ function getTonOptions(t: TFunction): { value: Ton; label: string; emoji: string
 
 function getLongueurOptions(t: TFunction): { value: Longueur; label: string; emoji: string }[] {
   return [
-    { value: 'moyen', label: t('autoSends.longueurMoyen'), emoji: '📝' },
-    { value: 'long',  label: t('autoSends.longueurLong'),  emoji: '📜' },
+    { value: 'court', label: t('broadcast.longueurCourt'), emoji: '⚡' },
+    { value: 'moyen', label: t('broadcast.longueurMoyen'), emoji: '📝' },
+    { value: 'long',  label: t('broadcast.longueurLong'),  emoji: '📜' },
   ];
 }
 
-function getStyleOptions(t: TFunction): { value: BirthdayStyle; label: string; emoji: string }[] {
-  return [
-    { value: 'chaleureux', label: t('autoSends.styleChaleureux'), emoji: '🤗' },
-    { value: 'elegant',    label: t('autoSends.styleElegant'),    emoji: '🎩' },
-    { value: 'drole',      label: t('autoSends.styleDrole'),      emoji: '😄' },
-    { value: 'poetique',   label: t('autoSends.stylePoetique'),   emoji: '🌸' },
-    { value: 'famille',    label: t('autoSends.styleFamille'),    emoji: '👨‍👩‍👧' },
-    { value: 'collegue',   label: t('autoSends.styleCollegue'),   emoji: '💼' },
-  ];
-}
-
-export default function NewAutoSendScreen() {
+export default function NewBroadcastScreen() {
   const { t } = useTranslation();
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const router = useRouter();
-  const { contactId: prefillContactId } = useLocalSearchParams<{ contactId?: string }>();
 
-  const TRIGGER_OPTIONS = useMemo(() => getTriggerOptions(t), [t]);
+  const OCCASION_OPTIONS = useMemo(() => getOccasionOptions(t), [t]);
   const CHANNEL_OPTIONS = useMemo(() => getChannelOptions(t), [t]);
   const TON_OPTIONS = useMemo(() => getTonOptions(t), [t]);
   const LONGUEUR_OPTIONS = useMemo(() => getLongueurOptions(t), [t]);
-  const STYLE_OPTIONS = useMemo(() => getStyleOptions(t), [t]);
+  const MODE_EMPLOI_LINES = useMemo(
+    () => Array.from({ length: 10 }, (_, i) => t(`broadcast.modeEmploi.${i}`)),
+    [t],
+  );
 
   // Data
-  const { data: templates = [], isLoading: tplLoading } = useTemplates();
+  const { data: templates = [], isLoading: tplLoading } = useBroadcastTemplates();
   const { data: contacts = [], isLoading: ctLoading } = useContacts();
-  const { mutate: createSend, isPending: saving } = useCreateScheduledSend();
-  const { mutate: createTpl, isPending: savingTpl } = useCreateCustomTemplate();
+  const { mutate: sendBroadcast, isPending: sending } = useSendBroadcast();
 
   // Wizard state
   const [step, setStep] = useState<Step>(1);
   const [tplSubStep, setTplSubStep] = useState<TplSubStep>('occasion');
-  const [selectedTemplate, setSelectedTemplate] = useState<CardTemplate | null>(null);
-  const [customMode, setCustomMode] = useState(false);
-  const [customTitle, setCustomTitle] = useState('');
-  const [customContent, setCustomContent] = useState('');
-  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(
-    () => new Set(prefillContactId ? [prefillContactId] : []),
-  );
-  const [trigger, setTrigger] = useState<TriggerEvent>('birthday');
-  const [channel, setChannel] = useState<Channel>('sms');
+  const [occasion, setOccasion] = useState<Occasion>('newyear');
   const [ton, setTon] = useState<Ton | null>(null);
   const [longueur, setLongueur] = useState<Longueur | null>(null);
-  const [birthdayStyle, setBirthdayStyle] = useState<BirthdayStyle | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<CardTemplate | null>(null);
+  const [customMode, setCustomMode] = useState(false);
+  const [customContent, setCustomContent] = useState('');
   const [expandedTplId, setExpandedTplId] = useState<string | null>(null);
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+  const [channel, setChannel] = useState<Channel>('sms');
+
+  const [contactSearch, setContactSearch] = useState('');
+  const filteredContacts = useMemo(() => {
+    const q = contactSearch.toLowerCase();
+    return contacts.filter((c) => c.name.toLowerCase().includes(q));
+  }, [contacts, contactSearch]);
 
   const filteredTemplates = useMemo(() => {
-    return templates.filter((t) => {
-      if (!t.is_system) return false;
-      if (t.occasion !== trigger) return false;
-      if (t.ton !== ton) return false;
-      if (t.longueur !== longueur) return false;
-      if (trigger === 'birthday' && t.style !== birthdayStyle) return false;
-      return true;
-    });
-  }, [templates, trigger, ton, longueur, birthdayStyle]);
-
-  const customTemplates = useMemo(() => templates.filter((t) => !t.is_system), [templates]);
+    return templates.filter((t) => t.is_system && t.occasion === occasion && t.ton === ton && t.longueur === longueur);
+  }, [templates, occasion, ton, longueur]);
 
   const goToTplSubStep = (next: TplSubStep) => {
     setSelectedTemplate(null);
@@ -119,27 +109,10 @@ export default function NewAutoSendScreen() {
     switch (tplSubStep) {
       case 'ton': return 'occasion';
       case 'longueur': return 'ton';
-      case 'style': return 'longueur';
-      case 'list': return trigger === 'birthday' ? 'style' : 'longueur';
+      case 'list': return 'longueur';
       default: return null;
     }
   };
-
-  const [contactSearch, setContactSearch] = useState('');
-
-  const filteredContacts = useMemo(() => {
-    const q = contactSearch.toLowerCase();
-    return contacts.filter((c) => c.name.toLowerCase().includes(q));
-  }, [contacts, contactSearch]);
-
-  // Contacts with birthdays / namedays for relevance indicator
-  const relevantContacts = useMemo(() => {
-    return new Set(
-      contacts
-        .filter((c) => trigger === 'birthday' ? !!c.birthday : !!c.name_day)
-        .map((c) => c.id),
-    );
-  }, [contacts, trigger]);
 
   const toggleContact = (id: string) => {
     setSelectedContactIds((prev) => {
@@ -150,43 +123,36 @@ export default function NewAutoSendScreen() {
   };
 
   const selectAll = () => {
-    const relevant = filteredContacts.filter((c) => relevantContacts.has(c.id));
-    if (relevant.length === 0) return;
+    if (filteredContacts.length === 0) return;
     setSelectedContactIds((prev) => {
       const next = new Set(prev);
-      relevant.forEach((c) => next.add(c.id));
+      filteredContacts.forEach((c) => next.add(c.id));
       return next;
     });
   };
 
   const handleConfirm = () => {
-    if (customMode) {
-      const title = customTitle.trim() || t('autoSends.defaultTemplateName');
-      const content = customContent.trim();
-      if (!content) return;
-      createTpl(
-        { title, content },
-        {
-          onSuccess: (tpl) => {
-            createSend(
-              { template_id: tpl.id, contact_ids: [...selectedContactIds], trigger_event: trigger, channel },
-              { onSuccess: () => router.back() },
-            );
-          },
+    const content = customMode ? customContent.trim() : selectedTemplate?.content;
+    if (!content) return;
+    sendBroadcast(
+      { contact_ids: [...selectedContactIds], content, occasion, channel },
+      {
+        onSuccess: (result) => {
+          const skippedText = result.skipped > 0
+            ? t(channel === 'sms' ? 'broadcast.resultSkippedPhone' : 'broadcast.resultSkippedEmail', { count: result.skipped })
+            : '';
+          Alert.alert(
+            t('broadcast.resultTitle'),
+            t('broadcast.resultSent', { count: result.sent }) + skippedText,
+            [{ text: t('broadcast.ok'), onPress: () => router.back() }],
+          );
         },
-      );
-    } else {
-      if (!selectedTemplate) return;
-      createSend(
-        {
-          template_id: selectedTemplate.id,
-          contact_ids: [...selectedContactIds],
-          trigger_event: trigger,
-          channel,
+        onError: (err: unknown) => {
+          const msg = err instanceof Error ? err.message : t('errors.generic');
+          Alert.alert(t('broadcast.errorTitle'), msg);
         },
-        { onSuccess: () => router.back() },
-      );
-    }
+      },
+    );
   };
 
   const canProceed1 = customMode ? customContent.trim().length > 0 : !!selectedTemplate;
@@ -210,7 +176,7 @@ export default function NewAutoSendScreen() {
           <Text style={[styles.backLinkText, { color: C.primary }]}>‹ {t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={styles.topbarTitle}>
-          {step === 1 ? t('autoSends.topbarStep1') : step === 2 ? t('autoSends.topbarStep2') : t('autoSends.topbarStep3')}
+          {step === 1 ? t('broadcast.topbarStep1') : step === 2 ? t('broadcast.topbarStep2') : t('broadcast.topbarStep3')}
         </Text>
         <View style={{ minWidth: 70 }} />
       </View>
@@ -222,18 +188,23 @@ export default function NewAutoSendScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-        {/* ── STEP 1 : Template picker (entonnoir occasion → ton → longueur → style → liste) ── */}
+        {/* ── STEP 1 : Message (entonnoir occasion → ton → longueur → liste) ── */}
         {step === 1 && (
           <>
             {tplSubStep === 'occasion' && (
               <>
-                <Text style={styles.stepHint}>{t('autoSends.occasionHint')}</Text>
-                <View style={styles.optionRow}>
-                  {TRIGGER_OPTIONS.map((opt) => (
+                <FeatureIntroCard
+                  introText={t('broadcast.introText')}
+                  modeEmploiLines={MODE_EMPLOI_LINES}
+                  containerStyle={{ marginBottom: Spacing[4] }}
+                />
+                <Text style={styles.stepHint}>{t('broadcast.occasionHint')}</Text>
+                <View style={styles.styleGrid}>
+                  {OCCASION_OPTIONS.map((opt) => (
                     <TouchableOpacity
                       key={opt.value}
-                      style={styles.optionChip}
-                      onPress={() => { setTrigger(opt.value); goToTplSubStep('ton'); }}
+                      style={styles.styleChip}
+                      onPress={() => { setOccasion(opt.value); goToTplSubStep('ton'); }}
                       activeOpacity={0.8}
                     >
                       <Text style={styles.optionEmoji}>{opt.emoji}</Text>
@@ -246,7 +217,7 @@ export default function NewAutoSendScreen() {
 
             {tplSubStep === 'ton' && (
               <>
-                <Text style={styles.stepHint}>{t('autoSends.tonHint')}</Text>
+                <Text style={styles.stepHint}>{t('broadcast.tonHint')}</Text>
                 <View style={styles.optionRow}>
                   {TON_OPTIONS.map((opt) => (
                     <TouchableOpacity
@@ -265,32 +236,13 @@ export default function NewAutoSendScreen() {
 
             {tplSubStep === 'longueur' && (
               <>
-                <Text style={styles.stepHint}>{t('autoSends.longueurHint')}</Text>
+                <Text style={styles.stepHint}>{t('broadcast.longueurHint')}</Text>
                 <View style={styles.optionRow}>
                   {LONGUEUR_OPTIONS.map((opt) => (
                     <TouchableOpacity
                       key={opt.value}
                       style={styles.optionChip}
-                      onPress={() => { setLongueur(opt.value); goToTplSubStep(trigger === 'birthday' ? 'style' : 'list'); }}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.optionEmoji}>{opt.emoji}</Text>
-                      <Text style={styles.optionLabel}>{opt.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-
-            {tplSubStep === 'style' && (
-              <>
-                <Text style={styles.stepHint}>{t('autoSends.styleHint')}</Text>
-                <View style={styles.styleGrid}>
-                  {STYLE_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.value}
-                      style={styles.styleChip}
-                      onPress={() => { setBirthdayStyle(opt.value); goToTplSubStep('list'); }}
+                      onPress={() => { setLongueur(opt.value); goToTplSubStep('list'); }}
                       activeOpacity={0.8}
                     >
                       <Text style={styles.optionEmoji}>{opt.emoji}</Text>
@@ -303,13 +255,12 @@ export default function NewAutoSendScreen() {
 
             {tplSubStep === 'list' && (
               <>
-                <Text style={styles.stepHint}>{t('autoSends.listHint')}</Text>
+                <Text style={styles.stepHint}>{t('broadcast.listHint')}</Text>
 
                 {tplLoading ? (
                   <ActivityIndicator color={C.primary} style={{ marginTop: 40 }} />
                 ) : (
                   <View style={styles.tplGrid}>
-                    {/* Modèles filtrés par occasion / ton / longueur / style */}
                     {filteredTemplates.map((tpl) => {
                       const expanded = expandedTplId === tpl.id;
                       const isSelected = !customMode && selectedTemplate?.id === tpl.id;
@@ -326,37 +277,10 @@ export default function NewAutoSendScreen() {
                         >
                           <Text style={styles.tplTitle}>{tpl.title}</Text>
                           <Text style={styles.tplPreview} numberOfLines={expanded ? undefined : 3}>{tpl.content}</Text>
-                          <Text style={styles.tplExpandHint}>{expanded ? t('autoSends.expandLess') : t('autoSends.expandMore')}</Text>
+                          <Text style={styles.tplExpandHint}>{expanded ? t('broadcast.expandLess') : t('broadcast.expandMore')}</Text>
                           {isSelected && (
                             <TouchableOpacity style={styles.tplConfirmBtn} onPress={() => setStep(2)} activeOpacity={0.85}>
-                              <Text style={styles.tplConfirmBtnText}>{t('autoSends.useTemplateBtn')}</Text>
-                            </TouchableOpacity>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-
-                    {/* Mes modèles personnalisés */}
-                    {customTemplates.map((tpl) => {
-                      const expanded = expandedTplId === tpl.id;
-                      const isSelected = !customMode && selectedTemplate?.id === tpl.id;
-                      return (
-                        <TouchableOpacity
-                          key={tpl.id}
-                          style={[styles.tplCard, styles.tplCardCustom, isSelected && styles.tplCardSelected]}
-                          onPress={() => {
-                            setSelectedTemplate(tpl);
-                            setCustomMode(false);
-                            setExpandedTplId((cur) => (cur === tpl.id ? null : tpl.id));
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={styles.tplTitle}>{tpl.title}</Text>
-                          <Text style={styles.tplPreview} numberOfLines={expanded ? undefined : 3}>{tpl.content}</Text>
-                          <Text style={styles.tplExpandHint}>{expanded ? t('autoSends.expandLess') : t('autoSends.expandMore')}</Text>
-                          {isSelected && (
-                            <TouchableOpacity style={styles.tplConfirmBtn} onPress={() => setStep(2)} activeOpacity={0.85}>
-                              <Text style={styles.tplConfirmBtnText}>{t('autoSends.useTemplateBtn')}</Text>
+                              <Text style={styles.tplConfirmBtnText}>{t('broadcast.useTemplateBtn')}</Text>
                             </TouchableOpacity>
                           )}
                         </TouchableOpacity>
@@ -369,8 +293,8 @@ export default function NewAutoSendScreen() {
                       onPress={() => { setCustomMode(true); setSelectedTemplate(null); }}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.tplTitle}>{t('autoSends.ownWayTitle')}</Text>
-                      <Text style={styles.tplPreview}>{t('autoSends.ownWayDesc')}</Text>
+                      <Text style={styles.tplTitle}>{t('broadcast.ownWayTitle')}</Text>
+                      <Text style={styles.tplPreview}>{t('broadcast.ownWayDesc')}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -379,22 +303,20 @@ export default function NewAutoSendScreen() {
                 {customMode && (
                   <View style={styles.customEditor}>
                     <TextInput
-                      style={styles.customTitleInput}
-                      value={customTitle}
-                      onChangeText={setCustomTitle}
-                      placeholder={t('autoSends.customTitlePlaceholder')}
-                      placeholderTextColor={Colors.onSurfaceVariant}
-                    />
-                    <TextInput
                       style={styles.customContentInput}
                       value={customContent}
                       onChangeText={setCustomContent}
-                      placeholder={t('autoSends.customContentPlaceholder')}
+                      placeholder={t('broadcast.customContentPlaceholder')}
                       placeholderTextColor={Colors.onSurfaceVariant}
                       multiline
                       textAlignVertical="top"
                     />
-                    <Text style={styles.customHint}>{t('autoSends.customHint')}</Text>
+                    <Text style={styles.customHint}>{t('broadcast.customHint')}</Text>
+                    {customContent.trim().length > 0 && (
+                      <TouchableOpacity style={styles.tplConfirmBtn} onPress={() => setStep(2)} activeOpacity={0.85}>
+                        <Text style={styles.tplConfirmBtnText}>{t('broadcast.useCustomBtn')}</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
               </>
@@ -406,7 +328,7 @@ export default function NewAutoSendScreen() {
         {step === 2 && (
           <>
             <Text style={styles.stepHint}>
-              {t('autoSends.contactsHint')}
+              {t('broadcast.contactsHint')}
             </Text>
 
             <View style={styles.searchRow}>
@@ -414,11 +336,11 @@ export default function NewAutoSendScreen() {
                 style={styles.searchInput}
                 value={contactSearch}
                 onChangeText={setContactSearch}
-                placeholder={t('autoSends.searchPlaceholder')}
+                placeholder={t('broadcast.searchPlaceholder')}
                 placeholderTextColor={Colors.onSurfaceVariant}
               />
               <TouchableOpacity style={styles.selectAllBtn} onPress={selectAll}>
-                <Text style={styles.selectAllText}>{t('autoSends.selectAllBtn')}</Text>
+                <Text style={styles.selectAllText}>{t('broadcast.selectAllBtn')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -428,7 +350,6 @@ export default function NewAutoSendScreen() {
               <View style={styles.contactList}>
                 {filteredContacts.map((contact) => {
                   const selected = selectedContactIds.has(contact.id);
-                  const hasEvent = relevantContacts.has(contact.id);
                   return (
                     <TouchableOpacity
                       key={contact.id}
@@ -441,11 +362,6 @@ export default function NewAutoSendScreen() {
                       </View>
                       <View style={styles.contactInfo}>
                         <Text style={styles.contactName}>{contact.name}</Text>
-                        {!hasEvent && (
-                          <Text style={styles.contactNoEvent}>
-                            {trigger === 'birthday' ? t('autoSends.noBirthday') : t('autoSends.noNameday')}
-                          </Text>
-                        )}
                       </View>
                       <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
                         {selected && <Text style={styles.checkmark}>✓</Text>}
@@ -459,19 +375,19 @@ export default function NewAutoSendScreen() {
             {selectedContactIds.size > 0 && (
               <View style={[styles.tplConfirmBtn, { backgroundColor: C.primaryContainer }]}>
                 <Text style={[styles.tplConfirmBtnText, { color: C.primary }]}>
-                  {t('autoSends.selectedCount', { count: selectedContactIds.size })}
+                  {t('broadcast.selectedCount', { count: selectedContactIds.size })}
                 </Text>
               </View>
             )}
           </>
         )}
 
-        {/* ── STEP 3 : Trigger + Channel ── */}
+        {/* ── STEP 3 : Canal + envoi ── */}
         {step === 3 && (
           <>
-            <Text style={styles.stepHint}>{t('autoSends.channelHint')}</Text>
+            <Text style={styles.stepHint}>{t('broadcast.channelHint')}</Text>
 
-            <Text style={styles.sectionLabel}>{t('autoSends.channelSectionLabel')}</Text>
+            <Text style={styles.sectionLabel}>{t('broadcast.channelSectionLabel')}</Text>
             <View style={styles.optionRow}>
               {CHANNEL_OPTIONS.map((opt) => (
                 <TouchableOpacity
@@ -490,23 +406,24 @@ export default function NewAutoSendScreen() {
 
             {/* Summary */}
             <View style={styles.summary}>
-              <Text style={styles.summaryTitle}>{t('autoSends.summaryTitle')}</Text>
+              <Text style={styles.summaryTitle}>{t('broadcast.summaryTitle')}</Text>
               <Text style={styles.summaryLine}>
-                📝 <Text style={styles.summaryBold}>{t('autoSends.summaryTemplate')}</Text>{' '}
-                {customMode ? (customTitle.trim() || t('autoSends.defaultTemplateName')) : (selectedTemplate?.title ?? '—')}
+                {OCCASION_OPTIONS.find((o) => o.value === occasion)?.emoji} <Text style={styles.summaryBold}>{t('broadcast.summaryOccasion')}</Text>{' '}
+                {OCCASION_OPTIONS.find((o) => o.value === occasion)?.label}
               </Text>
               <Text style={styles.summaryLine}>
-                👥 <Text style={styles.summaryBold}>{t('autoSends.summaryContacts')}</Text>{' '}
-                {t('autoSends.summarySelectedCount', { count: selectedContactIds.size })}
+                📝 <Text style={styles.summaryBold}>{t('broadcast.summaryMessage')}</Text>{' '}
+                {customMode ? t('broadcast.summaryCustomMessage') : (selectedTemplate?.title ?? '—')}
               </Text>
               <Text style={styles.summaryLine}>
-                {trigger === 'birthday' ? '🎁' : '🌸'} <Text style={styles.summaryBold}>{t('autoSends.summaryOccasion')}</Text>{' '}
-                {TRIGGER_OPTIONS.find((o) => o.value === trigger)?.label}
+                👥 <Text style={styles.summaryBold}>{t('broadcast.summaryContacts')}</Text>{' '}
+                {t('broadcast.summarySelectedCount', { count: selectedContactIds.size })}
               </Text>
               <Text style={styles.summaryLine}>
-                {channel === 'sms' ? '📱' : '📧'} <Text style={styles.summaryBold}>{t('autoSends.summaryChannel')}</Text>{' '}
+                {channel === 'sms' ? '📱' : '📧'} <Text style={styles.summaryBold}>{t('broadcast.summaryChannel')}</Text>{' '}
                 {CHANNEL_OPTIONS.find((o) => o.value === channel)?.label}
               </Text>
+              <Text style={styles.summaryLine}>{t('broadcast.summaryNote')}</Text>
             </View>
           </>
         )}
@@ -514,14 +431,14 @@ export default function NewAutoSendScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Bottom CTA — masquée pendant les sous-étapes de filtre (occasion/ton/longueur/style) */}
+      {/* Bottom CTA — masquée pendant les sous-étapes de filtre (occasion/ton/longueur) */}
       {(step !== 1 || tplSubStep === 'list') && (
         <View style={styles.bottomBar}>
           {step < 3 ? (
             <Button3D
               label={step === 2 && selectedContactIds.size > 0
-                ? t('autoSends.continueWithCount', { count: selectedContactIds.size })
-                : t('autoSends.continueBtn')}
+                ? t('broadcast.continueWithCount', { count: selectedContactIds.size })
+                : t('broadcast.continueBtn')}
               onPress={() => {
                 if (step === 1 && !canProceed1) return;
                 if (step === 2 && !canProceed2) return;
@@ -533,11 +450,11 @@ export default function NewAutoSendScreen() {
             />
           ) : (
             <Button3D
-              label={saving || savingTpl ? t('autoSends.savingBtn') : t('autoSends.scheduleConfirmBtn')}
+              label={sending ? t('broadcast.sendingBtn') : t('broadcast.sendNowBtn')}
               onPress={handleConfirm}
               fullWidth
               size="lg"
-              disabled={saving || savingTpl}
+              disabled={sending}
             />
           )}
         </View>
@@ -582,7 +499,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       ...Shadows.sm,
     },
     tplCardSelected: { borderColor: C.primary, backgroundColor: C.primaryContainer },
-    tplCardCustom: { borderLeftWidth: 3, borderLeftColor: Colors.secondary },
     tplCardOwn: { borderStyle: 'dashed', borderWidth: 2, borderColor: Colors.outlineVariant },
     tplTitle: {
       fontFamily: 'BeVietnamPro_700Bold',
@@ -624,14 +540,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       padding: Spacing[4],
       gap: Spacing[3],
       ...Shadows.sm,
-    },
-    customTitleInput: {
-      fontFamily: 'BeVietnamPro_600SemiBold',
-      fontSize: Typography.md,
-      color: Colors.onSurface,
-      borderBottomWidth: 1,
-      borderBottomColor: Colors.surfaceContainerHighest,
-      paddingVertical: 8,
     },
     customContentInput: {
       fontFamily: 'BeVietnamPro_400Regular',
@@ -691,7 +599,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     contactAvatarText: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.sm, color: Colors.white },
     contactInfo: { flex: 1 },
     contactName: { fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurface },
-    contactNoEvent: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.outlineVariant, marginTop: 2 },
     checkbox: {
       width: 24, height: 24, borderRadius: 12,
       borderWidth: 2, borderColor: Colors.outlineVariant,
@@ -705,7 +612,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       borderLeftWidth: 3,
       borderLeftColor: C.primary,
       paddingLeft: 8,
-      paddingVertical: 4,      fontFamily: 'BeVietnamPro_700Bold',
+      paddingVertical: 4,
+      fontFamily: 'BeVietnamPro_700Bold',
       fontSize: Typography.md,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
@@ -781,19 +689,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
       backgroundColor: Colors.background,
       borderTopWidth: 0.5,
       borderTopColor: Colors.surfaceContainerHighest,
-    },
-    nextBtn: {
-      backgroundColor: C.primary,
-      borderRadius: Radii.full,
-      paddingVertical: 16,
-      alignItems: 'center',
-      ...Shadows.md,
-    },
-    nextBtnDisabled: { opacity: 0.45 },
-    nextBtnText: {
-      fontFamily: 'PlusJakartaSans_800ExtraBold',
-      fontSize: Typography.md,
-      color: Colors.white,
     },
   });
 }

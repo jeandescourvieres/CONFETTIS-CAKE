@@ -31,12 +31,15 @@ export interface ScheduledSend {
 
 // ── Templates ────────────────────────────────────────────────────────────────
 
-export async function fetchTemplates(userId: string): Promise<CardTemplate[]> {
+export async function fetchTemplates(
+  userId: string,
+  occasions: string[] = ['birthday', 'nameday'],
+): Promise<CardTemplate[]> {
   const { data, error } = await (supabase as any)
     .from('message_templates')
     .select('*')
     .or(`user_id.is.null,user_id.eq.${userId}`)
-    .or('is_system.eq.false,and(occasion.in.(birthday,nameday),is_manual_only.eq.false,animal_type.is.null)')
+    .or(`is_system.eq.false,and(occasion.in.(${occasions.join(',')}),is_manual_only.eq.false,animal_type.is.null)`)
     .order('is_system', { ascending: false })
     .order('created_at', { ascending: true });
   if (error) throw error;
