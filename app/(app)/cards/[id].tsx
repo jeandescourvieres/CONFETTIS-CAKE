@@ -71,7 +71,7 @@ export default function CardPreviewScreen() {
 
   const { data: template, isLoading, isError } = useCardTemplate(id);
   const { data: contactData } = useContact(contactId ?? '');
-  const [recipientName, setRecipientName] = useState(paramName ?? '');
+  const [recipientName, setRecipientName] = useState(() => extractFirstName(paramName ?? ''));
   const [nameEditing, setNameEditing] = useState(false);
   const [recipientAge, setRecipientAge] = useState<number | undefined>(() => {
     if (!contactId) return undefined;
@@ -82,7 +82,7 @@ export default function CardPreviewScreen() {
 
   // Resynchronise destinataire/expéditeur si on revient sur cet écran (même template) pour un autre contact
   React.useEffect(() => {
-    setRecipientName(paramName ?? '');
+    setRecipientName(extractFirstName(paramName ?? ''));
     setSenderName(paramSender ?? '');
   }, [contactId, paramName, paramSender]);
 
