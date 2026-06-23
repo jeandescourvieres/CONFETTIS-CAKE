@@ -843,9 +843,9 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   nameSub: {
     fontFamily: 'BeVietnamPro_400Regular',
-    fontSize: Typography.xs,
+    fontSize: Typography.base,
     color: Colors.onSurfaceVariant,
-    lineHeight: 16,
+    lineHeight: 18,
     marginTop: -2,
   },
   nameInput: {
