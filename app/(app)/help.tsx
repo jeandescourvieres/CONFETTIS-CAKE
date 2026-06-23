@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTabScrollToTop } from '../../src/hooks/useTabScrollToTop';
+import { scrollToTopRegistry } from '../../src/utils/scrollRegistry';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../src/constants/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { BackHeader } from '../../src/components/ui/BackHeader';
@@ -68,10 +69,10 @@ const STEPS: Step[] = [
 
 // ── Démarrage rapide ────────────────────────────────────────────────────────
 const QUICK_STEPS = [
-  { n: '1', emoji: '👥', title: 'Ajouter un contact', desc: "Va dans l'onglet Contacts → bouton '+ Ajouter un contact 👤'. Renseigne le prénom et la date de naissance — c'est tout ce qu'il faut pour démarrer !", route: '/(app)/contacts' },
-  { n: '2', emoji: '✨', title: 'Générer un message IA', desc: "Dans la fiche de ton contact, appuie sur 'Envoyer un message ✨'. Choisis l'occasion, le format et la tonalité — l'IA crée un texte unique en quelques secondes.", route: '/(app)/create' },
+  { n: '1', emoji: '👥', title: 'Ajouter un contact', desc: "Va dans l'onglet Contacts → bouton '+ Ajouter un contact 👤'. Renseigne le prénom et la date de naissance — c'est tout ce qu'il faut pour démarrer !", route: '/(app)/contacts', scrollKey: 'contacts/index' },
+  { n: '2', emoji: '✨', title: 'Crée ton message', desc: "Dans la fiche de ton contact, appuie sur 'Envoyer un message ✨'. Trois façons d'écrire, au choix : avec l'IA (un texte unique en quelques secondes), depuis un modèle (des centaines de textes prêts à retoucher), ou à ta façon (tu écris librement, l'assistant t'aide si besoin).", route: '/(app)/create' },
   { n: '3', emoji: '📤', title: 'Envoyer le message', desc: "Sur la page d'aperçu, choisis ton canal : WhatsApp 💬, SMS 📱, Email 📧 ou Copier 📋. Ton message est prêt à partir !", route: '/(app)/create' },
-  { n: '4', emoji: '🔔', title: 'Activer les alertes', desc: "Dans Paramètres → Notifications, active les rappels pour ne plus jamais rater un anniversaire ou une fête !", route: '/(app)/settings' },
+  { n: '4', emoji: '🔔', title: 'Activer les alertes', desc: "Dans Notifications, active les rappels pour ne plus jamais rater un anniversaire ou une fête !", route: '/(app)/notifications' },
 ];
 
 // ── FAQ ─────────────────────────────────────────────────────────────────────
@@ -439,7 +440,10 @@ export default function HelpScreen() {
                       <Text style={styles.stepDesc}>{step.desc}</Text>
                       <TouchableOpacity
                         style={[styles.ctaSmall, { backgroundColor: C.primaryContainer }]}
-                        onPress={() => router.navigate(step.route as never)}
+                        onPress={() => {
+                          router.navigate(step.route as never);
+                          if (step.scrollKey) scrollToTopRegistry.trigger(step.scrollKey);
+                        }}
                         activeOpacity={0.8}
                       >
                         <Text style={[styles.ctaSmallText, { color: C.primary }]}>Voir comment faire ▶️</Text>
