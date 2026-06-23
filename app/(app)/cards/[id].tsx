@@ -824,10 +824,13 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   },
   nameRow: {
     gap: 6,
+    backgroundColor: Colors.surfaceContainer,
+    borderRadius: Radii.xl,
+    padding: Spacing[4],
   },
   morseToggle: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
-    backgroundColor: Colors.surfaceContainerLow, borderRadius: Radii.lg,
+    backgroundColor: Colors.surfaceContainer, borderRadius: Radii.lg,
     padding: Spacing[4], borderWidth: 1.5, borderColor: Colors.outlineVariant,
   },
   morseToggleTitle: {
