@@ -506,59 +506,61 @@ export default function SettingsScreen() {
             <Text style={styles.modalTitle}>{t('settings.scheduleModal.title')}</Text>
             <Text style={styles.modalBody}>{t('settings.scheduleModal.body')}</Text>
 
-            {(['max', 'moderate', 'minimal', 'custom'] as NotifPreset[]).map((p) => (
-              <TouchableOpacity
-                key={p}
-                style={[
-                  styles.countryOption,
-                  draftPreset === p && { borderColor: C.primary, backgroundColor: C.primaryContainer + '30' },
-                ]}
-                onPress={() => setDraftPreset(p)}
-                activeOpacity={0.8}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.countryLabel, draftPreset === p && { color: C.primary }]}>
-                    {t(`settings.notifPresets.${p}.label`)}
-                  </Text>
-                  {p !== 'custom' && (
-                    <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant }}>
-                      {t(`settings.notifPresets.${p}.sub`)}
+            <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
+              {(['max', 'moderate', 'minimal', 'custom'] as NotifPreset[]).map((p) => (
+                <TouchableOpacity
+                  key={p}
+                  style={[
+                    styles.countryOption,
+                    draftPreset === p && { borderColor: C.primary, backgroundColor: C.primaryContainer + '30' },
+                  ]}
+                  onPress={() => setDraftPreset(p)}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.countryLabel, draftPreset === p && { color: C.primary }]}>
+                      {t(`settings.notifPresets.${p}.label`, { defaultValue: 'Personnalisé' })}
                     </Text>
-                  )}
-                </View>
-                {draftPreset === p && <Text style={{ fontSize: 16, color: C.primary }}>✓</Text>}
-              </TouchableOpacity>
-            ))}
+                    {p !== 'custom' && (
+                      <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant }}>
+                        {t(`settings.notifPresets.${p}.sub`)}
+                      </Text>
+                    )}
+                  </View>
+                  {draftPreset === p && <Text style={{ fontSize: 16, color: C.primary }}>✓</Text>}
+                </TouchableOpacity>
+              ))}
 
-            {draftPreset === 'custom' && (
-              <View style={{ gap: 8, marginTop: 4 }}>
-                <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurface }}>
-                  {t('settings.scheduleModal.selectDays')}
-                </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {CUSTOM_DAY_OPTIONS.map((day) => {
-                    const active = draftCustomDays.includes(day);
-                    return (
-                      <TouchableOpacity
-                        key={day}
-                        style={[
-                          { paddingVertical: 8, paddingHorizontal: 14, borderRadius: Radii.full, borderWidth: 1.5 },
-                          active
-                            ? { backgroundColor: C.primary, borderColor: C.primary }
-                            : { backgroundColor: Colors.surfaceContainerLow, borderColor: Colors.outlineVariant },
-                        ]}
-                        onPress={() => toggleCustomDay(day)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: active ? Colors.white : Colors.onSurface }}>
-                          {day === 0 ? t('settings.notifications.dayJ') : t('settings.notifications.dayMinus', { count: day })}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+              {draftPreset === 'custom' && (
+                <View style={{ gap: 8, marginTop: 4, marginBottom: 8 }}>
+                  <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: Colors.onSurface }}>
+                    {t('settings.scheduleModal.selectDays')}
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {CUSTOM_DAY_OPTIONS.map((day) => {
+                      const active = draftCustomDays.includes(day);
+                      return (
+                        <TouchableOpacity
+                          key={day}
+                          style={[
+                            { paddingVertical: 8, paddingHorizontal: 14, borderRadius: Radii.full, borderWidth: 1.5 },
+                            active
+                              ? { backgroundColor: C.primary, borderColor: C.primary }
+                              : { backgroundColor: Colors.surfaceContainerLow, borderColor: Colors.outlineVariant },
+                          ]}
+                          onPress={() => toggleCustomDay(day)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: Typography.sm, color: active ? Colors.white : Colors.onSurface }}>
+                            {day === 0 ? t('settings.notifications.dayJ') : t('settings.notifications.dayMinus', { count: day })}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
+            </ScrollView>
 
             <View style={styles.modalBtns}>
               <TouchableOpacity style={[styles.modalBtn, styles.modalBtnCancel]} onPress={() => setScheduleModalVisible(false)}>
