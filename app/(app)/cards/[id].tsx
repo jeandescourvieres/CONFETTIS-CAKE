@@ -443,13 +443,13 @@ export default function CardPreviewScreen() {
 
         {/* Message personnel */}
         <View style={styles.nameRow}>
-          <Text style={styles.nameSub} numberOfLines={0}>{'Texte affiché dans un encadré en bas de la carte — max. 500 caractères (environ 5 lignes). Le fond s\'adapte automatiquement à l\'animation, ou choisis une couleur ci-dessous.'}</Text>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <Text style={styles.nameLabel}>💬 Message personnel (optionnel)</Text>
             <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 10, color: Colors.onSurfaceVariant }}>
               {personalMessage.length}/500
             </Text>
           </View>
+          <Text style={styles.nameSub} numberOfLines={0}>{'Texte affiché dans un encadré en bas de la carte — max. 500 caractères (environ 5 lignes). Le fond s\'adapte automatiquement à l\'animation, ou choisis une couleur ci-dessous.'}</Text>
           <TextInput
             style={[styles.nameInput, { height: 100, textAlignVertical: 'top', paddingTop: 10, paddingBottom: 10 }]}
             value={personalMessage}
