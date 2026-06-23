@@ -26,6 +26,9 @@ const { width: W } = Dimensions.get('window');
 const CARD_W = W;
 const CARD_H = CARD_W * (16 / 9);
 
+// Tailles de photo — mêmes valeurs que docs/card.html (sizePx)
+const PHOTO_SIZE_PX: Record<'sm' | 'md' | 'lg', number> = { sm: 66, md: 90, lg: 140 };
+
 export default function CardPreviewScreen() {
   const C = useColors();
   const router = useRouter();
@@ -282,7 +285,16 @@ export default function CardPreviewScreen() {
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 8 }}>
             {/* Photo ou emoji */}
             {cardPhotoUri ? (
-              <Image source={{ uri: cardPhotoUri }} style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: 'rgba(255,255,255,0.8)' }} />
+              <Image
+                source={{ uri: cardPhotoUri }}
+                style={{
+                  width: PHOTO_SIZE_PX[cardPhotoSize],
+                  height: PHOTO_SIZE_PX[cardPhotoSize],
+                  borderRadius: cardPhotoShape === 'square' ? 14 : PHOTO_SIZE_PX[cardPhotoSize] / 2,
+                  borderWidth: 3,
+                  borderColor: 'rgba(255,255,255,0.8)',
+                }}
+              />
             ) : (
               <Text style={{ fontSize: 40 }}>
                 {({ birthday:'🎂', nameday:'🌸', valentines:'💕', wedding:'💍', birth:'👶', graduation:'🎓', mothersday:'💐', fathersday:'👔', christmas:'🎄', newyear:'🎆', support:'🤗', thanks:'🙏', birthday_late:'⏰', courage:'🍀', weekend:'😎' } as Record<string,string>)[template.occasion] ?? '🎉'}
