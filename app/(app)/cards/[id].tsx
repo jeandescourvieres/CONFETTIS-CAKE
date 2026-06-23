@@ -834,7 +834,7 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.onSurface,
   },
   morseToggleSub: {
-    fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: Colors.onSurfaceVariant, lineHeight: 16, marginTop: 2,
+    fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: Colors.onSurfaceVariant, lineHeight: 18, marginTop: 2,
   },
   nameLabel: {
     fontFamily: 'BeVietnamPro_700Bold',
