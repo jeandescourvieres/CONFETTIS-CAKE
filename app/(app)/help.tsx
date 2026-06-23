@@ -56,6 +56,14 @@ const STEPS: Step[] = [
   { n: '21', emoji: '📖', title: 'Livre d\'or',                     desc: 'Le livre d\'or te permet de collecter des messages de tes proches sur une page partageable.\n\nComment ça marche ?\n1. Dans le footer → "Livre d\'or".\n2. Partage ton lien de livre d\'or via WhatsApp, SMS ou email.\n3. Tes proches ouvrent le lien, laissent un message et une note.\n4. Tous les messages apparaissent dans ton livre d\'or, classés chronologiquement.\n\nParfait pour un anniversaire, un mariage, une retraite : tous les proches contribuent sans avoir l\'app !' },
 
   { n: '22', emoji: '🔊', title: 'Lecture à voix haute (TTS)',      desc: 'Fais lire ton message à voix haute par une voix IA !\n\nDans l\'aperçu du message, appuie sur le bouton "🔊 Écouter le message". L\'IA génère un fichier audio avec une voix naturelle — tu peux écouter avant d\'envoyer, et même partager l\'audio directement.\n\n🎙️ Disponible en voix masculine et féminine. La langue de lecture suit automatiquement la langue de ton message.' },
+
+  { n: '23', emoji: '📢', title: 'Diffusion groupée',              desc: 'Envoie un même message festif à plusieurs contacts à la fois, en un seul geste — idéal pour souhaiter la bonne année, joyeux Noël ou de joyeuses Pâques à toute ta liste sans recommencer pour chacun.\n\nComment faire ?\n1. Va dans "Diffusion groupée" (accueil → 📢)\n2. Choisis l\'occasion (Nouvel An, Noël, Pâques, Saint-Valentin, fête des mères/pères, Halloween, ou simple coucou)\n3. Choisis un ton (tu/vous) et une longueur, puis un modèle proposé — ou écris ton propre texte "à ma façon"\n4. Sélectionne les contacts qui recevront le message (un par un, ou "Tout sélectionner")\n5. Choisis le canal (SMS ou Email) et appuie sur "Envoyer maintenant"\n\nChaque contact reçoit le message avec son prénom inséré automatiquement. C\'est un envoi ponctuel, à la différence des Envois automatiques qui se répètent chaque année.' },
+
+  { n: '24', emoji: '🔔', title: 'Rappels collectifs',             desc: 'Préviens d\'autres proches qu\'une date importante approche pour quelqu\'un — par exemple, rappeler à toute la famille que c\'est bientôt l\'anniversaire de Mamie, sans avoir à le faire toi-même chaque année.\n\nComment faire ?\n1. Va dans "Rappels collectifs" (accueil → 🔔)\n2. Choisis le contact concerné et l\'occasion — anniversaire ou fête du prénom (seules les dates déjà renseignées sur sa fiche sont proposées)\n3. Choisis combien de jours avant la date le rappel doit partir (1, 3, 7 ou 14 jours)\n4. Laisse le texte généré automatiquement, ou écris le tien\n5. Sélectionne les destinataires à prévenir et le canal (SMS ou Email)\n\nUne fois programmé, le rappel se redéclenche automatiquement chaque année. Tu reçois une notification à chaque envoi effectué, et tu peux activer, désactiver ou supprimer un rappel à tout moment.' },
+
+  { n: '25', emoji: '💬', title: 'Réactions',                      desc: 'Permets à ton destinataire de répondre à un message reçu sans avoir besoin de l\'appli — d\'un simple tap sur un emoji (cœur, rire, adoration, mains jointes, larmes) et, s\'il le souhaite, un petit mot.\n\nChaque lien de réaction est unique et expire après 30 jours. Il ne donne accès qu\'à la page de réaction — aucune autre donnée n\'est visible.\n\nTu retrouves toutes les réactions reçues sur la page "Réactions", et tu reçois une notification à chaque nouvelle réaction.' },
+
+  { n: '26', emoji: '⬛', title: 'QR code de partage',              desc: 'Transforme un de tes messages déjà créés en code scannable : ton proche n\'a qu\'à pointer son appareil photo dessus pour le lire, sans cliquer sur aucun lien.\n\nComment faire ?\n1. Ouvre un message depuis son historique, sa fiche contact, ou juste après création\n2. Appuie sur "QR code" (ou "⬛ QR code à partager" depuis l\'accueil)\n3. Le code s\'affiche immédiatement — fais-le scanner par ton proche, ou partage le texte directement\n\nIdéal pour une carte imprimée, une affiche ou un moment en face à face.\n\n✨ En version gratuite, tu disposes de 3 QR codes. Le plan Premium les rend illimités.' },
 ];
 
 // ── Démarrage rapide ────────────────────────────────────────────────────────
@@ -144,6 +152,30 @@ const FAQ_ITEMS: FaqItem[] = [
     onCta: (router) => router.push('/(app)/create' as never),
   },
   {
+    id: 'faq_broadcast',
+    category: 'Messages & envois',
+    question: 'Comment envoyer un message à plusieurs contacts en même temps ?',
+    answer: "Va dans 'Diffusion groupée' (accueil → 📢). Choisis l'occasion, un modèle de message (ou écris le tien), sélectionne les contacts à prévenir, puis le canal (SMS ou Email) et appuie sur 'Envoyer maintenant'.",
+    ctaLabel: 'Voir Diffusion groupée ▶️',
+    onCta: (router) => router.push('/(app)/broadcast/new' as never),
+  },
+  {
+    id: 'faq_group_reminder',
+    category: 'Messages & envois',
+    question: "Comment prévenir mes proches qu'un anniversaire approche ?",
+    answer: "Va dans 'Rappels collectifs' (accueil → 🔔). Choisis le contact concerné, l'occasion, le délai (1 à 14 jours avant), puis les destinataires à prévenir. Le rappel repart automatiquement chaque année.",
+    ctaLabel: 'Voir Rappels collectifs ▶️',
+    onCta: (router) => router.push('/(app)/group-reminders' as never),
+  },
+  {
+    id: 'faq_reactions',
+    category: 'Messages & envois',
+    question: 'Comment mes proches peuvent-ils réagir à un message reçu ?',
+    answer: "Chaque message envoyé inclut un lien de réaction. Ton proche peut taper un emoji (cœur, rire, larmes…) et un petit mot, sans avoir besoin de l'appli. Tu retrouves sa réaction sur la page 'Réactions'.",
+    ctaLabel: 'Voir mes réactions ▶️',
+    onCta: (router) => router.push('/(app)/reactions' as never),
+  },
+  {
     id: 'faq_writing_style',
     category: 'Messages & envois',
     question: 'Comment changer le style d\'écriture ?',
@@ -209,6 +241,22 @@ const FAQ_ITEMS: FaqItem[] = [
     answer: "Dans le footer → Contacts → fiche contact → 'Envoyer une carte 🎴'. Ou depuis l'accueil (mode complet) → 'Cartes animées'.\n\nTon proche reçoit un simple lien — en l'ouvrant il découvre la carte animée sans avoir besoin de l'appli.\n\nCe que tu peux personnaliser :\n• ✍️ Titre — remplace le texte d'en-tête par ce que tu veux (ex : 'Joyeux Noël', 'Bon courage')\n• 💬 Message personnel — texte affiché dans un encadré en bas de la carte (max. 500 caractères)\n• 🎨 Fond du message — s'adapte automatiquement au thème choisi, ou choisis parmi 7 couleurs (Violet, Rouge, Rose, Bleu, Vert, Or, Noir)\n• 📸 Photo — selfie, galerie ou photo du contact, avec choix de la taille (Petite / Moyenne / Grande) et de la forme (Ronde / Carrée)\n• 🎵 Musique — 8 ambiances au choix (Festive, Piano, Guitare, Jazz…)\n• 🎊 Animation — 7 thèmes de particules (Confetti, Cœurs, Étoiles, Ballons, Pétales, Flocons, Feux d'artifice)\n• 📡 Mode Morse (mode décalé 😄) — le message est converti en points et tirets. Le destinataire reçoit un message d\'accroche ('Tu as reçu un message secret en code Morse !'), peut écouter les bips audio, lire le code, et révéler le texte caché d\'un tap sur '🔓 Révéler le message' 🤫",
     ctaLabel: 'Voir les cartes ▶️',
     onCta: (router) => router.push('/(app)/cards' as never),
+  },
+  {
+    id: 'faq_couple_mode',
+    category: 'Cartes & nouveautés',
+    question: 'Comment activer le Mode couple ?',
+    answer: "Va dans 'Mode couple' et crée une invitation — un code à 6 lettres s'affiche. Partage-le à ton/ta partenaire, qui le saisit dans 'Rejoindre avec un code'. Vous voyez alors chacun les contacts de l'autre.",
+    ctaLabel: 'Voir Mode couple ▶️',
+    onCta: (router) => router.push('/(app)/couple' as never),
+  },
+  {
+    id: 'faq_qr_code',
+    category: 'Cartes & nouveautés',
+    question: 'Comment partager un message par QR code ?',
+    answer: "Ouvre un message déjà créé, puis appuie sur 'QR code' (ou depuis l'accueil → '⬛ QR code à partager'). Le code s'affiche immédiatement — ton proche n'a qu'à le scanner pour lire le message. 3 QR codes gratuits, illimité en Premium.",
+    ctaLabel: 'Voir QR code ▶️',
+    onCta: (router) => router.push('/(app)/qr' as never),
   },
   {
     id: 'faq_changer_mode',

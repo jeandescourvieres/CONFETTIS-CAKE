@@ -46,6 +46,12 @@ const ENTRIES: Entry[] = [
   },
   {
     letter: 'C',
+    term: 'Cartes animées',
+    desc: "Les Cartes animées te permettent d'envoyer une carte qui s'anime, avec confettis, musique et le prénom de ton proche, en plus ou à la place d'un message texte.\n\n🃏 Galerie — parcours plus de 60 cartes classées par occasion (anniversaire, mariage, Noël, soutien…) et par genre (elle, lui, enfant). Pour les anniversaires marquants, l'âge s'affiche en grand (\"Enfin 40 ans !\").\n\n✨ Carte IA — un wizard en 5 étapes (contact, occasion, style visuel, message) génère une carte personnalisée automatiquement à partir de nos templates.\n\n🔗 Partage — ton proche reçoit un simple lien et découvre la carte animée directement dans son navigateur, sans avoir besoin d'installer l'appli.",
+    route: '/(app)/cards',
+  },
+  {
+    letter: 'C',
     term: 'Compatibilité',
     desc: "La Compatibilité astrologique calcule l'entente entre toi et un contact selon vos deux signes du zodiaque.\n\nElle analyse plusieurs dimensions : la compatibilité en amour, en amitié, au travail et en communication. Chaque dimension est notée et expliquée clairement.\n\nC'est un contenu fun et original, parfait pour briser la glace, taquiner un ami ou en apprendre plus sur vos affinités. Aucune valeur scientifique — mais beaucoup de plaisir !",
     route: '/(app)/compat',
@@ -69,6 +75,18 @@ const ENTRIES: Entry[] = [
     route: '/(app)/dashboard',
   },
   {
+    letter: 'D',
+    term: 'Diffusion groupée',
+    desc: "La Diffusion groupée envoie un même message festif à plusieurs contacts à la fois, en un seul geste — idéal pour souhaiter la bonne année, joyeux Noël ou de joyeuses Pâques à toute ta liste sans recommencer pour chacun.\n\nComment faire ?\n1. Va dans \"Diffusion groupée\" (accueil → 📢)\n2. Choisis l'occasion (Nouvel An, Noël, Pâques, Saint-Valentin, fête des mères/pères, Halloween, ou simple coucou)\n3. Choisis un ton (tu/vous) et une longueur, puis un modèle proposé — ou écris ton propre texte \"à ma façon\"\n4. Sélectionne les contacts qui recevront le message (un par un, ou \"Tout sélectionner\")\n5. Choisis le canal (SMS ou Email) et appuie sur \"Envoyer maintenant\"\n\nChaque contact reçoit le message avec son prénom inséré automatiquement. C'est un envoi ponctuel, à la différence des Envois automatiques qui se répètent chaque année.",
+    route: '/(app)/broadcast/new',
+  },
+  {
+    letter: 'E',
+    term: 'Envois automatiques',
+    desc: "Les Envois automatiques programment l'envoi d'un message d'anniversaire ou de fête à un contact, par SMS ou par email — une seule fois, et l'appli s'en souvient chaque année.\n\nComment ça marche ?\n1. Va dans \"Envois automatiques\" (accueil → 🤖)\n2. Choisis un modèle de message (festif, humoristique, touchant, poétique…) ou rédige le tien\n3. Sélectionne un ou plusieurs contacts\n4. Choisis le déclencheur (Anniversaire ou Fête du prénom) et le canal (SMS ou Email)\n5. Active l'envoi — et oublie-le !\n\n🔔 La veille de chaque envoi programmé, tu reçois une notification de rappel — ta fenêtre pour annuler si besoin. L'envoi se réactive automatiquement l'année suivante, tu n'as à le configurer qu'une seule fois.",
+    route: '/(app)/auto-sends',
+  },
+  {
     letter: 'F',
     term: 'Format',
     desc: "Le Format détermine la forme littéraire du message que l'IA va rédiger.\n\nQuatre formats sont disponibles :\n• Message classique — un texte chaleureux et naturel, idéal pour la plupart des occasions\n• Poème — des vers rimés, élégants et originaux\n• Chanson — paroles rythmées sur le thème de l'occasion\n• Humour — un message décalé et drôle pour faire sourire\n\nLe même contenu peut donner des résultats très différents selon le format choisi. N'hésite pas à tester plusieurs formats et à régénérer pour trouver le ton parfait.",
@@ -77,6 +95,12 @@ const ENTRIES: Entry[] = [
     letter: 'L',
     term: 'Langue du message',
     desc: "L'IA peut rédiger ton message dans 6 langues différentes.\n\nC'est particulièrement utile si tu as des contacts étrangers ou de la famille à l'étranger — recevoir un message dans sa langue maternelle, c'est une attention qui touche vraiment.\n\nLangues disponibles :\n🇫🇷 Français\n🇬🇧 Anglais\n🇩🇪 Allemand\n🇪🇸 Espagnol\n🇮🇹 Italien\n🇵🇹 Portugais\n\nTu peux choisir la langue au moment de créer le message, ou l'enregistrer dans la fiche contact pour qu'elle soit automatiquement sélectionnée à chaque fois.",
+  },
+  {
+    letter: 'L',
+    term: "Livre d'or",
+    desc: "Le Livre d'or te permet de collecter des messages de tes proches sur une page partageable — parfait pour un anniversaire, un mariage ou un départ à la retraite.\n\nComment ça marche ?\n1. Partage ton lien de livre d'or via WhatsApp, SMS ou email\n2. Tes proches ouvrent le lien dans leur navigateur (sans avoir besoin de l'appli), laissent un message et une note\n3. Tous les messages s'affichent dans ton livre d'or, classés chronologiquement\n\nAucune inscription n'est nécessaire pour tes proches — le lien fonctionne directement.",
+    route: '/(app)/guestbook',
   },
   {
     letter: 'M',
@@ -107,6 +131,12 @@ const ENTRIES: Entry[] = [
     letter: 'M',
     term: 'Mode complet',
     desc: "Le Mode complet est l'interface épurée pour les utilisateurs qui connaissent déjà bien ConfettiCake.\n\nLes explications et textes d'introduction sont masqués pour aller à l'essentiel. L'interface est plus dense et plus rapide à parcourir.\n\nTu peux toujours accéder aux informations d'aide via les petits boutons ℹ️ présents sur chaque section.\n\nPour l'activer : sur l'accueil, appuie sur le bouton \"🍭 Passer en mode complet\". Tu peux revenir au Mode apprentissage à tout moment.",
+  },
+  {
+    letter: 'M',
+    term: 'Mode couple',
+    desc: "Le Mode couple connecte ton compte à celui de ton/ta partenaire pour partager vos agendas de contacts.\n\nComment ça marche ?\n1. L'un de vous crée une invitation depuis \"Mode couple\" → un code à 6 lettres s'affiche\n2. Il partage ce code à l'autre\n3. L'autre saisit le code dans \"Rejoindre avec un code\"\n4. Le lien est activé !\n\nUne fois en mode couple, vous voyez chacun les contacts de l'autre (avec le badge 💑), et les anniversaires/fêtes du partenaire apparaissent dans l'agenda principal. Tu peux dissocier le lien à tout moment depuis \"Mode couple\" — les contacts redeviennent privés immédiatement.",
+    route: '/(app)/couple',
   },
   {
     letter: 'N',
@@ -147,6 +177,24 @@ const ENTRIES: Entry[] = [
     term: 'Profil',
     desc: "Le Profil contient tes informations personnelles utilisées par l'IA pour personnaliser tes messages.\n\nTu peux y renseigner :\n• Ton prénom et nom (pour la signature automatique)\n• Ta date de naissance\n• Ta civilité (Monsieur, Madame…)\n• Ton thème de couleur préféré dans l'appli\n• Ton plan d'abonnement (gratuit ou Premium)\n\nPlus ton profil est complet, plus l'IA comprend qui tu es et peut adapter le ton et la signature de tes messages. Pense à le remplir dès le départ !",
     route: '/(app)/profile',
+  },
+  {
+    letter: 'Q',
+    term: 'QR code de partage',
+    desc: "Le QR code de partage transforme un de tes messages déjà créés en code scannable : ton proche n'a qu'à pointer son appareil photo dessus pour lire le message, sans cliquer sur aucun lien.\n\nComment faire ?\n1. Ouvre un message depuis son historique, sa fiche contact, ou directement après création\n2. Appuie sur \"QR code\" (ou \"⬛ QR code à partager\" depuis l'accueil)\n3. Le code s'affiche immédiatement — fais-le scanner par ton proche, ou partage le texte directement\n\nIdéal pour une carte imprimée, une affiche ou un moment en face à face où tu veux surprendre quelqu'un.\n\n✨ En version gratuite, tu disposes de 3 QR codes. Le plan Premium les rend illimités.",
+    route: '/(app)/qr',
+  },
+  {
+    letter: 'R',
+    term: 'Rappels collectifs',
+    desc: "Les Rappels collectifs préviennent d'autres proches qu'une date importante approche pour quelqu'un — par exemple, rappeler à toute la famille que c'est bientôt l'anniversaire de Mamie, sans avoir à le faire toi-même chaque année.\n\nComment faire ?\n1. Va dans \"Rappels collectifs\" (accueil → 🔔)\n2. Choisis le contact concerné et l'occasion — anniversaire ou fête du prénom (seules les dates déjà renseignées sur sa fiche sont proposées)\n3. Choisis combien de jours avant la date le rappel doit partir (1, 3, 7 ou 14 jours)\n4. Laisse le texte généré automatiquement, ou écris le tien\n5. Sélectionne les destinataires à prévenir et le canal (SMS ou Email)\n\nUne fois programmé, le rappel se redéclenche automatiquement chaque année. Tu reçois une notification à chaque envoi effectué, et tu peux activer, désactiver ou supprimer un rappel à tout moment.",
+    route: '/(app)/group-reminders',
+  },
+  {
+    letter: 'R',
+    term: 'Réactions',
+    desc: "Les Réactions permettent à ton destinataire de répondre à un message reçu sans avoir besoin de l'appli — d'un simple tap sur un emoji (cœur, rire, adoration, mains jointes, larmes) et, s'il le souhaite, un petit mot.\n\nChaque lien de réaction est unique et expire après 30 jours. Il ne donne accès qu'à la page de réaction — aucune autre donnée n'est visible. Tu retrouves toutes les réactions reçues sur la page \"Réactions\", et tu reçois une notification à chaque nouvelle réaction.",
+    route: '/(app)/reactions',
   },
   {
     letter: 'R',
