@@ -2902,10 +2902,10 @@ export default function CreateScreen() {
           <View style={{ flex: 1, height: 1, backgroundColor: Colors.surfaceContainerHighest }} />
         </View>
 
-        <View style={{ borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#FBCFE8', backgroundColor: '#FFF1F7', padding: 16, gap: 10 }}>
+        <View style={{ borderRadius: Radii.xl, borderWidth: 1.5, borderColor: '#FFD7A8', backgroundColor: '#FFF4E5', padding: 16, gap: 10 }}>
           <View style={styles.guideModeHeader}>
             <Text style={styles.guideModeEmoji}>🎙️</Text>
-            <Text style={[styles.guideModeLabel, { color: '#BE185D' }]}>Tu peux envoyer un message vocal :</Text>
+            <Text style={[styles.guideModeLabel, { color: '#C2410C' }]}>Tu peux envoyer un message vocal :</Text>
           </View>
           <Text style={styles.guideModeSub}>Écris ton message via l'un des modes ci-dessus, puis dans l'aperçu tu pourras le transformer en message audio lu par une voix IA — avec une musique de fond et un lien à partager. Une attention qui sort vraiment du lot 🎧</Text>
         </View>
