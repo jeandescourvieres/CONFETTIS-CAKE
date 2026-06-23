@@ -2,7 +2,7 @@
 //  Confettis & Cake — Notifications
 // ═══════════════════════════════════════════════════════════════
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Linking,
+  Alert,
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, Radii, Shadows } from '../../../src/constants/theme';
@@ -21,6 +24,7 @@ import { useUpcomingEvents } from '../../../src/hooks/useContacts';
 import { useUpcomingCustomEvents } from '../../../src/hooks/useCustomEvents';
 import { getUpcomingHolidays } from '../../../src/utils/generalHolidays';
 import { useAppNotifications, useMarkAllNotificationsRead } from '../../../src/hooks/useNotifications';
+import { requestNotificationPermissions } from '../../../src/services/notifications.service';
 import type { AppNotification } from '../../../src/types/models';
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
@@ -63,6 +67,34 @@ export default function NotificationsScreen() {
   const styles = useMemo(() => makeStyles(C), [C]);
 
   const [tab, setTab] = useState<Tab>('upcoming');
+
+  // Permission notifications
+  const [permGranted, setPermGranted] = useState<boolean | null>(null);
+  const [requestingPerm, setRequestingPerm] = useState(false);
+
+  useEffect(() => {
+    Notifications.getPermissionsAsync().then((res) => setPermGranted(res.status === 'granted'));
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    setRequestingPerm(true);
+    try {
+      const granted = await requestNotificationPermissions();
+      setPermGranted(granted);
+      if (!granted) {
+        Alert.alert(
+          'Notifications désactivées',
+          'Tu as déjà refusé les notifications sur ce téléphone. Pour les activer, ouvre les réglages.',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Ouvrir les réglages', onPress: () => Linking.openSettings() },
+          ],
+        );
+      }
+    } finally {
+      setRequestingPerm(false);
+    }
+  };
 
   // Données "À venir"
   const upcomingEvents = useUpcomingEvents(30);
@@ -151,6 +183,27 @@ export default function NotificationsScreen() {
         ]}
         containerStyle={{ marginHorizontal: Spacing[4], marginTop: Spacing[3] }}
       />
+
+      {/* Bannière d'activation des notifications */}
+      {permGranted === false && (
+        <View style={[styles.permBanner, { borderColor: C.primary + '40' }]}>
+          <Text style={styles.permBannerEmoji}>🔔</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.permBannerTitle}>Active les notifications</Text>
+            <Text style={styles.permBannerSub}>Pour ne plus jamais rater un anniversaire ou une fête.</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.permBannerBtn, { backgroundColor: C.primary }, requestingPerm && { opacity: 0.6 }]}
+            onPress={handleEnableNotifications}
+            disabled={requestingPerm}
+            activeOpacity={0.85}
+          >
+            {requestingPerm
+              ? <ActivityIndicator size="small" color={Colors.white} />
+              : <Text style={styles.permBannerBtnText}>Activer</Text>}
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Onglets */}
       <View style={styles.tabs}>
@@ -328,6 +381,24 @@ function NotifRow({
 function makeStyles(C: ReturnType<typeof useColors>) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
+
+    permBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginHorizontal: Spacing[4],
+      marginTop: Spacing[3],
+      padding: Spacing[4],
+      backgroundColor: Colors.white,
+      borderRadius: Radii.xl,
+      borderWidth: 1.5,
+      ...Shadows.sm,
+    },
+    permBannerEmoji: { fontSize: 28 },
+    permBannerTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: Typography.base, color: Colors.onSurface },
+    permBannerSub: { fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: Colors.onSurfaceVariant, marginTop: 2 },
+    permBannerBtn: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: Radii.full, minWidth: 76, alignItems: 'center' },
+    permBannerBtnText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: Typography.sm, color: Colors.white },
 
     tabs: {
       flexDirection: 'row',

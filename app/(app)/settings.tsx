@@ -300,7 +300,7 @@ export default function SettingsScreen() {
             emoji="📱"
             label={t('settings.notifications.checkLabel')}
             sub={t('settings.notifications.checkSub')}
-            onPress={handleNotifications}
+            onPress={() => Linking.openSettings()}
           />
         </SectionCard>
 
