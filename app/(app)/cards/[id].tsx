@@ -288,10 +288,10 @@ export default function CardPreviewScreen() {
                 {({ birthday:'🎂', nameday:'🌸', valentines:'💕', wedding:'💍', birth:'👶', graduation:'🎓', mothersday:'💐', fathersday:'👔', christmas:'🎄', newyear:'🎆', support:'🤗', thanks:'🙏', birthday_late:'⏰', courage:'💪', weekend:'🌞' } as Record<string,string>)[template.occasion] ?? '🎉'}
               </Text>
             )}
-            {/* Prefix du template */}
-            {!!template.text_style?.config?.prefix && (
+            {/* Titre perso, sinon prefix du template */}
+            {!!(cardTitle.trim() || template.text_style?.config?.prefix) && (
               <Text style={{ fontFamily: 'BeVietnamPro_600SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.85)', textAlign: 'center' }}>
-                {template.text_style.config.prefix}
+                {cardTitle.trim() || template.text_style?.config?.prefix}
               </Text>
             )}
             {/* Prénom en grand */}
