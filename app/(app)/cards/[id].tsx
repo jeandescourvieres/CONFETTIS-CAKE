@@ -827,6 +827,8 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     backgroundColor: Colors.surfaceContainer,
     borderRadius: Radii.xl,
     padding: Spacing[4],
+    borderWidth: 1.5,
+    borderColor: Colors.outlineVariant,
   },
   morseToggle: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
