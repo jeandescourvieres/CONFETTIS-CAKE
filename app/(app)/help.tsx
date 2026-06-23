@@ -244,6 +244,14 @@ const FAQ_ITEMS: FaqItem[] = [
     onCta: (router) => router.push('/(app)/cards' as never),
   },
   {
+    id: 'faq_morse',
+    category: 'Cartes & nouveautés',
+    question: 'Comment activer le Mode Morse ?',
+    answer: "Depuis Créer message → aperçu, ou dans une Carte animée, active la bascule '📡 Mode Morse'. Ton message est converti en points et tirets : ton proche écoute les bips audio et appuie sur '🔓 Révéler le message' pour décoder le texte caché. Un mode décalé et ludique, parfait pour surprendre 😄\n\nIndépendant du Message vocal — pas besoin de générer un vocal au préalable pour l'utiliser.",
+    ctaLabel: 'Voir les cartes ▶️',
+    onCta: (router) => router.push('/(app)/cards' as never),
+  },
+  {
     id: 'faq_couple_mode',
     category: 'Cartes & nouveautés',
     question: 'Comment activer le Mode couple ?',

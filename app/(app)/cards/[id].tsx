@@ -192,7 +192,7 @@ export default function CardPreviewScreen() {
     if (cardMsgBg) params.set('msg_bg', cardMsgBg);
     if (cardBg) params.set('card_bg', cardBg);
     if (cardTitle.trim()) params.set('title', cardTitle.trim());
-    const cardLink = `https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?${params.toString()}`;
+    const cardLink = `https://cartes.confetticake.fr/card.html?${params.toString()}`;
     if (morseMode) {
       return `📡 ${recipientName ? recipientName + ', tu' : 'Tu'} as reçu un message secret en code Morse !\n\nSauras-tu le décoder ? 🔐\n\n🔗 ${cardLink}\n\n— Créé avec Confettis & Cake 🎂`;
     }
@@ -215,18 +215,6 @@ export default function CardPreviewScreen() {
       await Share.share({ message: buildShareText() });
     }
   }, [buildShareText]);
-
-  const handleCreateMessage = useCallback(() => {
-    if (!id) return;
-    const store = useCreateStore.getState();
-    store.setCardTemplateId(id);
-    // Pré-remplir le contact si on vient d'une fiche contact ou du flow IA
-    // (le store a peut-être déjà été pré-rempli par ai-create, on ne l'écrase que si on a les infos)
-    if (contactId && recipientName && !store.contactId) {
-      store.setContact(contactId, recipientName, 'friend');
-    }
-    router.push('/(app)/create' as never);
-  }, [router, id, contactId, recipientName]);
 
   const styles = useMemo(() => makeStyles(C), [C]);
 
@@ -411,17 +399,20 @@ export default function CardPreviewScreen() {
         {/* Titre personnalisé */}
         <View style={styles.nameRow}>
           <Text style={styles.nameLabel}>✍️ Titre de la carte (optionnel)</Text>
-          <Text style={styles.nameSub}>Remplace le texte d'en-tête par défaut (ex : "Pour toi", "Félicitations !", "Bon courage"…) — max. 50 caractères</Text>
+          <Text style={styles.nameSub}>Remplace le texte d'en-tête par défaut (ex : "Pour toi", "Félicitations !", "Bon courage"…) — max. 30 caractères</Text>
           <TextInput
             style={styles.nameInput}
             value={cardTitle}
-            onChangeText={setCardTitle}
+            onChangeText={(v) => setCardTitle(v.slice(0, 30))}
             placeholder="Ex : Joyeux Noël, Félicitations, Bon courage…"
             placeholderTextColor={Colors.onSurfaceVariant}
-            maxLength={50}
+            maxLength={30}
             returnKeyType="done"
             autoCorrect={false}
           />
+          {cardTitle.length >= 30 && (
+            <Text style={styles.titleWarning}>⚠️ Limite de 30 caractères atteinte</Text>
+          )}
         </View>
 
         {/* Champ âge */}
@@ -664,23 +655,51 @@ export default function CardPreviewScreen() {
 
         {/* Mode Morse */}
         <TouchableOpacity
-          style={[styles.morseToggle, morseMode && { backgroundColor: '#1a1a2e', borderColor: '#00ff88' }]}
           onPress={() => setMorseMode(!morseMode)}
-          activeOpacity={0.85}
+          activeOpacity={0.88}
+          style={styles.morseBannerTouchable}
         >
-          <Text style={{ fontSize: 20 }}>📡</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.morseToggleTitle, morseMode && { color: '#00ff88' }]}>
-              Mode Morse {morseMode ? '— ACTIVÉ' : ''}
-            </Text>
-            <Text style={[styles.morseToggleSub, morseMode && { color: '#00cc66' }]}>
-              {morseMode
-                ? (personalMessage.trim()
-                    ? '· − · · ·  Activé ! Le destinataire voit le code, écoute les bips, et peut révéler le message caché d\'un tap 🤫'
-                    : '⚠️ Tape un message personnel ci-dessus pour activer le Morse')
-                : 'Ton message personnel est converti en points/tirets. Le destinataire entend les bips, déchiffre le code — et peut révéler le texte original d\'un tap 🔐'}
-            </Text>
-          </View>
+          <LinearGradient
+            colors={morseMode ? ['#001a0f', '#00592e', '#00ff88'] : ['#0d0d1a', '#3b1d5e', '#6D28D9']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.morseBannerGradient}
+          >
+            <View style={styles.morseBannerIconWrap}>
+              <Text style={styles.morseBannerIconBig}>📡</Text>
+            </View>
+            <View style={styles.morseBannerTextBlock}>
+              <Text style={styles.morseBannerTitle}>
+                Mode Morse {morseMode ? '— ACTIVÉ 😄' : ''}
+              </Text>
+              <Text style={styles.morseBannerSub}>
+                {morseMode
+                  ? (personalMessage.trim()
+                      ? '· − · · ·  Activé ! Le destinataire voit le code, écoute les bips, et peut révéler le message caché d\'un tap 🤫'
+                      : '⚠️ Tape un message personnel ci-dessus pour activer le Morse')
+                  : 'Ton message personnel est converti en points/tirets — bips audio et bouton "Révéler le message" pour le destinataire 🔐 (indépendant du message vocal)'}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                <View style={styles.morseBannerPill}>
+                  <Text style={styles.morseBannerPillText}>
+                    {morseMode ? '✓ Activé — Appuie pour désactiver' : '👆 Appuie ici pour activer'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    const demoMsg = personalMessage.trim() || 'Salut ! Voici un message secret juste pour toi 🤫';
+                    const params = new URLSearchParams({ morse: '1', msg: demoMsg, anim: cardAnim && cardAnim !== 'auto' ? cardAnim : 'stars' });
+                    if (recipientName.trim()) params.set('name', recipientName.trim());
+                    WebBrowser.openBrowserAsync(`https://cartes.confetticake.fr/card.html?${params.toString()}`);
+                  }}
+                  activeOpacity={0.8}
+                  style={styles.morseBannerPill}
+                >
+                  <Text style={styles.morseBannerPillText}>🔊 Écouter un exemple</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </LinearGradient>
         </TouchableOpacity>
 
         {/* Boutons d'action */}
@@ -706,7 +725,7 @@ export default function CardPreviewScreen() {
                 if (cardTitle.trim()) urlParams.set('title', cardTitle.trim());
                 if (morseMode) urlParams.set('morse', '1');
                 if (cardBg) urlParams.set('card_bg', cardBg);
-                WebBrowser.openBrowserAsync(`https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?${urlParams.toString()}`);
+                WebBrowser.openBrowserAsync(`https://cartes.confetticake.fr/card.html?${urlParams.toString()}`);
               }}
               activeOpacity={0.85}
             >
@@ -716,14 +735,9 @@ export default function CardPreviewScreen() {
           <TouchableOpacity style={styles.whatsappBtn} onPress={handleWhatsApp} activeOpacity={0.85}>
             <Text style={styles.whatsappBtnText}>💬 Envoyer via WhatsApp</Text>
           </TouchableOpacity>
-          <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.85}>
-              <Text style={styles.shareBtnText}>Partager ›</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.msgBtn} onPress={handleCreateMessage} activeOpacity={0.85}>
-              <Text style={styles.msgBtnText}>✦ Message</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.85}>
+            <Text style={styles.shareBtnText}>Partager ›</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -830,16 +844,54 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     borderWidth: 1.5,
     borderColor: Colors.outlineVariant,
   },
-  morseToggle: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing[3],
-    backgroundColor: Colors.surfaceContainer, borderRadius: Radii.lg,
-    padding: Spacing[4], borderWidth: 1.5, borderColor: Colors.outlineVariant,
+  morseBannerTouchable: {
+    borderRadius: Radii.xl,
+    overflow: 'hidden',
+    ...Shadows.md,
   },
-  morseToggleTitle: {
-    fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: Colors.onSurface,
+  morseBannerGradient: {
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    borderRadius: Radii.xl,
   },
-  morseToggleSub: {
-    fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.base, color: Colors.onSurfaceVariant, lineHeight: 18, marginTop: 2,
+  morseBannerIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  morseBannerIconBig: { fontSize: 22 },
+  morseBannerTextBlock: { flex: 1, gap: 4 },
+  morseBannerTitle: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 15,
+    color: '#fff',
+  },
+  morseBannerSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 17,
+  },
+  morseBannerPill: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  morseBannerPillText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 11,
+    color: '#fff',
   },
   nameLabel: {
     fontFamily: 'BeVietnamPro_700Bold',
@@ -863,6 +915,12 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: Colors.onSurface,
     borderWidth: 1.5,
     borderColor: Colors.outlineVariant,
+  },
+  titleWarning: {
+    fontFamily: 'BeVietnamPro_600SemiBold',
+    fontSize: Typography.xs,
+    color: Colors.error,
+    marginTop: -2,
   },
   nameInputFocused: {
     borderColor: C.primary,
@@ -892,10 +950,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
   actions: {
     gap: 10,
   },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
   whatsappBtn: {
     height: 52,
     backgroundColor: '#25D366',
@@ -910,7 +964,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     color: Colors.white,
   },
   shareBtn: {
-    flex: 1,
     height: 48,
     backgroundColor: C.primary,
     borderRadius: Radii.full,
@@ -921,21 +974,6 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontFamily: 'BeVietnamPro_700Bold',
     fontSize: Typography.md,
     color: Colors.white,
-  },
-  msgBtn: {
-    flex: 1,
-    height: 48,
-    backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: Radii.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: C.primary,
-  },
-  msgBtnText: {
-    fontFamily: 'BeVietnamPro_700Bold',
-    fontSize: Typography.md,
-    color: C.primary,
   },
 
   // ── Loading / Error ──

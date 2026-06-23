@@ -27,6 +27,7 @@ import { Audio } from 'expo-av';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
+import * as WebBrowser from 'expo-web-browser';
 import { captureRef } from 'react-native-view-shot';
 import { useCreateStore } from '../../../src/stores/createStore';
 import { useAuthStore } from '../../../src/stores/authStore';
@@ -1287,7 +1288,7 @@ export default function PreviewScreen() {
     const bgMusicUrl = null;
     const ttsLine = vocalUrl ? `\n🎙️ ${vocalUrl}` : '';
     const morseUrl = morseMode && contentToSend
-      ? `https://jeandescourvieres.github.io/CONFETTIS-CAKE/card.html?morse=1&msg=${encodeURIComponent(contentToSend)}&name=${encodeURIComponent(contactFirstName)}&anim=stars`
+      ? `https://cartes.confetticake.fr/card.html?morse=1&msg=${encodeURIComponent(contentToSend)}&name=${encodeURIComponent(contactFirstName)}&anim=stars`
       : null;
     const morseLine = morseUrl ? `\n📡 Mode décalé Morse 😄 : ${morseUrl}` : '';
     const text = (showSig ? baseText + buildSignatureText(i18n.language) : baseText) + (showLatePS ? '\n\n' + activePSText : '') + ttsLine + morseLine;
@@ -3186,10 +3187,27 @@ export default function PreviewScreen() {
                       // Attribution finale : message du compagnon, ou — si "Ta signature" est désactivée ("Aucune signature") —
                       // mention automatique du prénom et nom de l'expéditeur
                       const isPetFrom = (petDirection === 'from' || petDirection === 'from_to_third') && !!petName;
+                      // Révélation à la 1ère personne (l'animal parle) : reste dans le ton du message
+                      // au lieu de basculer en narration externe ("Jean a aidé Avoine... son message")
+                      const ownerContactObj = allContacts.find((c) => c.id === petOwnerId) ?? null;
+                      const maitreLabel = ownerContactObj?.civilite === 'Mme'
+                        ? 'ma maîtresse'
+                        : ownerContactObj?.civilite === 'M.'
+                          ? 'mon maître'
+                          : null;
+                      const entreNousPrefix = (petDirection === 'from' && maitreLabel)
+                        ? `Entre nous, ${maitreLabel}, `
+                        : contactFirstName
+                          ? `Entre nous ${contactFirstName}, `
+                          : 'Entre nous, ';
+                      // Triple saut de ligne + points de suspension isolés sur leur propre paragraphe :
+                      // c'est ce qu'ElevenLabs interprète le plus fiablement comme une vraie pause
+                      // (un simple "…\n\n" en plein milieu du texte ne laisse quasi aucun silence)
+                      const pauseBreak = '\n\n\n…\n\n\n';
                       const attributionLine = isPetFrom
-                        ? `\n\n…\n\nCe message t'est envoyé par ${petName}, mais ${ttsFullName || senderFirst} l'a un peu aidé !`
+                        ? `${pauseBreak}${entreNousPrefix}${ttsFullName || senderFirst} m'a un peu aidé à trouver les mots pour t'envoyer ce message !`
                         : (sigType === 'none' && ttsFullName)
-                          ? `\n\n…\n\nCe message est envoyé de la part de ${ttsFullName}.`
+                          ? `${pauseBreak}Ce message est envoyé de la part de ${ttsFullName}.`
                           : '';
                       const rawTts = `${openingLine}${content}${formuleLine}${psLine}${attributionLine}`.trim();
                       const ttsText = resolveGender(rawTts, senderGender);
@@ -3250,7 +3268,7 @@ export default function PreviewScreen() {
                       <TouchableOpacity
                         style={styles.ttsPreviewFullBtn}
                         onPress={() => {
-                          const playerUrl = new URL('https://jeandescourvieres.github.io/CONFETTIS-CAKE/player.html');
+                          const playerUrl = new URL('https://cartes.confetticake.fr/player.html');
                           playerUrl.searchParams.set('tts_url', tts.ttsUrl!);
                           if (ttsBgMusic && ttsBgMusic !== 'aucune') {
                             playerUrl.searchParams.set('bg_url', `${Config.supabaseUrl}/storage/v1/object/public/generated-audio/bg-music/${ttsBgMusic}.mp3`);
@@ -3303,26 +3321,49 @@ export default function PreviewScreen() {
         {/* ── Mode Morse (décalé) ──────────────────────── */}
         {!isEditing && !!generatedContent && (
           <TouchableOpacity
-            style={[
-              { flexDirection: 'row', alignItems: 'center', gap: 12, padding: Spacing[4], borderRadius: Radii.xl, borderWidth: 1.5, marginHorizontal: Spacing[4] },
-              morseMode
-                ? { backgroundColor: '#0d0d1a', borderColor: '#00ff88' }
-                : { backgroundColor: Colors.surfaceContainerLow, borderColor: Colors.outlineVariant },
-            ]}
             onPress={() => setMorseMode(!morseMode)}
-            activeOpacity={0.85}
+            activeOpacity={0.88}
+            style={[styles.morseBannerTouchable, { marginHorizontal: Spacing[4] }]}
           >
-            <Text style={{ fontSize: 22 }}>📡</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.base, color: morseMode ? '#00ff88' : Colors.onSurface }}>
-                Mode Morse{morseMode ? ' — ACTIVÉ 😄' : ''}
-              </Text>
-              <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.xs, color: morseMode ? '#00cc66' : Colors.onSurfaceVariant, lineHeight: 16, marginTop: 2 }}>
-                {morseMode
-                  ? '· − · · ·  Un lien animé est ajouté à ton message — le destinataire écoute les bips et peut révéler le texte caché 🤫'
-                  : 'Mode décalé 😄 — ton message est converti en code Morse. Un lien animé est glissé dans le message avec bips audio et bouton "Révéler le message"'}
-              </Text>
-            </View>
+            <LinearGradient
+              colors={morseMode ? ['#001a0f', '#00592e', '#00ff88'] : ['#0d0d1a', '#3b1d5e', '#6D28D9']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.morseBannerGradient}
+            >
+              <View style={styles.morseBannerIconWrap}>
+                <Text style={styles.morseBannerIconBig}>📡</Text>
+              </View>
+              <View style={styles.morseBannerTextBlock}>
+                <Text style={styles.morseBannerTitle}>
+                  Mode Morse{morseMode ? ' — ACTIVÉ 😄' : ''}
+                </Text>
+                <Text style={styles.morseBannerSub}>
+                  {morseMode
+                    ? '· − · · ·  Un lien animé est ajouté à ton message — le destinataire écoute les bips et peut révéler le texte caché 🤫'
+                    : 'Ton message est converti en code Morse 😄 — un lien animé est glissé dedans, avec bips audio et bouton "Révéler le message". Fonctionne seul, pas besoin du message vocal !'}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                  <View style={styles.morseBannerPill}>
+                    <Text style={styles.morseBannerPillText}>
+                      {morseMode ? '✓ Activé — Appuie pour désactiver' : '👆 Appuie ici pour activer'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const demoMsg = (isEditing ? localContent : generatedContent).trim() || 'Salut ! Voici un message secret juste pour toi 🤫';
+                      const params = new URLSearchParams({ morse: '1', msg: demoMsg, anim: 'stars' });
+                      if (contactFirstName) params.set('name', contactFirstName);
+                      WebBrowser.openBrowserAsync(`https://cartes.confetticake.fr/card.html?${params.toString()}`);
+                    }}
+                    activeOpacity={0.8}
+                    style={styles.morseBannerPill}
+                  >
+                    <Text style={styles.morseBannerPillText}>🔊 Écouter un exemple</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
         )}
 
@@ -3564,18 +3605,20 @@ export default function PreviewScreen() {
                 <Text style={styles.helpModalClose}>Fermer ✕</Text>
               </TouchableOpacity>
             </View>
-            {[
-              { title: 'Choisir une police', body: "Appuie sur le bouton de police pour ouvrir le sélecteur — 18 polices disponibles, regroupées en Classique, Manuscrit, Déco et Système. L'aperçu se met à jour instantanément ✨" },
-              { title: 'Régler la taille', body: "S = petit, M = normal, L = grand. La taille s'adapte aussi bien au message texte qu'aux chansons et poèmes." },
-              { title: 'Activer l\'italique', body: "Le bouton I met ton message en italique — idéal pour les messages élégants ou poétiques 💛" },
-              { title: 'Ce que reçoit ton proche', body: "Le style d'écriture choisi est appliqué automatiquement sur la page web que ton proche reçoit via le lien partagé." },
-              { title: 'Bon à savoir 💡', body: "Certains styles (Comic, Vintage, Comic Sans) sont très marqués — réserve-les pour les messages légers ou humoristiques. Pour l'émotion, préfère Satisfy ou Dancing Script 💛" },
-            ].map((s) => (
-              <View key={s.title} style={styles.helpModalSection}>
-                <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
-                <Text style={styles.helpModalSectionBody}>{s.body}</Text>
-              </View>
-            ))}
+            <ScrollView style={{ flexGrow: 0, flexShrink: 1 }} showsVerticalScrollIndicator={false}>
+              {[
+                { title: 'Choisir une police', body: "Appuie sur le bouton de police pour ouvrir le sélecteur — 18 polices disponibles, regroupées en Classique, Manuscrit, Déco et Système. L'aperçu se met à jour instantanément ✨" },
+                { title: 'Régler la taille', body: "S = petit, M = normal, L = grand. La taille s'adapte aussi bien au message texte qu'aux chansons et poèmes." },
+                { title: 'Activer l\'italique', body: "Le bouton I met ton message en italique — idéal pour les messages élégants ou poétiques 💛" },
+                { title: 'Ce que reçoit ton proche', body: "Le style d'écriture choisi est appliqué automatiquement sur la page web que ton proche reçoit via le lien partagé." },
+                { title: 'Bon à savoir 💡', body: "Certains styles (Comic, Vintage, Comic Sans) sont très marqués — réserve-les pour les messages légers ou humoristiques. Pour l'émotion, préfère Satisfy ou Dancing Script 💛" },
+              ].map((s) => (
+                <View key={s.title} style={styles.helpModalSection}>
+                  <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
+                  <Text style={styles.helpModalSectionBody}>{s.body}</Text>
+                </View>
+              ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -3594,20 +3637,23 @@ export default function PreviewScreen() {
                 <Text style={styles.helpModalClose}>Fermer ✕</Text>
               </TouchableOpacity>
             </View>
-            {[
-              { title: 'Transformer ton message en voix', body: "Appuie sur Transformer en vocal. Ton message est converti en audio en quelques secondes grâce à ElevenLabs — l'une des meilleures IA voix au monde !" },
-              { title: 'Les voix classiques 🎙️', body: "4 voix naturelles et chaleureuses pour un rendu élégant et émouvant :\n👨 Homme neutre · 👨 Homme chaleureux · 👩 Femme douce · 👩 Femme joyeuse" },
-              { title: 'Les voix fun 🎭', body: "6 voix décalées pour une attention mémorable et surprenante :\n🎅 Père Noël — chaleureux et ho-ho-ho !\n🏴‍☠️ Pirate — arr, c'est pour toi !\n🤖 Robot — bip bop, message transmis\n📻 Présentateur radio — jingle et micro tendu\n🧒 Enfant — spontané et adorable\n👑 Roi/Reine — majestueux et solennel" },
-              { title: 'Signature automatique 🖋️', body: "Si tu choisis \"Aucune signature\" dans la section ✍️ Signature personnalisée, le vocal se termine automatiquement par : \"…Ce message est envoyé de la part de [ton prénom et nom]\", repris depuis ton profil.\n\nSi tu as choisi une signature (prénom, lien de famille, surnom...), cette mention finale n'est pas ajoutée.\n\nLa formule de clôture (\"Bisous\", \"Avec amour\"...) reste lue normalement dans tous les cas, indépendamment de la signature." },
-              { title: 'Écouter avant d\'envoyer', body: "Écoute le résultat directement dans l'appli avant d'envoyer — et change de voix si le résultat ne te convient pas !" },
-              { title: 'Partager', body: "Via WhatsApp, SMS, email ou toute autre appli en un tap. Ton proche reçoit un lien audio qu'il peut écouter immédiatement depuis n'importe où 🎧" },
-              { title: 'Bon à savoir 💡', body: "Plus ton message est bien rédigé, plus le résultat vocal sera naturel ! Les voix fun sont particulièrement efficaces pour des occasions légères — anniversaires, blagues, surprises... Le français est parfaitement supporté 🇫🇷" },
-            ].map((s) => (
-              <View key={s.title} style={styles.helpModalSection}>
-                <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
-                <Text style={styles.helpModalSectionBody}>{s.body}</Text>
-              </View>
-            ))}
+            <ScrollView style={{ flexGrow: 0, flexShrink: 1 }} showsVerticalScrollIndicator={false}>
+              {[
+                { title: 'Transformer ton message en voix', body: "Appuie sur Transformer en vocal. Ton message est converti en audio en quelques secondes grâce à ElevenLabs — l'une des meilleures IA voix au monde !" },
+                { title: 'Les voix classiques 🎙️', body: "4 voix naturelles et chaleureuses pour un rendu élégant et émouvant :\n👨 Homme neutre · 👨 Homme chaleureux · 👩 Femme douce · 👩 Femme joyeuse" },
+                { title: 'Les voix fun 🎭', body: "6 voix décalées pour une attention mémorable et surprenante :\n🎅 Père Noël — chaleureux et ho-ho-ho !\n🏴‍☠️ Pirate — arr, c'est pour toi !\n🤖 Robot — bip bop, message transmis\n📻 Présentateur radio — jingle et micro tendu\n🧒 Enfant — spontané et adorable\n👑 Roi/Reine — majestueux et solennel" },
+                { title: 'Signature automatique 🖋️', body: "Si tu choisis \"Aucune signature\" dans la section ✍️ Signature personnalisée, le vocal se termine automatiquement par : \"…Ce message est envoyé de la part de [ton prénom et nom]\", repris depuis ton profil.\n\nSi tu as choisi une signature (prénom, lien de famille, surnom...), cette mention finale n'est pas ajoutée.\n\nLa formule de clôture (\"Bisous\", \"Avec amour\"...) reste lue normalement dans tous les cas, indépendamment de la signature." },
+                { title: 'Message « de la part de l\'animal » 🐾', body: "Quand le message est envoyé de la part de l'animal (vers son maître ou vers un tiers) et que son nom est renseigné, le vocal se termine automatiquement par une révélation à la 1ère personne, comme si c'était l'animal qui parlait : \"…Entre nous, ma maîtresse (ou mon maître), [ton prénom et nom] m'a un peu aidé à trouver les mots pour t'envoyer ce message !\"\n\nSi le destinataire n'est pas le maître/la maîtresse (message vers un tiers), c'est son prénom qui est utilisé à la place : \"Entre nous [prénom],...\"\n\nCette mention remplace la signature classique et reste dans le ton du message — pas de bascule en narration externe. Un clin d'œil attendrissant qui rappelle, avec humour, qui se cache derrière la patte de l'animal 😄" },
+                { title: 'Écouter avant d\'envoyer', body: "Écoute le résultat directement dans l'appli avant d'envoyer — et change de voix si le résultat ne te convient pas !" },
+                { title: 'Partager', body: "Via WhatsApp, SMS, email ou toute autre appli en un tap. Ton proche reçoit un lien audio qu'il peut écouter immédiatement depuis n'importe où 🎧" },
+                { title: 'Bon à savoir 💡', body: "Plus ton message est bien rédigé, plus le résultat vocal sera naturel ! Les voix fun sont particulièrement efficaces pour des occasions légères — anniversaires, blagues, surprises... Le français est parfaitement supporté 🇫🇷" },
+              ].map((s) => (
+                <View key={s.title} style={styles.helpModalSection}>
+                  <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
+                  <Text style={styles.helpModalSectionBody}>{s.body}</Text>
+                </View>
+              ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -3626,17 +3672,19 @@ export default function PreviewScreen() {
                 <Text style={styles.helpModalClose}>Fermer ✕</Text>
               </TouchableOpacity>
             </View>
-            {[
-              { title: 'Pour les contacts famille', body: "Quand tu envoies un message à un contact de type Famille, 4 options de signature sont proposées :\nTon prénom seul → ex : Jean\nLe lien seul → ex : Ton cousin\nLe lien + ton prénom → ex : Ton cousin Jean\nSurnom libre → saisis ce que tu veux — Tata Marie, Pépère, Ta grande sœur qui t'aime..." },
-              { title: 'Pour les autres contacts', body: "Pour les contacts hors famille, 3 options sont proposées :\nTon prénom seul → ex : Jean\nTon prénom + nom → ex : Jean Dupont\nSurnom libre → saisis ce que tu veux" },
-              { title: 'La mémorisation', body: "Ton choix de signature est mémorisé pour chaque contact et proposé automatiquement à chaque prochain message — plus besoin de le resélectionner à chaque fois !" },
-              { title: 'Bon à savoir 💡', body: "La civilité (M. / Mme) renseignée dans ton profil est utilisée pour générer automatiquement le bon lien de parenté — Papa ou Maman, Oncle ou Tante... Pense à la renseigner dans Mon Profil si ce n'est pas encore fait !" },
-            ].map((s) => (
-              <View key={s.title} style={styles.helpModalSection}>
-                <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
-                <Text style={styles.helpModalSectionBody}>{s.body}</Text>
-              </View>
-            ))}
+            <ScrollView style={{ flexGrow: 0, flexShrink: 1 }} showsVerticalScrollIndicator={false}>
+              {[
+                { title: 'Pour les contacts famille', body: "Quand tu envoies un message à un contact de type Famille, 4 options de signature sont proposées :\nTon prénom seul → ex : Jean\nLe lien seul → ex : Ton cousin\nLe lien + ton prénom → ex : Ton cousin Jean\nSurnom libre → saisis ce que tu veux — Tata Marie, Pépère, Ta grande sœur qui t'aime..." },
+                { title: 'Pour les autres contacts', body: "Pour les contacts hors famille, 3 options sont proposées :\nTon prénom seul → ex : Jean\nTon prénom + nom → ex : Jean Dupont\nSurnom libre → saisis ce que tu veux" },
+                { title: 'La mémorisation', body: "Ton choix de signature est mémorisé pour chaque contact et proposé automatiquement à chaque prochain message — plus besoin de le resélectionner à chaque fois !" },
+                { title: 'Bon à savoir 💡', body: "La civilité (M. / Mme) renseignée dans ton profil est utilisée pour générer automatiquement le bon lien de parenté — Papa ou Maman, Oncle ou Tante... Pense à la renseigner dans Mon Profil si ce n'est pas encore fait !" },
+              ].map((s) => (
+                <View key={s.title} style={styles.helpModalSection}>
+                  <Text style={styles.helpModalSectionTitle}>{s.title}</Text>
+                  <Text style={styles.helpModalSectionBody}>{s.body}</Text>
+                </View>
+              ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -5590,6 +5638,55 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     padding: 4,
   },
   ttsBannerHelpText: { fontSize: 16, opacity: 0.75 },
+  morseBannerTouchable: {
+    borderRadius: Radii.xl,
+    overflow: 'hidden',
+    ...Shadows.md,
+  },
+  morseBannerGradient: {
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    borderRadius: Radii.xl,
+  },
+  morseBannerIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  morseBannerIconBig: { fontSize: 22 },
+  morseBannerTextBlock: { flex: 1, gap: 4 },
+  morseBannerTitle: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 15,
+    color: '#fff',
+  },
+  morseBannerSub: {
+    fontFamily: 'BeVietnamPro_400Regular',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 17,
+  },
+  morseBannerPill: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  morseBannerPillText: {
+    fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 11,
+    color: '#fff',
+  },
   ttsExpandedCard: {
     backgroundColor: Colors.surfaceContainer,
     borderRadius: Radii.xl,

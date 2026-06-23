@@ -118,7 +118,7 @@ export default function AnimalMessageScreen() {
   const [fromRecipientName, setFromRecipientName] = useState<string>(ownerName ?? '');
   const [showFromPicker,    setShowFromPicker]    = useState(false);
   const [fromPickerSearch,  setFromPickerSearch]  = useState('');
-  const [fromStep,          setFromStep]          = useState<'recipient' | 'mode'>('recipient');
+  const [fromStep,          setFromStep]          = useState<'recipient' | 'mode'>(ownerId ? 'mode' : 'recipient');
 
   // Interception du bouton retour physique pour revenir à l'étape précédente dans l'écran
   useEffect(() => {
@@ -147,7 +147,7 @@ export default function AnimalMessageScreen() {
     setGenerated(null);
     setAiError(null);
     setManualText('');
-    setFromStep('recipient');
+    setFromStep(ownerId ? 'mode' : 'recipient');
     setFromRecipientId(ownerId ?? null);
     setFromRecipientName(ownerName ?? '');
     setSelectedThirdId(thirdId || null);
@@ -915,11 +915,10 @@ export default function AnimalMessageScreen() {
                       <Text style={[styles.seeMoreBtn, { color: C.primary }]}>👁️ Voir en entier</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.templateUseBtn, { backgroundColor: C.primary }]}
                       onPress={() => useMessage(tpl.content)}
-                      activeOpacity={0.85}
+                      activeOpacity={0.8}
                     >
-                      <Text style={styles.templateUseBtnText}>Utiliser ›</Text>
+                      <Text style={[styles.templateUseBtnText, { color: C.primary }]}>✉️ Utiliser ce modèle</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1035,8 +1034,7 @@ const styles = StyleSheet.create({
   modalBtnText: { fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm },
   templateCard:  { borderRadius: Radii.xl, padding: 14, gap: 10, ...Shadows.sm },
   templatePreview:{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, lineHeight: 20 },
-  templateUseBtn:{ borderRadius: Radii.full, paddingVertical: 10, alignItems: 'center' },
-  templateUseBtnText:{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: Colors.white },
+  templateUseBtnText:{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm },
 
   // Image toggle
   imageToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F3EFFF', borderRadius: Radii.lg, padding: 10 },

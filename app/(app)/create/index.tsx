@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import i18n from '../../../src/i18n';
 import { useContacts, useContact, useMyPets } from '../../../src/hooks/useContacts';
@@ -2910,9 +2911,11 @@ export default function CreateScreen() {
           <Text style={[styles.guideModeSub, { color: 'rgba(255,255,255,0.92)' }]}>Écris ton message via l'un des modes ci-dessus, puis dans l'aperçu tu pourras le transformer en message audio lu par une voix IA — avec une musique de fond et un lien à partager. Une attention qui sort vraiment du lot 🎧</Text>
         </View>
 
+        <View style={styles.softDivider} />
+
         {/* ── Message festif animé ── */}
         <TouchableOpacity
-          style={{ padding: 0, backgroundColor: 'transparent', borderColor: '#7C3AED', borderWidth: 1.5, borderRadius: Radii.xl, overflow: 'hidden', marginTop: 8 }}
+          style={{ padding: 0, backgroundColor: 'transparent', borderColor: '#7C3AED', borderWidth: 1.5, borderRadius: Radii.xl, overflow: 'hidden' }}
           onPress={() => router.push({ pathname: '/(app)/cards', params: { ...(contactId ? { contactId, contactName } : {}) } } as never)}
           activeOpacity={0.9}
         >
@@ -2933,6 +2936,36 @@ export default function CreateScreen() {
             </View>
           </LinearGradient>
         </TouchableOpacity>
+
+        <View style={styles.softDivider} />
+
+        {/* ── Mode Morse ── */}
+        <View style={{ borderRadius: Radii.xl, overflow: 'hidden' }}>
+          <LinearGradient
+            colors={['#0d0d1a', '#3b1d5e', '#6D28D9']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{ borderRadius: Radii.xl, padding: 16, gap: 10 }}
+          >
+            <View style={styles.guideModeHeader}>
+              <Text style={styles.guideModeEmoji}>📡</Text>
+              <Text style={[styles.guideModeLabel, { color: '#fff' }]}>Tu peux aussi activer le Mode Morse :</Text>
+            </View>
+            <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: Typography.sm, color: 'rgba(255,255,255,0.88)', lineHeight: 19 }}>
+              {'Écris ton message via l\'un des modes ci-dessus, puis dans l\'aperçu tu pourras le convertir en code Morse 😄 — un lien animé avec bips audio et bouton "Révéler le message". Indépendant du message vocal !'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                const params = new URLSearchParams({ morse: '1', msg: 'Salut ! Voici un message secret juste pour toi 🤫', anim: 'stars' });
+                if (firstNameInput.trim()) params.set('name', firstNameInput.trim());
+                WebBrowser.openBrowserAsync(`https://cartes.confetticake.fr/card.html?${params.toString()}`);
+              }}
+              activeOpacity={0.85}
+              style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radii.full, paddingVertical: 8, paddingHorizontal: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' }}
+            >
+              <Text style={{ fontFamily: 'BeVietnamPro_700Bold', fontSize: Typography.sm, color: '#fff' }}>🔊 Écouter un exemple</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
 
         {/* ── Option animaux — après les modes, séparée clairement ── */}
         {myPets.length > 0 && contactId && relation !== 'pet' && (
@@ -3909,6 +3942,12 @@ function makeStyles(C: ReturnType<typeof useColors>) {
     fontSize: Typography.sm,
     color: Colors.onSurfaceVariant,
     marginVertical: Spacing[2],
+  },
+  softDivider: {
+    height: 1,
+    backgroundColor: Colors.surfaceContainerHighest,
+    marginVertical: Spacing[3],
+    marginHorizontal: Spacing[8],
   },
   guideModeHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   guideModeEmoji: { fontSize: 28 },

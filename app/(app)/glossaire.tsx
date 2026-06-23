@@ -139,6 +139,11 @@ const ENTRIES: Entry[] = [
     route: '/(app)/couple',
   },
   {
+    letter: 'M',
+    term: 'Mode Morse',
+    desc: "Le Mode Morse transforme ton message en code Morse caché derrière un lien animé et ludique.\n\nTon destinataire ouvre le lien, écoute une série de bips audio (les vrais points et traits du message en Morse), puis appuie sur le bouton \"Révéler le message\" pour découvrir le texte décodé. Un clin d'œil original pour surprendre et faire sourire.\n\nPour l'activer : Créer message → aperçu → bascule \"Mode Morse\" (sous le message vocal) — ou dans une Carte animée, section \"Mode Morse\".",
+  },
+  {
     letter: 'N',
     term: 'Notes',
     desc: "Les Notes te permettent de garder une trace de ce que tu sais sur un contact, pour t'en souvenir au bon moment.\n\nExemples d'utilisation :\n• Idées de cadeaux (\"aime le jazz\", \"veut une raquette de tennis\")\n• Anecdotes ou souvenirs partagés\n• Allergies ou préférences pour un dîner\n• Ce qu'il t'a dit lors de ta dernière conversation\n\nCes notes sont entièrement privées — personne d'autre ne peut les voir.\n\n── Comment accéder aux notes ? ──\n\n1. Va dans \"Mes contacts\" et ouvre la fiche d'un contact\n2. Fais défiler vers le bas jusqu'à la section \"Notes personnelles\"\n3. Appuie sur la zone de texte pour écrire ou modifier ta note\n\nTu peux aussi renseigner une note au moment de créer ou modifier un contact, dans le champ prévu à cet effet.",
