@@ -285,7 +285,7 @@ export default function CardPreviewScreen() {
               <Image source={{ uri: cardPhotoUri }} style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: 'rgba(255,255,255,0.8)' }} />
             ) : (
               <Text style={{ fontSize: 40 }}>
-                {({ birthday:'🎂', nameday:'🌸', valentines:'💕', wedding:'💍', birth:'👶', graduation:'🎓', mothersday:'💐', fathersday:'👔', christmas:'🎄', newyear:'🎆', support:'🤗', thanks:'🙏', birthday_late:'⏰', courage:'💪', weekend:'🌞' } as Record<string,string>)[template.occasion] ?? '🎉'}
+                {({ birthday:'🎂', nameday:'🌸', valentines:'💕', wedding:'💍', birth:'👶', graduation:'🎓', mothersday:'💐', fathersday:'👔', christmas:'🎄', newyear:'🎆', support:'🤗', thanks:'🙏', birthday_late:'⏰', courage:'🍀', weekend:'😎' } as Record<string,string>)[template.occasion] ?? '🎉'}
               </Text>
             )}
             {/* Titre perso, sinon prefix du template */}

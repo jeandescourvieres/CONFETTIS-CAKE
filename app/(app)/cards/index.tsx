@@ -21,9 +21,9 @@ const OCCASIONS = [
   { key: 'newyear',       emoji: '🎆', label: 'Nouvel An',         color: '#F57F17', bg: '#FFFDE7' },
   { key: 'support',       emoji: '🤗', label: 'Soutien',           color: '#0288D1', bg: '#E1F5FE' },
   { key: 'thanks',        emoji: '🙏', label: 'Merci',             color: '#558B2F', bg: '#F1F8E9' },
-  { key: 'birthday_late', emoji: '🎂', label: 'Anniversaire tardif', color: '#795548', bg: '#EFEBE9' },
-  { key: 'courage',       emoji: '💪', label: 'Bon courage',       color: '#E65100', bg: '#FBE9E7' },
-  { key: 'weekend',       emoji: '🌞', label: 'Bon weekend',       color: '#F9A825', bg: '#FFFDE7' },
+  { key: 'birthday_late', emoji: '⏰', label: 'Anniversaire tardif', color: '#795548', bg: '#EFEBE9' },
+  { key: 'courage',       emoji: '🍀', label: 'Bon courage',       color: '#E65100', bg: '#FBE9E7' },
+  { key: 'weekend',       emoji: '😎', label: 'Bon weekend',       color: '#F9A825', bg: '#FFFDE7' },
   { key: 'universal',     emoji: '🌟', label: 'Universel',         color: '#6A1B9A', bg: '#F3E5F5' },
 ];
 
