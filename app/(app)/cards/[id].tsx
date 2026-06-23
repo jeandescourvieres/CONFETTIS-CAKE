@@ -333,7 +333,7 @@ export default function CardPreviewScreen() {
       </SafeAreaView>
 
       {/* ── Panneau bas ──────────────────────────────────────────────────────── */}
-      <ScrollView style={[styles.panel, { flex: 1 }]} contentContainerStyle={{ gap: Spacing[4], paddingBottom: 200 }} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
+      <ScrollView style={[styles.panel, { flex: 1 }]} contentContainerStyle={{ gap: Spacing[6], paddingBottom: 200 }} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
 
         {/* Explication hero */}
         <LinearGradient
