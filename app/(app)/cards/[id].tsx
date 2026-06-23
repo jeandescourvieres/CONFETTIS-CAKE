@@ -262,6 +262,7 @@ export default function CardPreviewScreen() {
             if (cardBg === 'vert')      return ['#1B5E20','#388E3C'];
             if (cardBg === 'or')        return ['#E65100','#F9A825'];
             if (cardBg === 'turquoise') return ['#00695C','#00897B'];
+            if (cardBg === 'jaune')     return ['#FBC02D','#FFEE58'];
             if (cardBg === 'ardoise')   return ['#37474F','#546E7A'];
             if (cardBg === 'noir')      return ['#1A1A1A','#2D2D2D'];
             const occ = template.occasion;
@@ -299,7 +300,7 @@ export default function CardPreviewScreen() {
             </Text>
             {/* Message personnel en direct */}
             {!!personalMessage.trim() && (
-              <View style={{ backgroundColor: ({ violet:'rgba(74,20,140,0.78)', bleu:'rgba(13,71,161,0.78)', rose:'rgba(136,14,79,0.78)', rouge:'rgba(183,28,28,0.78)', vert:'rgba(27,94,32,0.78)', or:'rgba(230,81,0,0.78)', turquoise:'rgba(0,105,92,0.78)', ardoise:'rgba(55,71,79,0.78)', noir:'rgba(26,26,26,0.82)' } as Record<string,string>)[cardMsgBg] ?? 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 8, marginTop: 2, maxWidth: '100%' }}>
+              <View style={{ backgroundColor: ({ violet:'rgba(74,20,140,0.78)', bleu:'rgba(13,71,161,0.78)', rose:'rgba(136,14,79,0.78)', rouge:'rgba(183,28,28,0.78)', vert:'rgba(27,94,32,0.78)', or:'rgba(230,81,0,0.78)', turquoise:'rgba(0,105,92,0.78)', jaune:'rgba(251,192,45,0.78)', ardoise:'rgba(55,71,79,0.78)', noir:'rgba(26,26,26,0.82)' } as Record<string,string>)[cardMsgBg] ?? 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 8, marginTop: 2, maxWidth: '100%' }}>
                 <Text style={{ fontFamily: 'BeVietnamPro_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.9)', textAlign: 'center', lineHeight: 16 }} numberOfLines={3}>
                   {personalMessage.trim()}
                 </Text>
@@ -461,6 +462,7 @@ export default function CardPreviewScreen() {
               { key: 'vert',      label: 'Forêt',     color: '#388e3c' },
               { key: 'or',        label: 'Or',        color: '#f9a825' },
               { key: 'turquoise', label: 'Turquoise', color: '#00897b' },
+              { key: 'jaune',     label: 'Jaune',      color: '#FFEE58' },
               { key: 'ardoise',   label: 'Ardoise',   color: '#546e7a' },
               { key: 'noir',      label: 'Noir',      color: '#2d2d2d' },
             ].map((c) => (
@@ -492,6 +494,7 @@ export default function CardPreviewScreen() {
                 { key: 'vert',      color: '#388e3c', label: 'Forêt'     },
                 { key: 'or',        color: '#f9a825', label: 'Or'        },
                 { key: 'turquoise', color: '#00897b', label: 'Turquoise' },
+                { key: 'jaune',     color: '#FFEE58', label: 'Jaune'      },
                 { key: 'ardoise',   color: '#546e7a', label: 'Ardoise'   },
                 { key: 'noir',      color: '#2d2d2d', label: 'Noir'      },
               ] as const).map((c) => (
