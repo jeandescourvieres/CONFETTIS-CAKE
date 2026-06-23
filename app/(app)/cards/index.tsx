@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -37,37 +37,45 @@ export default function CardsOccasionScreen() {
   const handleOccasion = useCallback(async (occasionKey: string) => {
     setLoading(occasionKey);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('card_templates')
         .select('id')
         .eq('occasion', occasionKey)
         .eq('active', true)
         .order('sort_order')
         .limit(1)
-        .single() as { data: { id: string } | null; error: unknown };
+        .maybeSingle() as { data: { id: string } | null; error: unknown };
+      if (error) throw error;
 
-      if (data?.id) {
+      let templateId = data?.id ?? null;
+
+      if (!templateId) {
+        // Aucun template pour cette occasion — on retombe sur un template universel
+        const { data: fallback, error: fallbackError } = await supabase
+          .from('card_templates')
+          .select('id')
+          .eq('active', true)
+          .order('sort_order')
+          .limit(1)
+          .maybeSingle() as { data: { id: string } | null; error: unknown };
+        if (fallbackError) throw fallbackError;
+        templateId = fallback?.id ?? null;
+      }
+
+      if (templateId) {
         router.push({
           pathname: '/(app)/cards/[id]',
           params: {
-            id: data.id,
+            id: templateId,
             contactName: params.contactName ?? '',
             contactId:   params.contactId   ?? '',
           },
         } as never);
+      } else {
+        Alert.alert('Oups', "Aucune carte n'est disponible pour cette occasion pour le moment.");
       }
     } catch {
-      // Aucun template trouvé — on essaie universal
-      const { data: fallback } = await supabase
-        .from('card_templates')
-        .select('id')
-        .eq('active', true)
-        .order('sort_order')
-        .limit(1)
-        .single() as { data: { id: string } | null; error: unknown };
-      if (fallback?.id) {
-        router.push({ pathname: '/(app)/cards/[id]', params: { id: fallback.id, contactName: params.contactName ?? '', contactId: params.contactId ?? '' } } as never);
-      }
+      Alert.alert('Erreur', 'Impossible de charger les cartes. Vérifie ta connexion et réessaie.');
     } finally {
       setLoading(null);
     }
